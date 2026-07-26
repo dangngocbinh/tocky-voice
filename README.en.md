@@ -12,6 +12,13 @@ middleman: your audio goes from your machine straight to the provider you chose.
 
 Built with Tauri v2 (Rust core + React UI). Interface in **English and Tiếng Việt**.
 
+<p align="center">
+  <img src="brand/screenshots/overlay.png" width="640" alt="The overlay showing a live level meter and text being transcribed">
+</p>
+
+<p align="center"><em>The overlay while you talk. White text is committed, grey is the interim guess.</em></p>
+
+
 ---
 
 ## Install
@@ -145,6 +152,17 @@ Measured on the *Clean* mode, Vietnamese with English terms:
 If a provider is slow, check whether the model is a *reasoning* model: those spend seconds
 producing hidden reasoning nobody reads before answering. DeepSeek V4 went from 10.8 s to
 1.9 s once that was switched off, which the app now does for you.
+
+---
+
+## The app
+
+| | |
+| --- | --- |
+| <img src="brand/screenshots/providers.png" alt="Choosing a speech provider"> | <img src="brand/screenshots/modes.png" alt="Editing modes"> |
+| **Providers** — badges say which is best for Vietnamese and which is free to start on | **Modes** — each one is a prompt for the AI plus its own hotkey |
+| <img src="brand/screenshots/about.png" alt="The About tab"> | |
+| **About** — sign-up links straight to each provider | |
 
 ---
 

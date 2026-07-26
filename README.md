@@ -13,6 +13,13 @@ không có bên trung gian: âm thanh đi thẳng từ máy bạn tới nhà cun
 
 Viết bằng Tauri v2 (lõi Rust + giao diện React). Giao diện có **tiếng Việt và tiếng Anh**.
 
+<p align="center">
+  <img src="brand/screenshots/overlay.png" width="640" alt="Overlay hiện sóng âm và chữ đang được nhận dạng">
+</p>
+
+<p align="center"><em>Overlay nổi lên khi bạn nói. Chữ trắng là đã chốt, chữ xám là đang đoán.</em></p>
+
+
 ---
 
 ## Cài đặt
@@ -144,6 +151,17 @@ là hôm nay chọn được.
 Nếu thấy chậm, kiểm tra xem model có phải loại *reasoning* không: loại đó đốt vài giây để
 "suy nghĩ ẩn" — thứ không ai đọc — trước khi trả lời. DeepSeek V4 từ 10.8 giây xuống còn
 1.9 giây sau khi tắt phần đó đi, và app giờ tự tắt giúp bạn.
+
+---
+
+## Giao diện
+
+| | |
+| --- | --- |
+| <img src="brand/screenshots/providers.png" alt="Chọn nhà cung cấp giọng nói"> | <img src="brand/screenshots/modes.png" alt="Chỉnh chế độ"> |
+| **Nhà cung cấp** — badge cho biết cái nào chuẩn tiếng Việt, cái nào miễn phí | **Chế độ** — mỗi chế độ một câu lệnh cho AI và một phím tắt riêng |
+| <img src="brand/screenshots/about.png" alt="Tab giới thiệu"> | |
+| **Giới thiệu** — link đăng ký thẳng tới từng nhà cung cấp | |
 
 ---
 

@@ -53,8 +53,9 @@ export function AboutPanel({ presets }: Props) {
               <button className="btn-quiet" onClick={() => open("https://mecode.pro")}>
                 mecode.pro ↗
               </button>
-              <span className="muted">hello@mecode.pro</span>
-              <span className="muted">0965 095 174</span>
+              {/* Email only. A phone number in an open-source app ends up scraped from
+                  the repository and screenshots long after it stops being wanted. */}
+              <span className="muted">binh@mecode.pro</span>
             </div>
           </div>
         </div>
