@@ -162,6 +162,10 @@ const en = {
     pttKey: "Key",
     pttKeyHint:
       "Watched by a listen-only event tap, so the key keeps working normally everywhere else. macOS only.",
+    pttMacOnly: "Holding one key is macOS-only",
+    pttMacOnlyHint:
+      "This setting came from the defaults but does nothing here — the listener behind it exists only on macOS. Switch to a key combination.",
+    pttUseShortcut: "Use a combination",
     pttCombo: "Combination",
     feedbackSection: "Feedback",
     sounds: "Sound cues",
@@ -449,6 +453,10 @@ const vi: Dictionary = {
     pttKey: "Phím",
     pttKeyHint:
       "Theo dõi bằng event tap chỉ-nghe, nên phím đó vẫn hoạt động bình thường ở mọi nơi khác. Chỉ có trên macOS.",
+    pttMacOnly: "Giữ một phím chỉ chạy trên macOS",
+    pttMacOnlyHint:
+      "Thiết lập này đến từ mặc định nhưng ở đây nó không làm gì cả — bộ lắng nghe phía sau chỉ có trên macOS. Hãy chuyển sang một tổ hợp phím.",
+    pttUseShortcut: "Dùng tổ hợp phím",
     pttCombo: "Tổ hợp",
     feedbackSection: "Phản hồi",
     sounds: "Âm báo",

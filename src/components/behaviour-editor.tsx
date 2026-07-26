@@ -2,6 +2,7 @@
 
 import type { AppSettings, ModifierKey, PushToTalk } from "../lib/types";
 import { useT } from "../lib/i18n";
+import { isMac } from "../lib/platform";
 import { HotkeyRecorder } from "./hotkey-recorder";
 import { Switch } from "./providers-editor";
 
@@ -139,14 +140,29 @@ export function BehaviourEditor({ settings, onSettingsChange }: Props) {
           </div>
           <div className="row__control">
             <select value={ptt.kind} onChange={(e) => setPttKind(e.target.value as PushToTalk["kind"])}>
-              <option value="modifier">{t.behaviour.pttModifier}</option>
+              {/* Holding a bare modifier is watched by a macOS event tap. Offering it
+                  elsewhere means the setting reads as configured and then silently does
+                  nothing when the key is pressed — the worst kind of broken. */}
+              {isMac && <option value="modifier">{t.behaviour.pttModifier}</option>}
               <option value="shortcut">{t.behaviour.pttShortcut}</option>
               <option value="disabled">{t.behaviour.pttDisabled}</option>
             </select>
           </div>
         </div>
 
-        {ptt.kind === "modifier" && (
+        {ptt.kind === "modifier" && !isMac && (
+          <div className="row">
+            <div>
+              <div className="row__label">{t.behaviour.pttMacOnly}</div>
+              <span className="row__hint">{t.behaviour.pttMacOnlyHint}</span>
+            </div>
+            <div className="row__control">
+              <button onClick={() => setPttKind("shortcut")}>{t.behaviour.pttUseShortcut}</button>
+            </div>
+          </div>
+        )}
+
+        {ptt.kind === "modifier" && isMac && (
           <div className="row">
             <div>
               <div className="row__label">{t.behaviour.pttKey}</div>
