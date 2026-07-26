@@ -210,8 +210,7 @@ Linux: `~/.config/pro.mecode.tockyvoice/`
 - `recordings/` — file WAV từng lần ghi, tự xoá theo số ngày bạn đặt
 
 Không có gì được gửi đi đâu ngoài dịch vụ giọng nói và AI mà bạn tự cấu hình. Không có
-telemetry. **Dạy học?** Nên tắt *Lưu bản ghi âm* trong Cài đặt → Lịch sử trước khi đưa cho
-học viên.
+telemetry.
 
 ---
 

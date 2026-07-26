@@ -211,8 +211,7 @@ Linux: `~/.config/pro.mecode.tockyvoice/`
 - `recordings/` — the WAV for each take, pruned by the retention setting
 
 Nothing is sent anywhere except the speech provider and the LLM provider you configured.
-There is no telemetry. **Teaching a class?** Consider turning off *Save recordings* in
-Settings → History before handing this to students.
+There is no telemetry.
 
 ---
 
