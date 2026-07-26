@@ -274,6 +274,20 @@ const en = {
     rerunBody: "Run the four-step setup again — handy if something stopped working.",
     rerun: "Run setup again",
   },
+
+  errors: {
+    needs_accessibility:
+      "Copied to the clipboard, but pasting needs Accessibility permission. Grant it to Tocky Voice in System Settings → Privacy & Security → Accessibility.",
+    no_paste_target:
+      "Copied to the clipboard. There was nothing to paste into — this take started while Tocky Voice was the front window. Click into the app you want the text in first, then press your hotkey.",
+    delivery_failed:
+      "Could not deliver the text. Your words are safe — open the History tab to copy them.",
+    no_stt_key: "No speech API key saved. Add one in Providers before recording.",
+    no_llm_key: "No AI provider key saved. Pasting the raw transcript instead.",
+    cleanup_failed: "AI cleanup failed. Pasting the raw transcript instead.",
+    mic_unavailable: "Could not open the microphone.",
+    transcription_failed: "Transcription failed.",
+  },
 } as const;
 
 type Dictionary = {
@@ -528,6 +542,20 @@ const vi: Dictionary = {
     rerunTitle: "Hướng dẫn cài đặt",
     rerunBody: "Chạy lại 4 bước cài đặt — hữu ích khi có gì đó ngừng hoạt động.",
     rerun: "Chạy lại hướng dẫn",
+  },
+
+  errors: {
+    needs_accessibility:
+      "Đã copy vào clipboard, nhưng để dán được thì cần quyền Accessibility. Cấp cho Tocky Voice trong System Settings → Privacy & Security → Accessibility.",
+    no_paste_target:
+      "Đã copy vào clipboard. Không có chỗ nào để dán — lần ghi này bắt đầu lúc cửa sổ Tocky Voice đang ở phía trước. Bấm vào ứng dụng bạn muốn chữ vào đó trước, rồi mới bấm phím tắt.",
+    delivery_failed:
+      "Không giao được chữ. Lời bạn nói không mất — mở tab Lịch sử để copy lại.",
+    no_stt_key: "Chưa lưu API key nhận dạng giọng nói. Vào Nhà cung cấp thêm key trước khi ghi.",
+    no_llm_key: "Chưa lưu key cho nhà cung cấp AI. Dán bản gốc chưa qua AI.",
+    cleanup_failed: "AI viết lại thất bại. Dán bản gốc chưa qua AI.",
+    mic_unavailable: "Không mở được micro.",
+    transcription_failed: "Nhận dạng giọng nói thất bại.",
   },
 };
 

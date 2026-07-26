@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import * as api from "../lib/api";
 import { useT } from "../lib/i18n";
+import { formatError } from "../lib/format-error";
 import type { AppSettings, Phase } from "../lib/types";
 import { useDictationEvents, useElapsed } from "../lib/use-dictation-events";
 import { usePermissionStatus } from "../lib/use-permission-status";
@@ -96,7 +97,7 @@ export function DictationPanel({ settings, onSettingsChange }: Props) {
         </div>
       </div>
 
-      {error && <div className="notice notice--error">{error}</div>}
+      {error && <div className="notice notice--error">{formatError(error, t)}</div>}
 
       <section className="section">
         <h2 className="section__title">{t.dictate.inputSection}</h2>

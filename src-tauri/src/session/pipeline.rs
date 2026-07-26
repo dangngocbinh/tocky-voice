@@ -10,6 +10,7 @@ use crate::history::{self, HistoryEntry};
 use crate::overlay;
 use crate::refine::{self, RefineRequest};
 use crate::settings::{secrets, defaults, OutputAction};
+use crate::errors::{ErrorKind, ErrorPayload};
 use crate::state::{self, emit_error, events, Phase};
 use crate::{audio, inject};
 use chrono::Utc;
@@ -25,8 +26,8 @@ use tauri::{AppHandle, Emitter, Manager};
 const ERROR_VISIBLE: std::time::Duration = std::time::Duration::from_secs(6);
 
 /// Surfaces a failure where it can actually be read.
-fn show_error(app: &AppHandle, message: impl Into<String>) {
-    emit_error(app, message);
+fn show_error(app: &AppHandle, payload: ErrorPayload) {
+    emit_error(app, payload);
     overlay::show(app);
 
     let app = app.clone();
@@ -92,29 +93,18 @@ pub async fn finish(
 
     match delivered {
         Ok(()) if wants_paste && !can_paste => {
-            show_error(
-                app,
-                "Copied to the clipboard, but pasting needs Accessibility permission. \
-                 Grant it to Tocky Voice in System Settings → Privacy & Security → \
-                 Accessibility, then restart the app.",
-            );
+            show_error(app, ErrorPayload::new(ErrorKind::NeedsAccessibility));
             feedback::play(feedback::Cue::Error, settings.audio.feedback_volume);
         }
         Ok(()) if wants_paste && !has_target => {
-            show_error(
-                app,
-                "Copied to the clipboard. There was nothing to paste into — this take \
-                 started while Tocky Voice was the front window. Click into the \
-                 app you want the text in first, then press your hotkey.",
-            );
+            show_error(app, ErrorPayload::new(ErrorKind::NoPasteTarget));
             feedback::play(feedback::Cue::Error, settings.audio.feedback_volume);
         }
         Ok(()) => feedback::play(feedback::Cue::Done, settings.audio.feedback_volume),
         Err(e) => {
             show_error(
                 app,
-                format!("Could not deliver the text ({e:#}). Your words are safe — open the \
-                         History tab to copy them."),
+                ErrorPayload::with_detail(ErrorKind::DeliveryFailed, format!("{e:#}")),
             );
             feedback::play(feedback::Cue::Error, settings.audio.feedback_volume);
         }
@@ -140,10 +130,7 @@ async fn refine_or_fall_back(
     if defaults::preset(&llm.preset).map(|p| p.needs_key).unwrap_or(true) && api_key.is_none() {
         emit_error(
             app,
-            format!(
-                "No API key set for {}. Pasting the raw transcript instead.",
-                llm.preset
-            ),
+            ErrorPayload::with_detail(ErrorKind::NoLlmKey, llm.preset.clone()),
         );
         return transcript.to_string();
     }
@@ -164,7 +151,7 @@ async fn refine_or_fall_back(
         Err(e) => {
             emit_error(
                 app,
-                format!("AI cleanup failed ({e:#}). Pasting the raw transcript instead."),
+                ErrorPayload::with_detail(ErrorKind::CleanupFailed, format!("{e:#}")),
             );
             transcript.to_string()
         }
@@ -216,11 +203,11 @@ fn record_history(
 }
 
 /// Shared failure path: surface the message, play the error cue, return to idle.
-pub fn fail(app: &AppHandle, mode_id: &str, message: String) {
+pub fn fail(app: &AppHandle, mode_id: &str, payload: ErrorPayload) {
     let settings = state::settings_snapshot(app);
     // Idle first: the overlay renders the error only once it is no longer showing a
     // take in progress, and `show_error` is what decides when the panel goes away.
     state::emit_status(app, Phase::Idle, mode_id);
-    show_error(app, message);
+    show_error(app, payload);
     feedback::play(feedback::Cue::Error, settings.audio.feedback_volume);
 }

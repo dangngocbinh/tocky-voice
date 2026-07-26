@@ -139,3 +139,23 @@ export const STT_PROVIDERS: {
     freeCredit: "$50 free credit",
   },
 ];
+
+/**
+ * A failure from the backend. The backend sends a *kind*, not a sentence, so the
+ * wording comes from the interface dictionary and follows the user's language.
+ * `detail` is the vendor's or the OS's own words and is shown verbatim.
+ */
+export type ErrorKind =
+  | "needs_accessibility"
+  | "no_paste_target"
+  | "delivery_failed"
+  | "no_stt_key"
+  | "no_llm_key"
+  | "cleanup_failed"
+  | "mic_unavailable"
+  | "transcription_failed";
+
+export interface ErrorPayload {
+  kind: ErrorKind;
+  detail: string | null;
+}

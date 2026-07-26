@@ -9,6 +9,7 @@ pub mod settings;
 pub mod stt;
 
 mod commands;
+mod errors;
 mod focus;
 mod history;
 mod hotkeys;

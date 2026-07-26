@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { EVENTS } from "./api";
-import type { Phase, StatusPayload } from "./types";
+import type { ErrorPayload, Phase, StatusPayload } from "./types";
 
 /** How many level samples the waveform keeps on screen. */
 const WAVEFORM_BARS = 48;
@@ -20,7 +20,7 @@ export interface DictationState {
   levels: number[];
   /** `Date.now()` when the current take started; null when idle. */
   startedAt: number | null;
-  error: string | null;
+  error: ErrorPayload | null;
 }
 
 const INITIAL: DictationState = {
@@ -81,7 +81,7 @@ export function useDictationEvents(): DictationState {
         }));
       }),
 
-      listen<string>(EVENTS.error, ({ payload }) => {
+      listen<ErrorPayload>(EVENTS.error, ({ payload }) => {
         setState((prev) => ({ ...prev, error: payload }));
       }),
     ];

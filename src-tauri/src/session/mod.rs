@@ -10,6 +10,7 @@ use crate::audio::{capture, feedback, resample};
 use crate::focus;
 use crate::overlay;
 use crate::settings::secrets;
+use crate::errors::{ErrorKind, ErrorPayload};
 use crate::state::{self, emit_error, events, Phase};
 use crate::stt;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -76,10 +77,7 @@ pub fn start(app: &AppHandle, mode_id: Option<String>) {
     let Some(api_key) = secrets::get_key(secrets::stt_account(&settings.stt.provider)) else {
         emit_error(
             app,
-            format!(
-                "No API key set for {:?}. Add one in Settings → Speech before recording.",
-                settings.stt.provider
-            ),
+            ErrorPayload::with_detail(ErrorKind::NoSttKey, format!("{:?}", settings.stt.provider)),
         );
         feedback::play(feedback::Cue::Error, settings.audio.feedback_volume);
         return;
@@ -89,7 +87,7 @@ pub fn start(app: &AppHandle, mode_id: Option<String>) {
     let capture = match capture::start(settings.audio.input_device.clone(), chunk_tx) {
         Ok(handle) => handle,
         Err(e) => {
-            emit_error(app, format!("Could not open the microphone: {e:#}"));
+            emit_error(app, ErrorPayload::with_detail(ErrorKind::MicUnavailable, format!("{e:#}")));
             feedback::play(feedback::Cue::Error, settings.audio.feedback_volume);
             return;
         }
@@ -199,11 +197,19 @@ pub fn stop(app: &AppHandle) {
         let transcript = match take.stt_task.await {
             Ok(Ok(text)) => text,
             Ok(Err(e)) => {
-                pipeline::fail(&app, &take.mode_id, format!("Transcription failed: {e:#}"));
+                pipeline::fail(
+                    &app,
+                    &take.mode_id,
+                    ErrorPayload::with_detail(ErrorKind::TranscriptionFailed, format!("{e:#}")),
+                );
                 return;
             }
             Err(e) => {
-                pipeline::fail(&app, &take.mode_id, format!("Transcription task died: {e}"));
+                pipeline::fail(
+                    &app,
+                    &take.mode_id,
+                    ErrorPayload::with_detail(ErrorKind::TranscriptionFailed, format!("{e}")),
+                );
                 return;
             }
         };

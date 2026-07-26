@@ -13,6 +13,7 @@ import * as api from "./lib/api";
 import { formatAccelerator, formatModifier } from "./lib/format-accelerator";
 import { useDictationEvents, useElapsed } from "./lib/use-dictation-events";
 import { useT } from "./lib/i18n";
+import { formatError } from "./lib/format-error";
 import { Waveform } from "./components/waveform";
 import type { AppSettings } from "./lib/types";
 
@@ -46,7 +47,7 @@ export function OverlayPanel() {
 
       <div className="overlay__text" ref={textRef}>
         {error ? (
-          <span className="overlay__error">{error}</span>
+          <span className="overlay__error">{formatError(error, t)}</span>
         ) : transcript || partial ? (
           <>
             {transcript}

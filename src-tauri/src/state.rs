@@ -69,8 +69,14 @@ pub fn emit_status(app: &AppHandle, phase: Phase, mode_id: &str) {
     );
 }
 
-pub fn emit_error(app: &AppHandle, message: impl Into<String>) {
-    let message = message.into();
-    log::error!("{message}");
-    let _ = app.emit(events::ERROR, message);
+/// Sends a failure to the UI as a kind the frontend can translate.
+///
+/// The log keeps the English name plus the raw cause, so a bug report is readable no
+/// matter which language the person was running the app in.
+pub fn emit_error(app: &AppHandle, payload: crate::errors::ErrorPayload) {
+    match &payload.detail {
+        Some(detail) => log::error!("{:?}: {detail}", payload.kind),
+        None => log::error!("{:?}", payload.kind),
+    }
+    let _ = app.emit(events::ERROR, payload);
 }
