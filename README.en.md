@@ -284,6 +284,25 @@ git tag v0.1.0 && git push origin v0.1.0
 
 ---
 
+## Support the author
+
+Tocky Voice is free and always will be. If it is useful to you, you can chip in so the
+next thing gets built too:
+
+| | |
+| --- | --- |
+| **MB Bank** | `0899279774` — Đặng Ngọc Bình |
+| **Vietcombank** | `0251002681598` — Đặng Ngọc Bình |
+
+Or scan the QR and find other ways at **[dangngocbinh.com/lien-he](https://dangngocbinh.com/lien-he/)**.
+
+🎓 The author also teaches AI automation, VibeCode and AI agents —
+**[courses at ME Code](https://mecode.pro/khoa-hoc)** (in Vietnamese).
+
+No obligation at all — using it and telling someone else about it is plenty.
+
+---
+
 ## License
 
 [MIT](LICENSE) — use it, change it, ship it, sell it. The one condition is that the

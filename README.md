@@ -283,6 +283,25 @@ git tag v0.1.0 && git push origin v0.1.0
 
 ---
 
+## Ủng hộ tác giả
+
+Tocky Voice miễn phí và sẽ luôn miễn phí. Nếu nó giúp ích cho bạn, bạn có thể ủng hộ để
+tác giả tiếp tục làm những sản phẩm tiếp theo:
+
+| | |
+| --- | --- |
+| **MB Bank** | `0899279774` — Đặng Ngọc Bình |
+| **Vietcombank** | `0251002681598` — Đặng Ngọc Bình |
+
+Hoặc quét QR và xem thêm cách khác tại **[dangngocbinh.com/lien-he](https://dangngocbinh.com/lien-he/)**.
+
+🎓 Tác giả cũng dạy về AI Automation, VibeCode, AI Agent và tự động hoá —
+**[xem các khoá học tại ME Code](https://mecode.pro/khoa-hoc)**.
+
+Không ủng hộ cũng không sao — cứ dùng thoải mái, và kể cho người khác nghe là đủ vui rồi.
+
+---
+
 ## Giấy phép
 
 [MIT](LICENSE) — dùng, sửa, phát hành, bán lại đều được. Điều kiện duy nhất là giữ lại dòng
