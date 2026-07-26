@@ -117,10 +117,13 @@ export const STT_PROVIDERS: {
   label: string;
   secret: string;
   signupUrl: string;
-  /** Most accurate on Vietnamese and English mixed in one sentence. */
-  bestForVietnamese: boolean;
-  /** Where someone starting with no budget should go: the largest free allowance. */
-  startHere: boolean;
+  /**
+   * The single thing worth knowing about this provider, shown as one badge.
+   *
+   * One badge, not a row of them: the badge answers "why would I pick this one",
+   * and a provider with four chips answers nothing.
+   */
+  badge: "best_vietnamese" | "free_credit";
   /** What a new account gets, or null when the vendor bills from the first minute. */
   freeCredit: string | null;
   /** Streaming price in USD per hour, so the trade-off is comparable at a glance. */
@@ -131,8 +134,7 @@ export const STT_PROVIDERS: {
     label: "Soniox",
     secret: "soniox",
     signupUrl: "https://console.soniox.com/",
-    bestForVietnamese: true,
-    startHere: false,
+    badge: "best_vietnamese",
     freeCredit: null,
     hourlyUsd: 0.12,
   },
@@ -141,8 +143,7 @@ export const STT_PROVIDERS: {
     label: "Deepgram",
     secret: "deepgram",
     signupUrl: "https://console.deepgram.com/signup",
-    bestForVietnamese: false,
-    startHere: true,
+    badge: "free_credit",
     freeCredit: "$200",
     hourlyUsd: 0.29,
   },
@@ -151,8 +152,7 @@ export const STT_PROVIDERS: {
     label: "AssemblyAI",
     secret: "assemblyai",
     signupUrl: "https://www.assemblyai.com/dashboard/signup",
-    bestForVietnamese: false,
-    startHere: false,
+    badge: "free_credit",
     freeCredit: "$50",
     hourlyUsd: 0.15,
   },

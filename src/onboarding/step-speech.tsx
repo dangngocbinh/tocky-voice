@@ -11,7 +11,7 @@ import * as api from "../lib/api";
 import { useT } from "../lib/i18n";
 import type { AppSettings, SttProviderKind } from "../lib/types";
 import { STT_PROVIDERS } from "../lib/types";
-import { SttBadges, useSttNote } from "../components/stt-provider-badges";
+import { SttBadge, useSttNote } from "../components/stt-provider-badges";
 
 interface Props {
   settings: AppSettings;
@@ -63,9 +63,9 @@ export function StepSpeech({ settings, onSettingsChange, onReadyChange }: Props)
           >
             <span className="onb__choice-name">
               {p.label}
+              <SttBadge provider={p} />
               {keys[p.secret] && <span className="onb__tick">✓</span>}
             </span>
-            <SttBadges provider={p} />
             <SttNote provider={p} />
           </button>
         ))}
@@ -89,7 +89,7 @@ export function StepSpeech({ settings, onSettingsChange, onReadyChange }: Props)
             >
               {t.onboarding.getFreeKey} ↗
             </button>
-            <SttBadges provider={active} />
+            <SttBadge provider={active} />
           </div>
           <div className="keyline" style={{ marginTop: 12 }}>
             <input

@@ -11,7 +11,7 @@ import { useT } from "../lib/i18n";
 import type { AppSettings, LlmPreset, SttProviderKind } from "../lib/types";
 import { STT_PROVIDERS } from "../lib/types";
 import { LANGUAGES } from "../lib/languages";
-import { SttBadges, useSttNote } from "./stt-provider-badges";
+import { SttBadge, useSttNote } from "./stt-provider-badges";
 
 interface Props {
   settings: AppSettings;
@@ -85,8 +85,10 @@ export function ProvidersEditor({ settings, onSettingsChange }: Props) {
                 }
               />
               <div>
-                <div className="pick__name">{p.label}</div>
-                <SttBadges provider={p} />
+                <div className="pick__name">
+                  {p.label}
+                  <SttBadge provider={p} />
+                </div>
                 <SttNote provider={p} />
                 <KeyField account={p.secret} configured={keys[p.secret]} onSaved={refreshKeys} />
               </div>

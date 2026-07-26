@@ -1468,16 +1468,9 @@ a:hover {
   color: var(--accent);
 }
 
-/* Provider badges. Two questions get two colours: amber for "this one understands you
-   best", green for "this one you can start on for free". They land on different
-   providers on purpose, so they must not look like the same recommendation. */
-.badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin: 6px 0 4px;
-}
-
+/* Provider badge. Amber says "this is the accurate one", green says "this one is free
+   to try". Different reasons, so different colours — they must not read as the same
+   recommendation. */
 .chip--star {
   color: var(--accent);
   border-color: rgba(224, 160, 60, 0.35);
@@ -1489,4 +1482,30 @@ a:hover {
   color: var(--paper-3);
   border-color: var(--line);
   background: transparent;
+}
+
+/* The badge sits inline after the provider name, so the list reads "Soniox — chuẩn
+   tiếng Việt" at a glance. Inline rather than flex on the container: `.row__label` is
+   shared with thirty other rows whose hint text must stay on its own line below. */
+.chip {
+  vertical-align: middle;
+}
+
+.pick__name .chip,
+.onb__choice-name .chip,
+.row__label .chip {
+  margin-left: 8px;
+}
+
+/* Text inside a <button> does not wrap on its own, which cut every provider
+   description off at the right edge of the card. */
+.onb__choice {
+  white-space: normal;
+}
+
+.onb__choice-note,
+.pick__note {
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }

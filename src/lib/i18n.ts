@@ -290,11 +290,9 @@ const en = {
   },
 
   stt: {
-    bestForVietnamese: "Best for Vietnamese",
-    startHere: "Start here",
-    freeCredit: "{amount} free, no card needed",
-    noFreeCredit: "No free credit",
-    perHour: "${price}/hour",
+    best_vietnamese: "Best for Vietnamese",
+    free_credit: "Free {amount}",
+    paid: "Paid — ${price}/hour",
     soniox:
       "The most accurate when you mix Vietnamese and English in one sentence. Billed from the first minute, but the cheapest per hour.",
     deepgram:
@@ -573,11 +571,9 @@ const vi: Dictionary = {
   },
 
   stt: {
-    bestForVietnamese: "Chuẩn nhất cho tiếng Việt",
-    startHere: "Bắt đầu ở đây",
-    freeCredit: "{amount} miễn phí, không cần thẻ",
-    noFreeCredit: "Không có credit miễn phí",
-    perHour: "${price}/giờ",
+    best_vietnamese: "Chuẩn tiếng Việt",
+    free_credit: "Miễn phí {amount}",
+    paid: "Trả phí — ${price}/giờ",
     soniox:
       "Nghe chuẩn nhất khi bạn nói tiếng Việt lẫn tiếng Anh trong cùng một câu. Tính tiền ngay từ phút đầu, nhưng lại rẻ nhất theo giờ.",
     deepgram:

@@ -10,7 +10,7 @@
 import * as api from "../lib/api";
 import { useT } from "../lib/i18n";
 import { STT_PROVIDERS } from "../lib/types";
-import { SttBadges, useSttNote } from "./stt-provider-badges";
+import { SttBadge, useSttNote } from "./stt-provider-badges";
 import type { LlmPreset } from "../lib/types";
 import mecodeLogo from "../assets/brand/mecode-logo.png";
 
@@ -68,8 +68,10 @@ export function AboutPanel({ presets }: Props) {
         {STT_PROVIDERS.map((p) => (
           <div className="row" key={p.id}>
             <div>
-              <div className="row__label">{p.label}</div>
-              <SttBadges provider={p} />
+              <div className="row__label">
+                {p.label}
+                <SttBadge provider={p} />
+              </div>
               <SttNote provider={p} />
             </div>
             <div className="row__control">
