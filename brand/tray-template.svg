@@ -1,0 +1,12 @@
+<!-- macOS template image: black shapes plus alpha only. The system recolours it for
+     light/dark menu bars, so any colour here would be discarded anyway. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="44" height="44">
+  <g transform="rotate(-9 22 22)" stroke="#000" stroke-linecap="round" fill="none">
+    <path d="M7 22h0"    stroke-width="3.4"/>
+    <path d="M13.5 17.5v9" stroke-width="3.4"/>
+    <path d="M20 12v20"  stroke-width="3.4"/>
+    <path d="M26.5 16v12" stroke-width="3.4"/>
+    <path d="M33 19.5v5" stroke-width="3.4"/>
+    <path d="M37 22h0"   stroke-width="3.4"/>
+  </g>
+</svg>

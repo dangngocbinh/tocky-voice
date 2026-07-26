@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Shown in the macOS permission prompt the first time we open the microphone. -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Tocky Voice records your voice so it can transcribe what you say and paste the text into the app you are using.</string>
+
+    <!-- Menu-bar app: no Dock icon, and showing the overlay never steals focus from
+         the app you are dictating into. -->
+    <key>LSUIElement</key>
+    <true/>
+</dict>
+</plist>

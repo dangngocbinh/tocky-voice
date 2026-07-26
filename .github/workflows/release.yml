@@ -1,0 +1,107 @@
+# Builds installers for macOS, Windows and Linux and attaches them to a GitHub Release.
+#
+# Also the only place the Windows and Linux builds are compiled at all: the project is
+# developed on a Mac, where cross-checking those targets needs GTK development headers
+# and several GB of target directory. Running the matrix on every push to `main` is what
+# stops a macOS-only assumption from reaching a release unnoticed.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    strategy:
+      # One platform failing should not hide whether the others are fine.
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: "--target aarch64-apple-darwin"
+            name: macOS (Apple Silicon)
+          - platform: macos-latest
+            args: "--target x86_64-apple-darwin"
+            name: macOS (Intel)
+          - platform: ubuntu-22.04
+            args: ""
+            name: Linux
+          - platform: windows-latest
+            args: ""
+            name: Windows
+
+    runs-on: ${{ matrix.platform }}
+    name: ${{ matrix.name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          # libasound2-dev is for cpal (microphone capture) — easy to forget, and the
+          # failure is a linker error a long way from anything about audio.
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libasound2-dev \
+            patchelf \
+            build-essential \
+            curl wget file libxdo-dev libssl-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+          key: ${{ matrix.platform }}-${{ matrix.args }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
+      - name: Rust tests
+        working-directory: ./src-tauri
+        # The live provider tests are `#[ignore]`d, so this needs no API keys.
+        run: cargo test --lib
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Only publish from a tag. Branch and PR runs exist to prove the code still
+          # compiles on all three platforms.
+          tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+          releaseName: ${{ startsWith(github.ref, 'refs/tags/') && 'Tocky Voice __VERSION__' || '' }}
+          releaseBody: |
+            See the README for install steps.
+
+            **macOS**: the app is not notarised, so the first launch needs
+            right-click → Open, and Accessibility permission has to be granted before
+            pasting works.
+          releaseDraft: true
+          args: ${{ matrix.args }}

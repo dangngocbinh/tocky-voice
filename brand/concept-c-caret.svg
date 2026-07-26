@@ -1,0 +1,15 @@
+<!-- C: "Caret" — a text cursor blooming into a waveform. Reads as "speech becomes
+     text" more than the other two, but is the least literal about typing. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgC" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F3EFE8"/><stop offset="1" stop-color="#DED8CD"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="114" fill="url(#bgC)"/>
+  <path d="M132 150h56M160 150v212M132 362h56" stroke="#191614" stroke-width="26"
+        stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <g stroke="#C9761F" stroke-width="30" stroke-linecap="round">
+    <path d="M242 220v72"/><path d="M310 166v180"/><path d="M378 202v108"/>
+  </g>
+</svg>

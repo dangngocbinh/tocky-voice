@@ -1,0 +1,19 @@
+<!-- A: "Keycap" — a key you press, whose face is a voice. The two ideas fused into
+     one object rather than placed side by side. Most legible at 16px. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2A2724"/><stop offset="1" stop-color="#100F0E"/>
+    </linearGradient>
+    <linearGradient id="capA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F0B455"/><stop offset="1" stop-color="#D08F2C"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="114" fill="url(#bgA)"/>
+  <rect x="96" y="104" width="320" height="304" rx="56" fill="url(#capA)"/>
+  <rect x="96" y="104" width="320" height="284" rx="56" fill="#F7C878" opacity=".45"/>
+  <g stroke="#171310" stroke-width="26" stroke-linecap="round">
+    <path d="M168 256v0"/><path d="M216 224v64"/><path d="M264 186v140"/>
+    <path d="M312 214v84"/><path d="M356 242v28"/>
+  </g>
+</svg>

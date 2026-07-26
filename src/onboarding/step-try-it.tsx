@@ -1,0 +1,91 @@
+/**
+ * Step 4: one real dictation, then the sentence that matters.
+ *
+ * Reading that a hotkey exists is not the same as having pressed it once and watched
+ * words appear. This step is deliberately a live take rather than a diagram: it also
+ * triggers the microphone permission prompt here, in a screen that explains it, instead
+ * of during the user's first real attempt in someone else's app.
+ */
+
+import { useEffect, useState } from "react";
+import * as api from "../lib/api";
+import { formatAccelerator, formatModifier } from "../lib/format-accelerator";
+import { useT } from "../lib/i18n";
+import type { AppSettings } from "../lib/types";
+import { useDictationEvents } from "../lib/use-dictation-events";
+import { Waveform } from "../components/waveform";
+
+interface Props {
+  settings: AppSettings;
+  onSettingsChange: (settings: AppSettings) => void;
+}
+
+export function StepTryIt({ settings, onSettingsChange }: Props) {
+  const { phase, transcript, partial, levels } = useDictationEvents();
+  const [devices, setDevices] = useState<string[]>([]);
+  const t = useT();
+
+  useEffect(() => {
+    api.listInputDevices().then(setDevices).catch(() => setDevices([]));
+  }, []);
+
+  const recording = phase === "recording";
+  const text = [transcript, partial].filter(Boolean).join(" ");
+  const ptt = settings.hotkeys.push_to_talk;
+  const hold = ptt.kind === "modifier" ? formatModifier(ptt.key) : null;
+
+  return (
+    <>
+      <p className="onb__lede">{t.onboarding.tryBody}</p>
+
+      <div className="onb__row">
+        <span className="onb__row-label">{t.dictate.microphone}</span>
+        <select
+          value={settings.audio.input_device ?? ""}
+          onChange={(e) =>
+            onSettingsChange({
+              ...settings,
+              audio: { ...settings.audio, input_device: e.target.value || null },
+            })
+          }
+        >
+          <option value="">{t.common.systemDefault}</option>
+          {devices.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="onb__keys">
+        <div>
+          <kbd>{formatAccelerator(settings.hotkeys.toggle)}</kbd>
+          <span>{t.onboarding.keyToggle}</span>
+        </div>
+        {hold && (
+          <div>
+            <kbd>{hold}</kbd>
+            <span>{t.onboarding.keyHold}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="onb__stage">
+        <Waveform levels={levels} active={recording} />
+        <div className="onb__stage-text">
+          {text || <span className="muted">{t.onboarding.tryHint}</span>}
+        </div>
+        <button
+          className={recording ? "btn-quiet btn-danger" : "btn-primary"}
+          onClick={() => (recording ? api.stopRecording() : api.startRecording())}
+        >
+          {recording ? t.dictate.stop : t.onboarding.tryStart}
+        </button>
+      </div>
+
+      {/* The payoff line. Everything above is setup; this is the actual product. */}
+      <p className="onb__finale">{t.onboarding.tryFinale}</p>
+    </>
+  );
+}

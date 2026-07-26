@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Settings window and the floating recording overlay",
+  "windows": ["main", "overlay"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-set-focus",
+    "core:window:allow-start-dragging",
+    "opener:default",
+    "global-shortcut:default",
+    "autostart:default"
+  ]
+}

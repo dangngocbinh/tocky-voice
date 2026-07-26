@@ -1,0 +1,70 @@
+[package]
+name = "tockyvoice"
+version = "0.1.0"
+description = "Tocky Voice — realtime STT + AI cleanup, pasted anywhere"
+authors = ["Dang Ngoc Binh (ME Code) <hello@mecode.pro>"]
+license = "MIT"
+edition = "2021"
+
+[lib]
+# The `_lib` suffix keeps the lib name distinct from the bin name (Windows link conflict).
+name = "tockyvoice_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# `macos-private-api` backs the transparent overlay window declared in tauri.conf.json.
+tauri = { version = "2", features = ["tray-icon", "image-png", "macos-private-api"] }
+tauri-plugin-opener = "2"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-autostart = "2"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# async runtime + networking
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-native-roots"] }
+futures-util = "0.3"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+# audio capture + feedback tones
+cpal = "0.15"
+rodio = { version = "0.19", default-features = false }
+hound = "3"
+
+# credential storage + input synthesis
+# One credential store per platform: Keychain, Credential Manager, Secret Service.
+# `crypto-rust` keeps the Linux backend off a system OpenSSL, so a plain `cargo build`
+# works on a clean Linux box.
+keyring = { version = "3", features = [
+    "apple-native",
+    "windows-native",
+    "sync-secret-service",
+    "crypto-rust",
+] }
+enigo = "0.3"
+
+anyhow = "1"
+log = "0.4"
+env_logger = "0.11"
+urlencoding = "2"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+sys-locale = "0.3"
+
+# Right-Option push-to-talk needs a raw modifier listener, not a normal shortcut,
+# and pasting needs to hand focus back to whichever app the user was typing in.
+[target.'cfg(target_os = "macos")'.dependencies]
+core-graphics = "0.24"
+core-foundation = "0.10"
+objc2 = "0.5"
+# `libc` gates the pid-typed methods on NSRunningApplication.
+objc2-app-kit = { version = "0.2", features = [
+    "NSWorkspace",
+    "NSRunningApplication",
+    "libc",
+] }
