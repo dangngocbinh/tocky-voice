@@ -307,6 +307,12 @@ nó bắt đầu.
 
 Fork và dự án của học viên đều được hoan nghênh, không cần xin phép.
 
+Phần mềm này đóng gói sẵn hai bộ font (Be Vietnam Pro và JetBrains Mono), cả hai đều
+theo SIL Open Font License 1.1 — giấy phép và dòng bản quyền của chúng nằm trong
+**[`licenses/`](licenses/)**. Toàn bộ thư viện phụ thuộc cũng đã được rà: không có
+GPL/AGPL nào, nên phát hành bản build theo MIT không phát sinh nghĩa vụ copyleft.
+
+
 ### Về cái tên và logo
 
 Giấy phép MIT bao phủ **mã nguồn**. Nó không cấp quyền với cái tên *Tocky Voice* hay

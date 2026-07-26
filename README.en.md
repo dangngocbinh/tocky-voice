@@ -308,6 +308,12 @@ pointing back to where it came from.
 
 Forks and student projects are welcome and need no permission.
 
+The app bundles two typefaces (Be Vietnam Pro and JetBrains Mono), both under the SIL
+Open Font License 1.1 — their licences and copyright notices are in
+**[`licenses/`](licenses/)**. Every code dependency was audited too: no GPL/AGPL is
+linked, so shipping an MIT binary carries no copyleft obligation.
+
+
 ### About the name and the logo
 
 The MIT licence covers the **code**. It does not grant rights to the names *Tocky Voice*
