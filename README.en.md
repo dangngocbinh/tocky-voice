@@ -289,17 +289,14 @@ git tag v0.1.0 && git push origin v0.1.0
 Tocky Voice is free and always will be. If it is useful to you, you can chip in so the
 next thing gets built too:
 
-| | |
-| --- | --- |
-| **MB Bank** | `0899279774` — Đặng Ngọc Bình |
-| **Vietcombank** | `0251002681598` — Đặng Ngọc Bình |
+<p align="center">
+  <img src="brand/donate-qr.png" width="260" alt="VietQR code for a bank transfer to Dang Ngoc Binh, MB Bank">
+</p>
 
-Or scan the QR and find other ways at **[dangngocbinh.com/lien-he](https://dangngocbinh.com/lien-he/)**.
+Scan it with any Vietnamese banking app.
 
 🎓 The author also teaches AI automation, VibeCode and AI agents —
 **[courses at ME Code](https://mecode.pro/khoa-hoc)** (in Vietnamese).
-
-No obligation at all — using it and telling someone else about it is plenty.
 
 ---
 
