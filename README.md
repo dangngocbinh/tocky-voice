@@ -1,8 +1,8 @@
-# Tocky Voice · Tốc Ký
+# Tocky Voice · Gõ phím bằng giọng nói chính xác cao
 
 **Tiếng Việt** · [English](README.en.md)
 
-### Bớt gõ đi, tâm sự bằng giọng nói của bạn.
+### Đã đến lúc bớt gõ lại. Vì Tocky sẽ ghi ra chính xác những gì bạn nói trên máy tính.
 
 Giữ một phím ở bất kỳ đâu trên máy, nói, và chữ hiện ra ngay trong ứng dụng bạn đang gõ —
 được nhận dạng bởi dịch vụ speech-to-text thời gian thực, và nếu muốn thì được AI viết lại

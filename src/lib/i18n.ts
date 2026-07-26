@@ -518,7 +518,7 @@ const vi: Dictionary = {
     recheck: "Kiểm tra lại",
     checking: "Đang kiểm tra…",
 
-    tagline: "Bớt gõ đi, tâm sự bằng giọng nói của bạn.",
+    tagline: "Đã đến lúc bớt gõ lại. Vì Tocky sẽ ghi ra chính xác những gì bạn nói trên máy tính.",
     languageTitle: "Chào mừng đến Tocky Voice",
     languageBody:
       "Giữ một phím ở bất kỳ đâu trên máy, nói, và chữ được gõ thẳng vào ứng dụng bạn đang mở. Bốn bước ngắn là xong. Trước tiên, bạn muốn app hiển thị bằng ngôn ngữ nào?",

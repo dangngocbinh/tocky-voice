@@ -1,4 +1,4 @@
-# Tocky Voice · Tốc Ký
+# Tocky Voice · High-accuracy voice typing
 
 **English** · [Tiếng Việt](README.md)
 
