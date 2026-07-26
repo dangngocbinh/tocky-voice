@@ -128,12 +128,17 @@ pub fn run() {
         ])
         .build(tauri::generate_context!())
         .expect("error while starting Tocky Voice")
-        .run(|app, event| {
+        .run(|_app, _event| {
             // Clicking the app again in Finder or the Dock sends Reopen rather than
             // launching a second copy. A menu-bar app has to answer it itself, or the
             // relaunch looks like the app silently refused to open.
-            if let tauri::RunEvent::Reopen { .. } = event {
-                show_settings_window(app);
+            //
+            // `RunEvent::Reopen` only exists in the macOS build of Tauri — there is no
+            // equivalent event on Windows or Linux, so referring to it unconditionally
+            // fails to compile there.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = _event {
+                show_settings_window(_app);
             }
         });
 }

@@ -10,7 +10,6 @@ use crate::session;
 use crate::settings::AppSettings;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::Manager;
 
 const TRAY_ID: &str = "fvt-tray";
 
