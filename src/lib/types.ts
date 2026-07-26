@@ -105,38 +105,56 @@ export interface StatusPayload {
   mode_name: string;
 }
 
+/**
+ * The speech providers, described by *properties* rather than prose.
+ *
+ * The wording lives in the interface dictionary so it follows the user's language —
+ * a hardcoded English sentence here would show up untranslated everywhere it is used.
+ * Prices and credits verified against each vendor's public pricing page.
+ */
 export const STT_PROVIDERS: {
   id: SttProviderKind;
   label: string;
   secret: string;
-  note: string;
   signupUrl: string;
-  /** Only stated where the vendor publishes it — see the About tab. */
+  /** Most accurate on Vietnamese and English mixed in one sentence. */
+  bestForVietnamese: boolean;
+  /** Where someone starting with no budget should go: the largest free allowance. */
+  startHere: boolean;
+  /** What a new account gets, or null when the vendor bills from the first minute. */
   freeCredit: string | null;
+  /** Streaming price in USD per hour, so the trade-off is comparable at a glance. */
+  hourlyUsd: number;
 }[] = [
   {
     id: "soniox",
     label: "Soniox",
     secret: "soniox",
-    note: "Best for mixed Vietnamese + English in one sentence. $0.12/hour streaming.",
     signupUrl: "https://console.soniox.com/",
-    freeCredit: "free trial credit on signup",
+    bestForVietnamese: true,
+    startHere: false,
+    freeCredit: null,
+    hourlyUsd: 0.12,
   },
   {
     id: "deepgram",
     label: "Deepgram",
     secret: "deepgram",
-    note: "Lowest latency. Vietnamese needs the nova-2 model, and quality on mixed VI/EN is weaker.",
     signupUrl: "https://console.deepgram.com/signup",
-    freeCredit: "$200 free credit",
+    bestForVietnamese: false,
+    startHere: true,
+    freeCredit: "$200",
+    hourlyUsd: 0.29,
   },
   {
     id: "assembly_ai",
     label: "AssemblyAI",
     secret: "assemblyai",
-    note: "Very accurate on English; its streaming tier has no Vietnamese yet.",
     signupUrl: "https://www.assemblyai.com/dashboard/signup",
-    freeCredit: "$50 free credit",
+    bestForVietnamese: false,
+    startHere: false,
+    freeCredit: "$50",
+    hourlyUsd: 0.15,
   },
 ];
 

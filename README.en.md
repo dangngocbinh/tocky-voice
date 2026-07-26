@@ -78,11 +78,16 @@ The app walks you through setup in four steps, and you can re-run it any time fr
 
 ### Getting a speech key (free)
 
-| Provider | Free tier | Good at |
-| --- | --- | --- |
-| **Soniox** (recommended) | Trial credit on signup | Vietnamese and English **mixed in one sentence** — accepts several language hints at once |
-| Deepgram | $200 credit | Lowest latency. Vietnamese needs the `nova-2` model; mixed VI/EN is noticeably worse |
-| AssemblyAI | Free tier | Very accurate on English; its streaming tier has no Vietnamese yet |
+| Provider | Free credit | Streaming price | Pick it when |
+| --- | --- | --- | --- |
+| **Deepgram** — *start here* | **$200, no card** (~690 hours) | ~$0.29/hour | You want to be up and running without spending anything |
+| **Soniox** — *best for Vietnamese* | None | **$0.12/hour — cheapest** | You mix Vietnamese and English in one sentence |
+| AssemblyAI | $50, no card | $0.15/hour | You mostly speak English (no Vietnamese in streaming yet) |
+
+Soniox is the most accurate but bills from the first minute — and is the cheapest per
+hour in exchange. Deepgram's $200 makes it the sensible place to start; switch to Soniox
+once mixed Vietnamese-English sentences start coming out wrong. Changing provider takes
+seconds in Settings.
 
 Sign-up links are built into the app, next to the empty key field.
 

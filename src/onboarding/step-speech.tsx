@@ -11,6 +11,7 @@ import * as api from "../lib/api";
 import { useT } from "../lib/i18n";
 import type { AppSettings, SttProviderKind } from "../lib/types";
 import { STT_PROVIDERS } from "../lib/types";
+import { SttBadges, useSttNote } from "../components/stt-provider-badges";
 
 interface Props {
   settings: AppSettings;
@@ -62,14 +63,10 @@ export function StepSpeech({ settings, onSettingsChange, onReadyChange }: Props)
           >
             <span className="onb__choice-name">
               {p.label}
-              {p.id === "soniox" && (
-                <span className="chip chip--ok" style={{ marginLeft: 8 }}>
-                  {t.onboarding.recommended}
-                </span>
-              )}
               {keys[p.secret] && <span className="onb__tick">✓</span>}
             </span>
-            <span className="onb__choice-note">{p.note}</span>
+            <SttBadges provider={p} />
+            <SttNote provider={p} />
           </button>
         ))}
       </div>
@@ -92,7 +89,7 @@ export function StepSpeech({ settings, onSettingsChange, onReadyChange }: Props)
             >
               {t.onboarding.getFreeKey} ↗
             </button>
-            {active.freeCredit && <span className="chip chip--ok">{active.freeCredit}</span>}
+            <SttBadges provider={active} />
           </div>
           <div className="keyline" style={{ marginTop: 12 }}>
             <input
@@ -110,4 +107,9 @@ export function StepSpeech({ settings, onSettingsChange, onReadyChange }: Props)
       )}
     </>
   );
+}
+
+/** Small wrapper so the note can use the translation hook inside the list. */
+function SttNote({ provider }: { provider: (typeof STT_PROVIDERS)[number] }) {
+  return <span className="onb__choice-note">{useSttNote(provider)}</span>;
 }

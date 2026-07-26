@@ -10,6 +10,7 @@
 import * as api from "../lib/api";
 import { useT } from "../lib/i18n";
 import { STT_PROVIDERS } from "../lib/types";
+import { SttBadges, useSttNote } from "./stt-provider-badges";
 import type { LlmPreset } from "../lib/types";
 import mecodeLogo from "../assets/brand/mecode-logo.png";
 
@@ -67,11 +68,9 @@ export function AboutPanel({ presets }: Props) {
         {STT_PROVIDERS.map((p) => (
           <div className="row" key={p.id}>
             <div>
-              <div className="row__label">
-                {p.label}
-                {p.freeCredit && <span className="chip chip--ok" style={{ marginLeft: 8 }}>{p.freeCredit}</span>}
-              </div>
-              <span className="row__hint">{p.note}</span>
+              <div className="row__label">{p.label}</div>
+              <SttBadges provider={p} />
+              <SttNote provider={p} />
             </div>
             <div className="row__control">
               <button onClick={() => open(p.signupUrl)}>{t.about.signUp}</button>
@@ -112,4 +111,9 @@ export function AboutPanel({ presets }: Props) {
       </section>
     </>
   );
+}
+
+/** Wrapper so the note can call the translation hook from inside the provider list. */
+function SttNote({ provider }: { provider: (typeof STT_PROVIDERS)[number] }) {
+  return <span className="row__hint">{useSttNote(provider)}</span>;
 }

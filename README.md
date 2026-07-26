@@ -78,11 +78,15 @@ App dẫn bạn qua 4 bước, và có thể chạy lại bất cứ lúc nào t
 
 ### Lấy key giọng nói (miễn phí)
 
-| Nhà cung cấp | Gói miễn phí | Mạnh ở đâu |
-| --- | --- | --- |
-| **Soniox** (nên chọn) | Credit dùng thử khi đăng ký | Tiếng Việt lẫn tiếng Anh **trong cùng một câu** — nhận nhiều gợi ý ngôn ngữ cùng lúc |
-| Deepgram | $200 credit | Độ trễ thấp nhất. Tiếng Việt cần model `nova-2`; trộn Việt–Anh thì kém hơn rõ rệt |
-| AssemblyAI | Có gói miễn phí | Rất chính xác với tiếng Anh; bản streaming chưa hỗ trợ tiếng Việt |
+| Nhà cung cấp | Credit miễn phí | Giá streaming | Nên chọn khi |
+| --- | --- | --- | --- |
+| **Deepgram** — *bắt đầu ở đây* | **$200, không cần thẻ** (~690 giờ) | ~$0.29/giờ | Bạn muốn dùng được ngay mà chưa tốn đồng nào |
+| **Soniox** — *chuẩn nhất cho tiếng Việt* | Không có | **$0.12/giờ — rẻ nhất** | Bạn nói tiếng Việt lẫn tiếng Anh trong cùng một câu |
+| AssemblyAI | $50, không cần thẻ | $0.15/giờ | Bạn chủ yếu nói tiếng Anh (streaming chưa có tiếng Việt) |
+
+Soniox nghe chuẩn nhất nhưng tính tiền ngay từ phút đầu — bù lại nó rẻ nhất theo giờ.
+Deepgram cho $200 miễn phí nên là chỗ bắt đầu hợp lý; khi nào thấy nó nghe sai câu trộn
+Việt–Anh thì chuyển sang Soniox. Đổi nhà cung cấp chỉ mất vài giây trong Cài đặt.
 
 Link đăng ký nằm sẵn trong app, ngay cạnh ô nhập key.
 

@@ -11,6 +11,7 @@ import { useT } from "../lib/i18n";
 import type { AppSettings, LlmPreset, SttProviderKind } from "../lib/types";
 import { STT_PROVIDERS } from "../lib/types";
 import { LANGUAGES } from "../lib/languages";
+import { SttBadges, useSttNote } from "./stt-provider-badges";
 
 interface Props {
   settings: AppSettings;
@@ -85,7 +86,8 @@ export function ProvidersEditor({ settings, onSettingsChange }: Props) {
               />
               <div>
                 <div className="pick__name">{p.label}</div>
-                <p className="pick__note">{p.note}</p>
+                <SttBadges provider={p} />
+                <SttNote provider={p} />
                 <KeyField account={p.secret} configured={keys[p.secret]} onSaved={refreshKeys} />
               </div>
               <div style={{ display: "grid", gap: 6, justifyItems: "end" }}>
@@ -423,4 +425,9 @@ function KeyField({
       )}
     </div>
   );
+}
+
+/** Wrapper so the note can call the translation hook from inside the provider list. */
+function SttNote({ provider }: { provider: (typeof STT_PROVIDERS)[number] }) {
+  return <p className="pick__note">{useSttNote(provider)}</p>;
 }

@@ -1467,3 +1467,26 @@ a:hover {
   letter-spacing: -0.01em;
   color: var(--accent);
 }
+
+/* Provider badges. Two questions get two colours: amber for "this one understands you
+   best", green for "this one you can start on for free". They land on different
+   providers on purpose, so they must not look like the same recommendation. */
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 6px 0 4px;
+}
+
+.chip--star {
+  color: var(--accent);
+  border-color: rgba(224, 160, 60, 0.35);
+  background: var(--accent-wash);
+  font-weight: 600;
+}
+
+.chip--muted {
+  color: var(--paper-3);
+  border-color: var(--line);
+  background: transparent;
+}
