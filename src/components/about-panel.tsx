@@ -13,6 +13,7 @@ import { STT_PROVIDERS } from "../lib/types";
 import { SttBadge, useSttNote } from "./stt-provider-badges";
 import type { LlmPreset } from "../lib/types";
 import mecodeLogo from "../assets/brand/mecode-logo.png";
+import donateQr from "../assets/brand/donate-qr.png";
 
 interface Props {
   presets: LlmPreset[];
@@ -102,6 +103,31 @@ export function AboutPanel({ presets }: Props) {
               </div>
             </div>
           ))}
+      </section>
+
+      <section className="section">
+        <h2 className="section__title">{t.about.coursesTitle}</h2>
+        <div className="row">
+          <div>
+            <div className="row__label">ME Code</div>
+            <span className="row__hint">{t.about.coursesBody}</span>
+          </div>
+          <div className="row__control">
+            <button onClick={() => open("https://mecode.pro/khoa-hoc")}>
+              {t.about.coursesLink} ↗
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Asking comes last on purpose: someone reaches this only after the parts that
+          make the app work, so the request lands after the value, not before it. */}
+      <section className="section">
+        <h2 className="section__title">{t.about.supportSection}</h2>
+        <div className="donate">
+          <img className="donate__qr" src={donateQr} alt="VietQR — MB Bank, Dang Ngoc Binh" />
+          <p className="row__hint">{t.about.supportBody}</p>
+        </div>
       </section>
 
       <section className="section">

@@ -211,6 +211,12 @@ const en = {
       "Only needed for modes that rewrite the transcript. The Raw mode works without any of these.",
     signUp: "Sign up ↗",
     getKey: "Get a key ↗",
+    supportSection: "Support this project",
+    supportBody:
+      "Tocky Voice is free and always will be. If it saves you time, you can chip in so the next thing gets built too — scan with any Vietnamese banking app.",
+    coursesTitle: "Learn to build things like this",
+    coursesBody: "ME Code teaches AI automation, VibeCode and AI agents, in Vietnamese.",
+    coursesLink: "See the courses",
     beforeSection: "Before you hand this to someone",
     privacy:
       "Your voice is streamed to the speech provider, and the transcript is then sent to the AI provider — both under the account whose key you entered. Anything you dictate reaches those two companies. Keys are stored in a file only your user account can read, or in the OS keychain if you switch that on in Providers. Credit amounts above are what the vendors advertise and can change without notice — check the signup page.",
@@ -492,6 +498,12 @@ const vi: Dictionary = {
       "Chỉ cần khi dùng chế độ có viết lại văn bản. Chế độ Raw chạy được mà không cần cái nào ở đây.",
     signUp: "Đăng ký ↗",
     getKey: "Lấy key ↗",
+    supportSection: "Ủng hộ dự án",
+    supportBody:
+      "Tocky Voice miễn phí và sẽ luôn miễn phí. Nếu nó tiết kiệm thời gian cho bạn, có thể ủng hộ để tác giả làm tiếp sản phẩm sau — quét bằng app ngân hàng bất kỳ.",
+    coursesTitle: "Học cách tự làm những thứ như thế này",
+    coursesBody: "ME Code dạy AI Automation, VibeCode và AI Agent, bằng tiếng Việt.",
+    coursesLink: "Xem các khoá học",
     beforeSection: "Trước khi đưa app này cho người khác",
     privacy:
       "Giọng nói của anh được truyền tới nhà cung cấp nhận dạng, rồi văn bản được gửi tiếp tới nhà cung cấp AI — cả hai đều chạy trên tài khoản mà anh nhập key. Mọi thứ anh đọc đều tới tay hai công ty đó. Key lưu trong file chỉ tài khoản của anh đọc được, hoặc trong keychain hệ thống nếu anh bật ở tab Nhà cung cấp. Các con số credit ở trên là do hãng quảng cáo và có thể đổi bất cứ lúc nào — hãy kiểm tra lại ở trang đăng ký.",

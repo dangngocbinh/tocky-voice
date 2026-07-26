@@ -174,15 +174,18 @@ them as beta and please report what breaks.
 
 | | macOS | Windows | Linux |
 | --- | --- | --- | --- |
-| Dictate → paste | ✅ | ✅ built, untested | ⚠️ see below |
-| Global hotkeys | ✅ | ✅ built, untested | ⚠️ see below |
+| Dictate → paste | ✅ | ✅ built, untested | ⚠️ runs; clipboard caveat below |
+| Global hotkeys | ✅ | ✅ built, untested | ✅ verified on GNOME Wayland |
 | Hold a bare modifier to talk | ✅ | ❌ use a key combination | ❌ use a key combination |
 | Return focus to the exact app you started from | ✅ | not implemented — hiding the overlay restores focus in practice | same |
 | Key file permissions | `0600` | inherits the per-user AppData ACL | `0600` |
 
-**Linux caveat:** synthesizing keystrokes and grabbing global hotkeys are restricted under
-Wayland in ways they are not under X11. If the hotkey or the paste does nothing on a
-Wayland session, an X11 session is the workaround. This is untested either way.
+**Linux — actually run on Ubuntu 22.04 with GNOME Wayland:** the app starts, **all three
+global hotkeys register**, and settings and the key vault load. One measured limitation:
+the compositor does not implement the `wlr-data-control` clipboard protocol, so the app
+falls back to the X11 clipboard via XWayland — pasting most likely reaches X11/XWayland
+apps but not native Wayland ones. That part is not fully measured. Hold-to-talk on a bare
+modifier is macOS-only; bind a key combination on Linux.
 
 ---
 

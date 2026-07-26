@@ -1509,3 +1509,19 @@ a:hover {
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+/* Donate block: the QR has to stay big enough for a phone camera to lock onto from a
+   normal viewing distance, so it keeps a fixed size rather than shrinking with the row. */
+.donate {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 12px;
+}
+
+.donate__qr {
+  width: 132px;
+  height: auto;
+  flex: none;
+  border-radius: 8px;
+}

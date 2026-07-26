@@ -23,7 +23,41 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # The draft has to exist before the matrix starts. Four parallel jobs each asking
+  # tauri-action to create a release for the same tag is a race, and it loses: two of
+  # them win, and the artifacts end up split across two drafts with neither complete.
+  create-release:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    outputs:
+      release_id: ${{ steps.make.outputs.result }}
+    steps:
+      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        id: make
+        with:
+          script: |
+            const tag = context.ref.replace('refs/tags/', '')
+            const { data } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tag,
+              name: `Tocky Voice ${tag}`,
+              body: [
+                'See the README for install steps.',
+                '',
+                '**macOS**: the app is not notarised, so the first launch needs',
+                'right-click → Open, and Accessibility permission has to be granted',
+                'before pasting works.',
+              ].join('\n'),
+              // Draft, so a human looks at what is about to be handed to people
+              // before it becomes downloadable.
+              draft: true,
+            })
+            return data.id
+
   build:
+    needs: create-release
     permissions:
       contents: write
     strategy:
@@ -87,15 +121,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: Tocky Voice __VERSION__
-          releaseBody: |
-            See the README for install steps.
-
-            **macOS**: the app is not notarised, so the first launch needs
-            right-click → Open, and Accessibility permission has to be granted before
-            pasting works.
-          # Draft, so a human looks at what is about to be handed to people before it
-          # becomes downloadable.
-          releaseDraft: true
+          # Upload into the draft the first job made, rather than each matrix job
+          # trying to create one of its own.
+          releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
