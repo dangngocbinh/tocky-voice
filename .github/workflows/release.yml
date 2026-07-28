@@ -49,6 +49,9 @@ jobs:
                 '**macOS**: the app is not notarised, so the first launch needs',
                 'right-click → Open, and Accessibility permission has to be granted',
                 'before pasting works.',
+                '',
+                'If macOS instead says the app "is damaged and can\'t be opened", run',
+                '`xattr -cr "/Applications/Tocky Voice.app"` in Terminal, then open it normally.',
               ].join('\n'),
               // Draft, so a human looks at what is about to be handed to people
               // before it becomes downloadable.

@@ -42,6 +42,16 @@ mã nguồn mở đều vậy, và đây là cách vượt qua:
 - **macOS** — chuột phải vào app → **Open** → **Open**. (Nháy đúp sẽ bị từ chối thẳng.)
 - **Windows** — SmartScreen hiện hộp xanh → **More info** → **Run anyway**.
 
+> **macOS báo "Tocky Voice bị hỏng, chuyển vào Thùng rác"?** Đây không phải app hỏng thật —
+> macOS bản mới đánh dấu quarantine gắt hơn với app tải qua trình duyệt và chưa ký, nên
+> chuột phải → Open không đủ. Mở **Terminal**, gõ `xattr -cr "` (có dấu ngoặc kép ở cuối vì
+> tên app có khoảng trắng), kéo thả app từ Finder vào cửa sổ Terminal để tự điền đường dẫn,
+> gõ thêm `"` để đóng ngoặc, rồi Enter:
+> ```sh
+> xattr -cr "/Applications/Tocky Voice.app"
+> ```
+> Mở lại app bình thường sau đó.
+
 ### Cách 2 — Nhờ AI agent cài giúp
 
 Dán đoạn này vào Claude Code, Cursor, Codex, hoặc bất kỳ agent nào chạy được lệnh:

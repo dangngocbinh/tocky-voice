@@ -41,6 +41,17 @@ first time. That is expected for open-source software, and here is how to get pa
 - **macOS** — right-click the app → **Open** → **Open**. (Double-clicking will just refuse.)
 - **Windows** — SmartScreen shows a blue box → **More info** → **Run anyway**.
 
+> **macOS says "Tocky Voice is damaged and can't be opened, move to Trash"?** It's not
+> actually damaged — recent macOS versions apply a stricter quarantine flag to unsigned
+> apps downloaded through a browser, so right-click → Open isn't enough. Open **Terminal**,
+> type `xattr -cr "` (trailing quote, since the app name has a space in it), drag the app
+> from Finder into the Terminal window to fill in the path, type `"` to close the quote,
+> then press Enter:
+> ```sh
+> xattr -cr "/Applications/Tocky Voice.app"
+> ```
+> Then open the app normally.
+
 ### Option 2 — Let a coding agent install it
 
 Paste this into Claude Code, Cursor, Codex, or any agent with shell access:
