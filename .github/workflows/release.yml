@@ -33,28 +33,49 @@ jobs:
     outputs:
       release_id: ${{ steps.make.outputs.result }}
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # The release body is the CHANGELOG.md section for this version, so the same text
+      # a maintainer reviewed in the PR reaches both the GitHub release page and the
+      # in-app "what's new" panel (surfaced via latest.json's "notes" field). A tag with
+      # no matching section fails here rather than shipping a release with no notes.
       - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         id: make
         with:
           script: |
+            const fs = require('fs')
             const tag = context.ref.replace('refs/tags/', '')
+            const version = tag.replace(/^v/, '')
+
+            const changelog = fs.readFileSync('CHANGELOG.md', 'utf8')
+            const match = changelog.match(
+              new RegExp(`## \\[${version.replace(/\./g, '\\.')}\\][^\\n]*\\n([\\s\\S]*?)(?=\\n## \\[|$)`),
+            )
+            if (!match) {
+              throw new Error(`CHANGELOG.md has no "## [${version}]" section — add one before tagging.`)
+            }
+            const notes = match[1].trim()
+
+            const gatekeeperFooter = [
+              '**macOS**: the app is not notarised, so the first launch needs',
+              'right-click → Open, and Accessibility permission has to be granted',
+              'before pasting works.',
+              '',
+              'If macOS instead says the app "is damaged and can\'t be opened", run',
+              '`xattr -cr "/Applications/Tocky Voice.app"` in Terminal, then open it normally.',
+            ].join('\n')
+
             const { data } = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: tag,
               name: `Tocky Voice ${tag}`,
-              body: [
-                'See the README for install steps.',
-                '',
-                '**macOS**: the app is not notarised, so the first launch needs',
-                'right-click → Open, and Accessibility permission has to be granted',
-                'before pasting works.',
-                '',
-                'If macOS instead says the app "is damaged and can\'t be opened", run',
-                '`xattr -cr "/Applications/Tocky Voice.app"` in Terminal, then open it normally.',
-              ].join('\n'),
+              body: `${notes}\n\n---\n\n${gatekeeperFooter}`,
               // Draft, so a human looks at what is about to be handed to people
-              // before it becomes downloadable.
+              // before it becomes downloadable. Do NOT add a job that publishes this
+              // automatically — releases/latest/download/latest.json only resolves for a
+              // published release, so the draft is the gate that keeps an update from
+              // reaching anyone before a human reviews the built assets.
               draft: true,
             })
             return data.id
@@ -86,6 +107,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # Catches "tagged v0.2.0 but forgot to bump tauri.conf.json" before any build
+      # work runs — that mistake would otherwise produce a perfectly valid release that
+      # no client ever accepts an update from.
+      - name: Verify tag matches project version
+        shell: bash
+        run: |
+          tag="${GITHUB_REF#refs/tags/v}"
+          conf_version=$(grep -m1 '"version"' src-tauri/tauri.conf.json | sed -E 's/.*: *"([^"]+)".*/\1/')
+          cargo_version=$(grep -m1 '^version' src-tauri/Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')
+          pkg_version=$(grep -m1 '"version"' package.json | sed -E 's/.*: *"([^"]+)".*/\1/')
+          if [ "$tag" != "$conf_version" ] || [ "$tag" != "$cargo_version" ] || [ "$tag" != "$pkg_version" ]; then
+            echo "::error::Version mismatch — tag=v$tag tauri.conf.json=$conf_version Cargo.toml=$cargo_version package.json=$pkg_version"
+            exit 1
+          fi
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -123,8 +159,70 @@ jobs:
       - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Signs the update artifacts (Ed25519/minisign) so the updater plugin can
+          # verify a downloaded update actually came from this pipeline. Unrelated to
+          # Apple/Microsoft code signing — see src-tauri/tauri.conf.json's pubkey.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           # Upload into the draft the first job made, rather than each matrix job
           # trying to create one of its own.
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
+          # Windows ships both NSIS and MSI installers; the updater only ever installs
+          # from one, and NSIS supports the silent self-replace this app relies on.
+          updaterJsonPreferNsis: true
+
+  # tauri-action is expected to merge each matrix job's platform entry into one
+  # latest.json on the draft release. That merge is not something this workflow can
+  # observe directly, so treat it as unproven and check the result: a manifest missing
+  # even one platform key would silently tell that platform's users they are already
+  # up to date, forever.
+  verify-manifest:
+    needs: [create-release, build]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const releaseId = ${{ needs.create-release.outputs.release_id }}
+            const { data: release } = await github.rest.repos.getRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: releaseId,
+            })
+
+            const asset = release.assets.find((a) => a.name === 'latest.json')
+            if (!asset) {
+              throw new Error('latest.json is missing from the draft release')
+            }
+
+            const response = await github.request(`GET ${asset.url}`, {
+              headers: { accept: 'application/octet-stream' },
+            })
+            const manifest =
+              typeof response.data === 'string' ? JSON.parse(response.data) : response.data
+
+            const tag = context.ref.replace('refs/tags/', '')
+            const expectedVersion = tag.replace(/^v/, '')
+            if (manifest.version !== expectedVersion) {
+              throw new Error(`latest.json version "${manifest.version}" does not match tag "${expectedVersion}"`)
+            }
+
+            const requiredPlatforms = [
+              'darwin-aarch64',
+              'darwin-x86_64',
+              'windows-x86_64',
+              'linux-x86_64',
+            ]
+            const missing = requiredPlatforms.filter((platform) => {
+              const entry = manifest.platforms && manifest.platforms[platform]
+              return !entry || !entry.signature || !entry.url
+            })
+            if (missing.length > 0) {
+              throw new Error(`latest.json is missing or incomplete for: ${missing.join(', ')}`)
+            }
+
+            console.log(`latest.json OK — version ${manifest.version}, platforms: ${Object.keys(manifest.platforms).join(', ')}`)

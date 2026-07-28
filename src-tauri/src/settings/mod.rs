@@ -154,10 +154,21 @@ pub struct AppSettings {
     /// `serde(default)` so settings files written before this existed still load.
     #[serde(default)]
     pub use_os_keychain: bool,
+    /// Check GitHub for a newer release once per launch. The only outbound call this
+    /// setting controls is a GET of `latest.json`, carrying the app version and the
+    /// user's IP — no other telemetry. Defaults to on; the toggle lives in Settings.
+    /// `serde(default = "default_true")` so settings files written before this existed
+    /// still load.
+    #[serde(default = "default_true")]
+    pub auto_check_updates: bool,
 }
 
 fn default_ui_language() -> String {
     "system".to_string()
+}
+
+fn default_true() -> bool {
+    true
 }
 
 /// Every credential name the app can store, for backend migration.

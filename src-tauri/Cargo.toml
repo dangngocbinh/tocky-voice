@@ -1,6 +1,6 @@
 [package]
 name = "tockyvoice"
-version = "0.1.0"
+version = "0.2.0"
 description = "Tocky Voice — realtime STT + AI cleanup, pasted anywhere"
 authors = ["Dang Ngoc Binh (ME Code) <hello@mecode.pro>"]
 license = "MIT"
@@ -21,6 +21,8 @@ tauri-plugin-opener = "2"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-autostart = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

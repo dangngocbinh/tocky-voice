@@ -88,6 +88,21 @@ export function BehaviourEditor({ settings, onSettingsChange }: Props) {
             </button>
           </div>
         </div>
+
+        <div className="row">
+          <div>
+            <div className="row__label">{t.update.autoCheckLabel}</div>
+            <span className="row__hint">{t.update.autoCheckHint}</span>
+          </div>
+          <div className="row__control">
+            <Switch
+              checked={settings.auto_check_updates}
+              onChange={(auto_check_updates) =>
+                onSettingsChange({ ...settings, auto_check_updates })
+              }
+            />
+          </div>
+        </div>
       </section>
 
       <section className="section">

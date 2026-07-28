@@ -36,6 +36,10 @@ Vào [**trang Releases**](../../releases/latest) và tải file hợp với máy
 | Linux | `..._amd64.AppImage` | `chmod +x` rồi chạy |
 | Linux (Debian/Ubuntu) | `..._amd64.deb` | `sudo dpkg -i <file>.deb` |
 
+Trang Releases còn có `latest.json`, các file `.app.tar.gz`, `.nsis.zip`, `.AppImage.tar.gz`
+và `.sig` — đó là để app tự cập nhật (xem mục [Cập nhật](#cập-nhật) bên dưới), không phải để
+bạn tải, bỏ qua chúng.
+
 **App chưa mua chứng chỉ nhà phát triển**, nên lần đầu mở máy nào cũng cảnh báo. Phần mềm
 mã nguồn mở đều vậy, và đây là cách vượt qua:
 
@@ -172,6 +176,25 @@ Nếu thấy chậm, kiểm tra xem model có phải loại *reasoning* không: 
 | **Nhà cung cấp** — badge cho biết cái nào chuẩn tiếng Việt, cái nào miễn phí | **Chế độ** — mỗi chế độ một câu lệnh cho AI và một phím tắt riêng |
 | <img src="brand/screenshots/about.png" alt="Tab giới thiệu"> | |
 | **Giới thiệu** — link đăng ký thẳng tới từng nhà cung cấp | |
+
+---
+
+## Cập nhật
+
+Phiên bản đang chạy hiện ở tab **Giới thiệu**. Mỗi lần mở app, Tocky Voice tự kiểm tra bản
+mới trên GitHub (tắt được ở **Cài đặt → Tự động kiểm tra bản mới**), và bấm **Kiểm tra cập
+nhật** trong Giới thiệu để kiểm tra tay bất cứ lúc nào.
+
+- **Windows, Linux (bản AppImage)** — bấm **Cập nhật và khởi động lại** là tải, cài, và mở
+  lại app tự động, không cần thao tác gì thêm.
+- **macOS** — nút hiện thành **Tải bản mới ↗**, mở thẳng trang Releases để tải tay. App chưa
+  ký chứng chỉ nhà phát triển, nên tự thay file `.app` sẽ làm mất quyền Accessibility đã cấp
+  trong khi công tắc vẫn hiện "bật" — cùng gốc với lưu ý ở mục
+  [Quyền Accessibility](#macos-quyền-accessibility) bên trên, nên bản macOS chọn cách an toàn
+  hơn là để bạn tự cài.
+
+Bản `v0.1.0` (trước khi có tính năng này) không tự cập nhật được — cần tải tay một lần từ
+trang Releases, các bản sau đó mới tự nâng cấp cho nhau được.
 
 ---
 

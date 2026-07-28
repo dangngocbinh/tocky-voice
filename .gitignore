@@ -29,6 +29,8 @@ dist-ssr
 .env.*
 *.pem
 *.key
+*.key.pub
+*.key.password
 
 # Tauri generated
 src-tauri/gen/

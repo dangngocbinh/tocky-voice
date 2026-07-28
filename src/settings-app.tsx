@@ -12,8 +12,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { getVersion } from "@tauri-apps/api/app";
 import * as api from "./lib/api";
 import { useDictationEvents } from "./lib/use-dictation-events";
+import { useUpdateCheck } from "./lib/use-update-check";
 import { useT } from "./lib/i18n";
 import { OnboardingFlow } from "./onboarding/onboarding-flow";
 import type { AppSettings, LlmPreset } from "./lib/types";
@@ -23,6 +25,7 @@ import { HistoryList } from "./components/history-list";
 import { ModesEditor } from "./components/modes-editor";
 import { ProvidersEditor } from "./components/providers-editor";
 import { AboutPanel } from "./components/about-panel";
+import { UpdateBanner } from "./components/update-banner";
 import {
   InfoIcon,
   KeyIcon,
@@ -51,8 +54,15 @@ export function SettingsApp() {
   const [section, setSection] = useState<SectionId>("dictate");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [presets, setPresets] = useState<LlmPreset[]>([]);
+  const [version, setVersion] = useState<string | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const { phase } = useDictationEvents();
   const t = useT();
+  // Never checks (and never shows a banner) until onboarding is done — a first-run
+  // user should not see "a new version is out" mid-walkthrough.
+  const updateCheck = useUpdateCheck(
+    Boolean(settings?.auto_check_updates) && Boolean(settings?.onboarding_completed),
+  );
 
   const saveTimer = useRef<number | undefined>(undefined);
   // Distinguishes local edits from settings pushed by the backend (e.g. a mode switched
@@ -60,6 +70,7 @@ export function SettingsApp() {
   const dirty = useRef(false);
 
   useEffect(() => {
+    getVersion().then(setVersion).catch(() => undefined);
     api.getSettings().then(setSettings).catch(() => undefined);
     api.listLlmPresets().then(setPresets).catch(() => undefined);
     const off = listen(api.EVENTS.settingsChanged, () => {
@@ -110,7 +121,7 @@ export function SettingsApp() {
           <WaveMark className="rail__mark" />
           <div>
             <div className="rail__name">Tocky Voice</div>
-            <span className="rail__sub">v0.1</span>
+            <span className="rail__sub">{version ? `v${version}` : ""}</span>
           </div>
         </div>
 
@@ -136,6 +147,13 @@ export function SettingsApp() {
       <main className="view">
         <div className="view__inner">
           {saveError && <div className="notice notice--error">{saveError}</div>}
+          {updateCheck.state === "available" && !bannerDismissed && updateCheck.update && (
+            <UpdateBanner
+              version={updateCheck.update.version}
+              onSeeWhatsNew={() => setSection("about")}
+              onDismiss={() => setBannerDismissed(true)}
+            />
+          )}
 
           {section === "dictate" && (
             <DictationPanel settings={settings} onSettingsChange={update} />
@@ -150,7 +168,9 @@ export function SettingsApp() {
             <BehaviourEditor settings={settings} onSettingsChange={update} />
           )}
           {section === "history" && <HistoryList />}
-          {section === "about" && <AboutPanel presets={presets} />}
+          {section === "about" && (
+            <AboutPanel presets={presets} version={version} update={updateCheck} />
+          )}
         </div>
       </main>
     </div>

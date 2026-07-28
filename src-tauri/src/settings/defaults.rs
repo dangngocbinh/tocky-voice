@@ -309,5 +309,6 @@ pub fn default_settings() -> AppSettings {
         // The local vault, not the keychain. An unsigned macOS build makes the keychain
         // prompt for the login password on every read; see `secrets` for the reasoning.
         use_os_keychain: false,
+        auto_check_updates: true,
     }
 }

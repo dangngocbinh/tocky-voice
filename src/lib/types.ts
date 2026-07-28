@@ -72,6 +72,7 @@ export interface AppSettings {
   ui_language: "system" | "en" | "vi";
   onboarding_completed: boolean;
   use_os_keychain: boolean;
+  auto_check_updates: boolean;
 }
 
 export interface LlmPreset {

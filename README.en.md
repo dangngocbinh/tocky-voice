@@ -35,6 +35,10 @@ Grab the file for your system from the [**Releases page**](../../releases/latest
 | Linux | `..._amd64.AppImage` | `chmod +x` the file, then run it |
 | Linux (Debian/Ubuntu) | `..._amd64.deb` | `sudo dpkg -i <file>.deb` |
 
+The Releases page also carries `latest.json`, `.app.tar.gz`, `.nsis.zip`, `.AppImage.tar.gz`
+and `.sig` files — those feed the in-app updater (see [Updates](#updates) below), not
+something you download yourself. Ignore them.
+
 **The app is not signed with a paid developer certificate**, so each OS will warn you the
 first time. That is expected for open-source software, and here is how to get past it:
 
@@ -174,6 +178,25 @@ producing hidden reasoning nobody reads before answering. DeepSeek V4 went from 
 | **Providers** — badges say which is best for Vietnamese and which is free to start on | **Modes** — each one is a prompt for the AI plus its own hotkey |
 | <img src="brand/screenshots/about.png" alt="The About tab"> | |
 | **About** — sign-up links straight to each provider | |
+
+---
+
+## Updates
+
+The running version shows in the **About** tab. Tocky Voice checks GitHub for a newer
+release once per launch (turn it off in **Settings → Check for updates automatically**), and
+you can check by hand any time with **Check for updates** in About.
+
+- **Windows, Linux (AppImage build)** — click **Update and restart** and it downloads,
+  installs, and relaunches on its own.
+- **macOS** — the button reads **Download the update ↗** and opens the Releases page instead.
+  The app isn't code-signed, so replacing the `.app` in place would break the Accessibility
+  permission while the switch keeps showing it as granted — the same root cause as the note
+  under [Accessibility permission](#macos-accessibility-permission) above — so macOS gets the
+  safer, manual path.
+
+`v0.1.0` (before this feature existed) can't auto-update — download it by hand once; every
+release after that can update from the one before it.
 
 ---
 

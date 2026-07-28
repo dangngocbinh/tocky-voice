@@ -34,6 +34,12 @@ pub fn run() {
             MacosLauncher::LaunchAgent,
             None,
         ))
+        // In-app update check + install. Windows/Linux install and relaunch through this;
+        // macOS only ever calls `check()` here — the unsigned bundle can't safely replace
+        // itself (see src/lib/update-policy.ts), so `process:allow-restart` backs the
+        // Windows/Linux relaunch only.
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, shortcut, event| {

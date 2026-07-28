@@ -223,7 +223,29 @@ const en = {
     coursesLink: "See the courses",
     beforeSection: "Before you hand this to someone",
     privacy:
-      "Your voice is streamed to the speech provider, and the transcript is then sent to the AI provider — both under the account whose key you entered. Anything you dictate reaches those two companies. Keys are stored in a file only your user account can read, or in the OS keychain if you switch that on in Providers. Credit amounts above are what the vendors advertise and can change without notice — check the signup page.",
+      "Your voice is streamed to the speech provider, and the transcript is then sent to the AI provider — both under the account whose key you entered. Anything you dictate reaches those two companies. Keys are stored in a file only your user account can read, or in the OS keychain if you switch that on in Providers. Credit amounts above are what the vendors advertise and can change without notice — check the signup page. The app also checks GitHub for a newer version once per launch, which sends your current app version and IP address; turn this off in Settings if you'd rather not.",
+  },
+
+  update: {
+    sectionTitle: "Updates",
+    currentVersion: "Version",
+    checkButton: "Check for updates",
+    checking: "Checking…",
+    upToDate: "You're on the latest version.",
+    errorPrefix: "Couldn't check for updates:",
+    newVersionAvailable: "A new version is available:",
+    notesTitle: "What's new",
+    installButton: "Update and restart",
+    downloadButton: "Download the update ↗",
+    macOnlyReason:
+      "This build isn't code-signed, so macOS can't safely replace it in place — download and install it by hand instead.",
+    downloading: "Downloading…",
+    installedRestarting: "Installed — restarting…",
+    autoCheckLabel: "Check for updates automatically",
+    autoCheckHint:
+      "Checks GitHub once per launch. Turn this off and use the button above instead.",
+    bannerSeeWhatsNew: "See what's new",
+    bannerDismiss: "Dismiss",
   },
 
   overlay: {
@@ -514,7 +536,28 @@ const vi: Dictionary = {
     coursesLink: "Xem các khoá học",
     beforeSection: "Trước khi đưa app này cho người khác",
     privacy:
-      "Giọng nói của anh được truyền tới nhà cung cấp nhận dạng, rồi văn bản được gửi tiếp tới nhà cung cấp AI — cả hai đều chạy trên tài khoản mà anh nhập key. Mọi thứ anh đọc đều tới tay hai công ty đó. Key lưu trong file chỉ tài khoản của anh đọc được, hoặc trong keychain hệ thống nếu anh bật ở tab Nhà cung cấp. Các con số credit ở trên là do hãng quảng cáo và có thể đổi bất cứ lúc nào — hãy kiểm tra lại ở trang đăng ký.",
+      "Giọng nói của anh được truyền tới nhà cung cấp nhận dạng, rồi văn bản được gửi tiếp tới nhà cung cấp AI — cả hai đều chạy trên tài khoản mà anh nhập key. Mọi thứ anh đọc đều tới tay hai công ty đó. Key lưu trong file chỉ tài khoản của anh đọc được, hoặc trong keychain hệ thống nếu anh bật ở tab Nhà cung cấp. Các con số credit ở trên là do hãng quảng cáo và có thể đổi bất cứ lúc nào — hãy kiểm tra lại ở trang đăng ký. App cũng tự kiểm tra bản mới trên GitHub mỗi lần mở, việc này gửi đi phiên bản app hiện tại và địa chỉ IP; tắt được ở mục Cài đặt nếu anh không muốn.",
+  },
+
+  update: {
+    sectionTitle: "Cập nhật",
+    currentVersion: "Phiên bản",
+    checkButton: "Kiểm tra cập nhật",
+    checking: "Đang kiểm tra…",
+    upToDate: "Đang dùng bản mới nhất.",
+    errorPrefix: "Không kiểm tra được:",
+    newVersionAvailable: "Có bản mới:",
+    notesTitle: "Có gì mới",
+    installButton: "Cập nhật và khởi động lại",
+    downloadButton: "Tải bản mới ↗",
+    macOnlyReason:
+      "Bản này chưa được ký số nên macOS không tự thay thế an toàn được — hãy tải về và cài tay.",
+    downloading: "Đang tải…",
+    installedRestarting: "Đã cài xong — đang khởi động lại…",
+    autoCheckLabel: "Tự động kiểm tra bản mới",
+    autoCheckHint: "Kiểm tra GitHub mỗi lần mở app. Tắt thì dùng nút bên trên để kiểm tra tay.",
+    bannerSeeWhatsNew: "Xem có gì mới",
+    bannerDismiss: "Bỏ qua",
   },
 
   overlay: {

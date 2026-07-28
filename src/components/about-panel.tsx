@@ -12,11 +12,15 @@ import { useT } from "../lib/i18n";
 import { STT_PROVIDERS } from "../lib/types";
 import { SttBadge, useSttNote } from "./stt-provider-badges";
 import type { LlmPreset } from "../lib/types";
+import type { UseUpdateCheck } from "../lib/use-update-check";
+import { UpdateStatusSection } from "./update-status-section";
 import mecodeLogo from "../assets/brand/mecode-logo.png";
 import donateQr from "../assets/brand/donate-qr.png";
 
 interface Props {
   presets: LlmPreset[];
+  version: string | null;
+  update: UseUpdateCheck;
 }
 
 /** Free allowances stated by the vendor. Anything unverified is left out on purpose. */
@@ -28,7 +32,7 @@ const LLM_NOTES: Record<string, string> = {
   openrouter: "One key, most models — handy if you want to compare",
 };
 
-export function AboutPanel({ presets }: Props) {
+export function AboutPanel({ presets, version, update }: Props) {
   const t = useT();
   const open = (url: string) => api.openUrl(url).catch(() => undefined);
 
@@ -39,6 +43,8 @@ export function AboutPanel({ presets }: Props) {
       <p className="view__lede">
 {t.about.lede}
       </p>
+
+      <UpdateStatusSection version={version} update={update} />
 
       <section className="section">
         <h2 className="section__title">{t.about.madeBy}</h2>

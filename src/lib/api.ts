@@ -6,6 +6,7 @@ import type {
   HistoryEntry,
   LlmPreset,
 } from "./types";
+import { RELEASES_URL } from "./update-policy";
 
 export const EVENTS = {
   status: "fvt://status",
@@ -52,6 +53,9 @@ export const openAccessibilitySettings = () =>
   invoke<void>("open_accessibility_settings");
 /** Opens an https link in the default browser. */
 export const openUrl = (url: string) => invoke<void>("open_url", { url });
+
+/** Manual-download fallback for every update path. */
+export const openReleasesPage = () => openUrl(RELEASES_URL);
 export const testLlm = () => invoke<string>("test_llm");
 /** Live model list straight from the configured provider. */
 export const listModels = () => invoke<string[]>("list_models");
