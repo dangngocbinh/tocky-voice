@@ -4,6 +4,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each re
 section here becomes that release's GitHub notes and the text shown in the app's
 "what's new" panel — write it for a user, not for a commit log.
 
+## [0.2.1] - 2026-07-28
+
+### Fixed
+
+- Release pipeline: the manifest-verification step needs `contents: write` to read a
+  draft release, not `contents: read` — GitHub's API returns 403 otherwise. This release
+  exists to prove the v0.2.0 → v0.2.1 update path actually works end to end.
+
 ## [0.2.0] - 2026-07-28
 
 ### Added

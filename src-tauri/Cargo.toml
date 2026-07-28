@@ -1,6 +1,6 @@
 [package]
 name = "tockyvoice"
-version = "0.2.0"
+version = "0.2.1"
 description = "Tocky Voice — realtime STT + AI cleanup, pasted anywhere"
 authors = ["Dang Ngoc Binh (ME Code) <hello@mecode.pro>"]
 license = "MIT"
