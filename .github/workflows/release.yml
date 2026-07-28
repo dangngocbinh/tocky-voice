@@ -182,7 +182,11 @@ jobs:
     needs: [create-release, build]
     runs-on: ubuntu-22.04
     permissions:
-      contents: read
+      # GitHub's API rejects a GITHUB_TOKEN with only `contents: read` when reading a
+      # DRAFT release (403 "Resource not accessible by integration") — draft visibility
+      # requires the write tier even for a GET. This job still performs zero mutating
+      # calls; the permission is a read-with-write-token, not license to write.
+      contents: write
     steps:
       - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
