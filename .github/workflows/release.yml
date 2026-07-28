@@ -206,8 +206,16 @@ jobs:
             const response = await github.request(`GET ${asset.url}`, {
               headers: { accept: 'application/octet-stream' },
             })
-            const manifest =
-              typeof response.data === 'string' ? JSON.parse(response.data) : response.data
+            // octokit hands back a Buffer/ArrayBuffer for octet-stream, not a string —
+            // normalise every shape it might take before parsing.
+            const raw = Buffer.isBuffer(response.data)
+              ? response.data.toString('utf8')
+              : response.data instanceof ArrayBuffer
+                ? Buffer.from(response.data).toString('utf8')
+                : typeof response.data === 'string'
+                  ? response.data
+                  : JSON.stringify(response.data)
+            const manifest = JSON.parse(raw)
 
             const tag = context.ref.replace('refs/tags/', '')
             const expectedVersion = tag.replace(/^v/, '')
