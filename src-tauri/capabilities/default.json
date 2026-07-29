@@ -9,6 +9,7 @@
     "core:window:allow-hide",
     "core:window:allow-set-focus",
     "core:window:allow-start-dragging",
+    "core:window:allow-set-title",
     "opener:default",
     "global-shortcut:default",
     "autostart:default"

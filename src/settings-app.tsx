@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getVersion } from "@tauri-apps/api/app";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import * as api from "./lib/api";
 import { useDictationEvents } from "./lib/use-dictation-events";
 import { useUpdateCheck } from "./lib/use-update-check";
@@ -70,7 +71,12 @@ export function SettingsApp() {
   const dirty = useRef(false);
 
   useEffect(() => {
-    getVersion().then(setVersion).catch(() => undefined);
+    getVersion().then((v) => {
+      setVersion(v);
+      // The rail already shows the version in small type; the title bar is the
+      // spot people actually glance at, so it carries the version too.
+      getCurrentWindow().setTitle(`Tocky Voice v${v}`).catch(() => undefined);
+    }).catch(() => undefined);
     api.getSettings().then(setSettings).catch(() => undefined);
     api.listLlmPresets().then(setPresets).catch(() => undefined);
     const off = listen(api.EVENTS.settingsChanged, () => {
