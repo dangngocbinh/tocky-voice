@@ -4,6 +4,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each re
 section here becomes that release's GitHub notes and the text shown in the app's
 "what's new" panel — write it for a user, not for a commit log.
 
+## [0.3.0] - 2026-07-30
+
+### Added
+
+- First-run setup now checks your microphone before anything else: pick an input and
+  say something, and a level meter proves sound is actually arriving before you spend
+  a speech-provider key finding out the hard way.
+- Saving a speech-provider key now opens a real connection to check it works, right in
+  setup — a typo, a revoked key, or an empty balance is reported immediately instead of
+  showing up later as a dictation that produces nothing.
+
+### Fixed
+
+- Windows and Linux: the default push-to-talk key didn't work at all on a fresh
+  install — it was a macOS-only binding. It's now `F9`, and existing installs are
+  migrated to it automatically on next launch.
+- Windows and Linux: the other default hotkeys (`Control+Alt+…`) collided with AltGr on
+  many keyboard layouts; they're now `Control+Shift+…`.
+- Audio input devices that deliver less common sample formats — common on USB audio
+  interfaces and "Line in" codecs under Windows — are now supported instead of failing
+  to open.
+- A microphone that opens but never picks up any sound (muted, blocked by Windows
+  privacy settings, or the wrong device) now says so, instead of the dictation panel
+  silently closing after a couple of seconds.
+- Windows: saving settings no longer logs a spurious autostart warning on every
+  keystroke.
+
 ## [0.2.1] - 2026-07-28
 
 ### Fixed
