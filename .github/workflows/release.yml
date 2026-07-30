@@ -31,7 +31,12 @@ jobs:
     permissions:
       contents: write
     outputs:
-      release_id: ${{ steps.make.outputs.result }}
+      release_id: ${{ steps.make.outputs.release_id }}
+      # Handed to every build job below so tauri-action writes it into latest.json's
+      # "notes" field too — without this it defaults to empty, and the in-app "what's
+      # new" panel and the update-check toast render as blank even though the release
+      # page itself reads fine.
+      release_notes: ${{ steps.make.outputs.release_notes }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -65,12 +70,14 @@ jobs:
               '`xattr -cr "/Applications/Tocky Voice.app"` in Terminal, then open it normally.',
             ].join('\n')
 
+            const body = `${notes}\n\n---\n\n${gatekeeperFooter}`
+
             const { data } = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: tag,
               name: `Tocky Voice ${tag}`,
-              body: `${notes}\n\n---\n\n${gatekeeperFooter}`,
+              body,
               // Draft, so a human looks at what is about to be handed to people
               // before it becomes downloadable. Do NOT add a job that publishes this
               // automatically — releases/latest/download/latest.json only resolves for a
@@ -78,7 +85,8 @@ jobs:
               // reaching anyone before a human reviews the built assets.
               draft: true,
             })
-            return data.id
+            core.setOutput('release_id', data.id)
+            core.setOutput('release_notes', body)
 
   build:
     needs: create-release
@@ -168,6 +176,11 @@ jobs:
           # Upload into the draft the first job made, rather than each matrix job
           # trying to create one of its own.
           releaseId: ${{ needs.create-release.outputs.release_id }}
+          # tauri-action only writes this into latest.json's "notes" field when it's
+          # given explicitly — an existing releaseId does not make it read the release's
+          # own body back out. Without this, every update-check in the app renders a
+          # blank "what's new".
+          releaseBody: ${{ needs.create-release.outputs.release_notes }}
           args: ${{ matrix.args }}
           # Windows ships both NSIS and MSI installers; the updater only ever installs
           # from one, and NSIS supports the silent self-replace this app relies on.
