@@ -12,6 +12,7 @@ import { formatError } from "../lib/format-error";
 import type { AppSettings, Phase } from "../lib/types";
 import { useDictationEvents, useElapsed } from "../lib/use-dictation-events";
 import { usePermissionStatus } from "../lib/use-permission-status";
+import { HotkeyHints } from "./hotkey-hints";
 import { Waveform } from "./waveform";
 
 const BUSY: Phase[] = ["transcribing", "refining", "pasting"];
@@ -79,6 +80,11 @@ export function DictationPanel({ settings, onSettingsChange }: Props) {
             </button>
           )}
         </div>
+
+        {/* The button is here for discoverability, but the hotkeys are the point of the
+            app — this is the only screen that can teach them before someone needs them
+            in another window. */}
+        <HotkeyHints hotkeys={settings.hotkeys} />
 
         <div className="transcript">
           {text ? (

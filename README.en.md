@@ -131,12 +131,16 @@ permission your words reach the clipboard but never land in the app you are writ
 
 Press the hotkey in any app, talk, press it again. The text is pasted where your cursor is.
 
-| Action | Default |
-| --- | --- |
-| Start / stop | `Control+Alt+D` |
-| Hold to talk | Right Option *(macOS only — bind a key combination on Windows/Linux)* |
-| Cancel the take | `Control+Alt+X` |
-| Next mode | `Control+Alt+M` |
+| Action | macOS | Windows / Linux |
+| --- | --- | --- |
+| Hold to talk | Right Option | Hold `F9` |
+| Start / stop | `Control+Alt+D` | `Control+Shift+Space` |
+| Cancel the take | `Control+Alt+X` | `Control+Shift+X` |
+| Next mode | `Control+Alt+M` | `Control+Shift+M` |
+
+The two platforms differ for concrete reasons: holding a bare modifier can only be watched
+on macOS, and `Control+Alt` on a PC keyboard is what AltGr sends, so it behaves differently
+depending on the layout in use.
 
 All of these are configurable in **Settings → Shortcuts**.
 
@@ -145,7 +149,8 @@ All of these are configurable in **Settings → Shortcuts**.
 A mode is a prompt plus a delivery rule, so the same voice input can become different
 things. Four ship by default, and you can add your own with a dedicated hotkey each:
 
-- **Raw** — no AI, paste the transcript immediately (fastest, ~0 extra latency)
+- **Raw** — no AI, paste the transcript immediately (fastest, ~0 extra latency). This is
+  the default: a fresh install works straight away, with no AI key at all.
 - **Clean** — fix spelling, punctuation and filler words; keep English technical terms intact
 - **Prompt** — rewrite into a structured request for a coding agent
 - **Email** — rewrite as a formal message

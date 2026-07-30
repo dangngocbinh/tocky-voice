@@ -33,13 +33,18 @@ export function BehaviourEditor({ settings, onSettingsChange }: Props) {
 
   const ptt = settings.hotkeys.push_to_talk;
 
+  // Suggested binding when switching to "hold a combination". On a PC keyboard
+  // Control+Alt is what AltGr sends, so a plain function key is both simpler to hold
+  // and free of layout surprises; it matches the factory default on those platforms.
+  const suggestedPttShortcut = isMac ? "Control+Alt+Space" : "F9";
+
   const setPttKind = (kind: PushToTalk["kind"]) =>
     patchHotkeys({
       push_to_talk:
         kind === "modifier"
           ? { kind: "modifier", key: "right_option" }
           : kind === "shortcut"
-            ? { kind: "shortcut", accelerator: "Control+Alt+Space" }
+            ? { kind: "shortcut", accelerator: suggestedPttShortcut }
             : { kind: "disabled" },
     });
 

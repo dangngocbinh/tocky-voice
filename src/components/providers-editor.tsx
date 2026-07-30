@@ -25,6 +25,10 @@ export function ProvidersEditor({ settings, onSettingsChange }: Props) {
     busy: false,
     result: null,
   });
+  const [sttTest, setSttTest] = useState<{ busy: boolean; result: string | null }>({
+    busy: false,
+    result: null,
+  });
 
   const t = useT();
 
@@ -36,6 +40,8 @@ export function ProvidersEditor({ settings, onSettingsChange }: Props) {
   }, []);
 
   const active = presets.find((p) => p.id === settings.llm.preset);
+  const activeSttSecret =
+    STT_PROVIDERS.find((p) => p.id === settings.stt.provider)?.secret ?? "soniox";
 
   const selectPreset = (id: string) => {
     const preset = presets.find((p) => p.id === id);
@@ -57,6 +63,19 @@ export function ProvidersEditor({ settings, onSettingsChange }: Props) {
       setTest({ busy: false, result: `OK — replied “${reply.slice(0, 60)}”` });
     } catch (e) {
       setTest({ busy: false, result: `Failed: ${e}` });
+    }
+  };
+
+  // The AI pass has had a connection check since the start; the speech key — the one
+  // the app cannot work without — had none, so a bad one only showed up as dictation
+  // that produced nothing.
+  const runSttTest = async () => {
+    setSttTest({ busy: true, result: null });
+    try {
+      await api.testSttKey(settings.stt);
+      setSttTest({ busy: false, result: t.providers.sttTestOk });
+    } catch (e) {
+      setSttTest({ busy: false, result: `${t.providers.sttTestFailed} ${e}` });
     }
   };
 
@@ -114,7 +133,27 @@ export function ProvidersEditor({ settings, onSettingsChange }: Props) {
           ))}
         </div>
 
-        <div className="row" style={{ marginTop: 14 }}>
+        <div className="row row--tight" style={{ marginTop: 14 }}>
+          <div>
+            <div className="row__label">{t.providers.sttTestSection}</div>
+            <span className="row__hint">{t.providers.sttTestHint}</span>
+          </div>
+          <div className="row__control">
+            {sttTest.result && (
+              <span className="muted" style={{ fontSize: 11.5 }}>
+                {sttTest.result}
+              </span>
+            )}
+            <button
+              onClick={runSttTest}
+              disabled={sttTest.busy || !keys[activeSttSecret]}
+            >
+              {sttTest.busy ? t.providers.testing : t.providers.sttTest}
+            </button>
+          </div>
+        </div>
+
+        <div className="row">
           <div>
             <div className="row__label">{t.providers.language}</div>
             <span className="row__hint">{t.providers.languageHint}</span>

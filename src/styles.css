@@ -633,6 +633,23 @@ kbd {
   align-items: center;
 }
 
+/* What each hotkey does, in words. Sits directly under the record button so the
+   keyboard route is as visible as the one the mouse takes. */
+.keyhints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-top: -4px;
+  font-size: 12.5px;
+  color: var(--paper-3);
+}
+
+.keyhints__item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
 .transcript {
   min-height: 116px;
   padding: 15px 16px;
@@ -1207,17 +1224,28 @@ kbd {
   display: flex;
   align-items: center;
   gap: 7px;
+  /* The window is a fixed 480px and the hints are translated, so their width is not
+     something this layout gets to assume. Wrapping costs a line the transcript area
+     can spare; the previous `overflow: hidden` silently sliced the last hint in half. */
+  flex-wrap: wrap;
 }
 
 .overlay__keys {
   display: flex;
   align-items: center;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  min-width: 0;
   font-family: var(--mono);
   font-size: 9.5px;
   color: var(--paper-3);
-  overflow: hidden;
-  white-space: nowrap;
+}
+
+/* Keeps a key glued to the words explaining it when the row wraps. */
+.overlay__key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .overlay__keys kbd {
@@ -1445,6 +1473,18 @@ a:hover {
   font-size: 13.5px;
   line-height: 1.6;
   overflow-wrap: anywhere;
+}
+
+/* Verdicts on the microphone check. Colour carries the same meaning as the status
+   dot above, so the two screens read the same way. */
+.onb__good { color: #7eb87a; }
+.onb__bad { color: var(--live); }
+
+.onb__note {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--paper-3);
 }
 
 .onb__finale {

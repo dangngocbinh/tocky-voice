@@ -139,8 +139,10 @@ fn start_modifier_listener(
     _key: crate::settings::ModifierKey,
 ) {
     log::warn!(
-        "hold-a-modifier push-to-talk is macOS-only for now; \
-         choose a regular shortcut for push-to-talk on this platform"
+        "hold-a-modifier push-to-talk is macOS-only for now, so push-to-talk is \
+         inactive; pick a key or combination under Settings → Push to talk. \
+         (Settings loaded before this build should have been migrated automatically — \
+         if you are seeing this, that did not happen.)"
     );
 }
 
@@ -155,8 +157,13 @@ fn stop_modifier_listener(registry: &HotkeyRegistry) {
 /// Global-shortcut plugin callback.
 pub fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
     let Some(action) = app.state::<HotkeyRegistry>().action_for(shortcut) else {
+        // Logged rather than ignored: "the hotkey does nothing" is the single most
+        // common report, and this line is what separates "the key never reached us"
+        // from "it reached us and the action misfired".
+        log::debug!("unbound shortcut fired: {shortcut:?} ({state:?})");
         return;
     };
+    log::debug!("hotkey {action:?} {state:?}");
     match (action, state) {
         // Push-to-talk is the only binding that cares about key-up.
         (HotkeyAction::PushToTalk, ShortcutState::Pressed) => session::start(app, None),
@@ -168,5 +175,48 @@ pub fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
         (HotkeyAction::Cancel, _) => session::cancel(app),
         (HotkeyAction::NextMode, _) => session::next_mode(app),
         (HotkeyAction::SelectMode(mode_id), _) => session::start(app, Some(mode_id)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::settings::defaults;
+
+    /// Every factory binding has to survive `Shortcut::from_str`, or `apply` skips it
+    /// with a log line nobody reads and the app ships with a hotkey that never fires.
+    #[test]
+    fn every_default_accelerator_parses() {
+        let hotkeys = defaults::default_hotkeys();
+        let mut accelerators: Vec<String> = [&hotkeys.toggle, &hotkeys.cancel, &hotkeys.next_mode]
+            .into_iter()
+            .flatten()
+            .cloned()
+            .collect();
+        if let PushToTalk::Shortcut { accelerator } = &hotkeys.push_to_talk {
+            accelerators.push(accelerator.clone());
+        }
+        assert!(!accelerators.is_empty());
+        for accelerator in accelerators {
+            assert!(
+                Shortcut::from_str(&accelerator).is_ok(),
+                "default hotkey {accelerator:?} does not parse"
+            );
+        }
+    }
+
+    /// Regression: the factory default was a held bare modifier on every platform, but
+    /// [`start_modifier_listener`] only does anything on macOS — so push-to-talk, the
+    /// app's main interaction, was inert on a fresh Windows install.
+    #[cfg(not(target_os = "macos"))]
+    #[test]
+    fn push_to_talk_defaults_to_something_this_platform_can_actually_bind() {
+        assert!(
+            matches!(
+                defaults::default_hotkeys().push_to_talk,
+                PushToTalk::Shortcut { .. }
+            ),
+            "only macOS has a listener for a held bare modifier"
+        );
     }
 }

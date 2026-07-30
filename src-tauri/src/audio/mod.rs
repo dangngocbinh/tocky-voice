@@ -1,5 +1,6 @@
 pub mod capture;
 pub mod feedback;
+pub mod mic_test;
 pub mod resample;
 
 use anyhow::{Context, Result};

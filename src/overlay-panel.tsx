@@ -10,7 +10,7 @@
 import { useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import * as api from "./lib/api";
-import { formatAccelerator, formatModifier } from "./lib/format-accelerator";
+import { formatAccelerator, pushToTalkLabel } from "./lib/format-accelerator";
 import { useDictationEvents, useElapsed } from "./lib/use-dictation-events";
 import { useT } from "./lib/i18n";
 import { formatError } from "./lib/format-error";
@@ -86,29 +86,26 @@ function Controls() {
     };
   }, []);
 
-  const ptt = settings?.hotkeys.push_to_talk;
-  const release =
-    ptt?.kind === "modifier"
-      ? formatModifier(ptt.key)
-      : ptt?.kind === "shortcut"
-        ? formatAccelerator(ptt.accelerator)
-        : null;
+  const release = settings ? pushToTalkLabel(settings.hotkeys) : null;
   const stop = formatAccelerator(settings?.hotkeys.toggle ?? null);
 
   return (
     <div className="overlay__foot">
+      {/* Named after what the key does, not just what it is called. This panel is on
+          screen at the exact moment someone is wondering how to end a take, and a bare
+          "F9" reads as something to press again rather than something to let go of. */}
       <div className="overlay__keys">
         {release && (
-          <>
+          <span className="overlay__key">
             <kbd>{release}</kbd>
             <span>{t.overlay.release}</span>
-          </>
+          </span>
         )}
         {stop && (
-          <>
+          <span className="overlay__key">
             <kbd>{stop}</kbd>
             <span>{t.overlay.stop}</span>
-          </>
+          </span>
         )}
       </div>
 

@@ -64,7 +64,7 @@ const en = {
   dictate: {
     title: "Dictate",
     lede:
-      "Press your hotkey in any app and talk. The text is transcribed, optionally rewritten by the active mode, then pasted where your cursor was.",
+      "Hold your push-to-talk key in any app and talk; let go and the text is transcribed, optionally rewritten by the active mode, then pasted where your cursor was.",
     accessibilityTitle: "Accessibility permission needed.",
     accessibilityBody:
       "Without it macOS blocks the paste keystroke and the hold-to-talk key, so text reaches your clipboard but never the app you are typing in.",
@@ -73,6 +73,10 @@ const en = {
     working: "Working…",
     copyText: "Copy text",
     empty: "Nothing yet. Start talking and the words appear here as they are recognised.",
+    // The verb, not just the key. Shown as a bare key name, push-to-talk gets pressed
+    // once and released, which starts and instantly ends a take.
+    holdHint: "hold it down and talk — let go and the text is pasted",
+    pressHint: "press once to start, press again to paste",
     inputSection: "Input",
     microphone: "Microphone",
     microphoneHint: "Switch inputs without leaving this screen.",
@@ -130,6 +134,11 @@ const en = {
     getKeyFrom: "Get one from",
     keyPlaceholder: "Paste API key",
     keySaved: "Saved — paste a new key to replace",
+    sttTestSection: "Speech key check",
+    sttTestHint: "Opens a real stream for a moment, so a rejected key shows up here.",
+    sttTest: "Test key",
+    sttTestOk: "OK — the provider accepted the key.",
+    sttTestFailed: "Failed:",
     testSection: "Connection check",
     test: "Test model",
     testing: "Testing…",
@@ -250,8 +259,11 @@ const en = {
 
   overlay: {
     speak: "Start speaking…",
-    release: "release",
-    stop: "stop",
+    // On screen at the moment someone is wondering how to finish, so it says what to
+    // do with the key rather than only naming it. Kept short: this is a 480px HUD
+    // glanced at mid-sentence, not the place to teach — that is the Dictate tab.
+    release: "let go to paste",
+    stop: "or press to stop",
   },
 
   recorder: {
@@ -272,7 +284,16 @@ const en = {
     tagline: "Don't type. Just talk.",
     languageTitle: "Welcome to Tocky Voice",
     languageBody:
-      "Hold a key anywhere on your Mac, talk, and what you said is typed into whatever app you are in. Four short steps and you are ready. First, which language should this app be in?",
+      "Hold a key anywhere on your computer, talk, and what you said is typed into whatever app you are in. A few short steps and you are ready. First, which language should this app be in?",
+
+    micTitle: "Check your microphone",
+    micBody:
+      "Everything else assumes your voice is reaching this app, so start here. Pick an input and say something — the bars below have to move before you continue.",
+    micWaiting: "Say something…",
+    micHeard: "Heard you. This microphone works.",
+    micFailed: "Could not open this microphone:",
+    micSilentHint:
+      "Nothing yet? Try a different input above. If none of them move, check that Windows lets apps use the microphone (Settings → Privacy & security → Microphone) and that the device is not muted.",
 
     speechTitle: "Connect a speech service",
     speechBody:
@@ -281,6 +302,9 @@ const en = {
     keyStep1: "Open {provider} and sign up — no card needed for the free credit.",
     keyStep2: "Copy the key it gives you and paste it here.",
     keySaved: "{provider} key saved.",
+    keyChecking: "Checking the key with {provider}…",
+    keyWorks: "{provider} accepted the key. Speech recognition is ready.",
+    keyRejected: "{provider} would not accept this key:",
 
     permissionTitle: "Let macOS type for you",
     permissionBody:
@@ -297,8 +321,8 @@ const en = {
     tryBody: "Press the button, say a sentence, and press it again. Check the words look right.",
     tryHint: "Your words will appear here…",
     tryStart: "Start talking",
-    keyToggle: "start and stop, from any app",
-    keyHold: "or hold this key and talk",
+    keyToggle: "or press once to start, again to stop — from any app",
+    keyHold: "hold this key down and talk, let go and it pastes",
     tryFinale:
       "That is the whole app. Now click into any other app — a browser, Notes, a chat box — press the hotkey, and talk. The text is pasted where your cursor is.",
 
@@ -318,6 +342,8 @@ const en = {
     no_llm_key: "No AI provider key saved. Pasting the raw transcript instead.",
     cleanup_failed: "AI cleanup failed. Pasting the raw transcript instead.",
     mic_unavailable: "Could not open the microphone.",
+    no_audio_captured:
+      "The microphone opened but stayed completely silent, so there was nothing to transcribe. Pick the right input under Dictate → Microphone and check it is not muted.",
     transcription_failed: "Transcription failed.",
   },
 
@@ -377,7 +403,7 @@ const vi: Dictionary = {
   dictate: {
     title: "Đọc",
     lede:
-      "Bấm phím tắt ở bất kỳ ứng dụng nào rồi nói. Lời nói được chuyển thành chữ, có thể được AI viết lại theo chế độ đang chọn, rồi dán vào đúng chỗ con trỏ.",
+      "Giữ phím nói ở bất kỳ ứng dụng nào rồi nói; thả ra là lời nói được chuyển thành chữ, có thể được AI viết lại theo chế độ đang chọn, rồi dán vào đúng chỗ con trỏ.",
     accessibilityTitle: "Cần quyền Accessibility.",
     accessibilityBody:
       "Thiếu quyền này macOS sẽ chặn thao tác dán và phím giữ-để-nói, nên chữ chỉ vào clipboard chứ không vào được ứng dụng anh đang gõ.",
@@ -386,6 +412,8 @@ const vi: Dictionary = {
     working: "Đang xử lý…",
     copyText: "Chép đoạn này",
     empty: "Chưa có gì. Cứ nói, chữ sẽ hiện ở đây ngay khi nhận dạng được.",
+    holdHint: "giữ phím này rồi nói — thả ra là chữ được dán",
+    pressHint: "bấm một lần để bắt đầu, bấm lại để dán",
     inputSection: "Đầu vào",
     microphone: "Micro",
     microphoneHint: "Đổi micro ngay tại đây, không cần vào Cài đặt.",
@@ -443,6 +471,11 @@ const vi: Dictionary = {
     getKeyFrom: "Lấy key ở",
     keyPlaceholder: "Dán API key",
     keySaved: "Đã lưu — dán key mới để thay",
+    sttTestSection: "Kiểm tra key giọng nói",
+    sttTestHint: "Mở thử một kết nối thật trong chốc lát, key sai sẽ lộ ra ngay ở đây.",
+    sttTest: "Thử key",
+    sttTestOk: "OK — nhà cung cấp đã chấp nhận key.",
+    sttTestFailed: "Thất bại:",
     testSection: "Kiểm tra kết nối",
     test: "Thử model",
     testing: "Đang thử…",
@@ -562,8 +595,8 @@ const vi: Dictionary = {
 
   overlay: {
     speak: "Nói đi…",
-    release: "thả để xong",
-    stop: "dừng",
+    release: "thả ra là dán",
+    stop: "hoặc bấm để dừng",
   },
 
   recorder: {
@@ -584,7 +617,16 @@ const vi: Dictionary = {
     tagline: "Đã đến lúc bớt gõ lại. Vì Tocky sẽ ghi ra chính xác những gì bạn nói trên máy tính.",
     languageTitle: "Chào mừng đến Tocky Voice",
     languageBody:
-      "Giữ một phím ở bất kỳ đâu trên máy, nói, và chữ được gõ thẳng vào ứng dụng bạn đang mở. Bốn bước ngắn là xong. Trước tiên, bạn muốn app hiển thị bằng ngôn ngữ nào?",
+      "Giữ một phím ở bất kỳ đâu trên máy, nói, và chữ được gõ thẳng vào ứng dụng bạn đang mở. Vài bước ngắn là xong. Trước tiên, bạn muốn app hiển thị bằng ngôn ngữ nào?",
+
+    micTitle: "Kiểm tra micro",
+    micBody:
+      "Mọi bước sau đều mặc định là giọng bạn đã vào được app, nên hãy bắt đầu từ đây. Chọn một micro rồi nói thử — thanh sóng bên dưới phải nhảy thì mới đi tiếp được.",
+    micWaiting: "Nói thử một câu…",
+    micHeard: "Nghe thấy rồi. Micro này chạy tốt.",
+    micFailed: "Không mở được micro này:",
+    micSilentHint:
+      "Chưa thấy gì? Thử đổi sang micro khác ở trên. Nếu không cái nào nhảy, kiểm tra xem Windows có cho ứng dụng dùng micro không (Settings → Privacy & security → Microphone) và micro có đang bị tắt tiếng không.",
 
     speechTitle: "Kết nối dịch vụ nhận dạng giọng nói",
     speechBody:
@@ -593,6 +635,9 @@ const vi: Dictionary = {
     keyStep1: "Mở {provider} và đăng ký — không cần thẻ để nhận credit miễn phí.",
     keyStep2: "Copy key họ cấp rồi dán vào đây.",
     keySaved: "Đã lưu key {provider}.",
+    keyChecking: "Đang kiểm tra key với {provider}…",
+    keyWorks: "{provider} đã chấp nhận key. Nhận dạng giọng nói sẵn sàng.",
+    keyRejected: "{provider} không chấp nhận key này:",
 
     permissionTitle: "Cho phép macOS gõ giúp bạn",
     permissionBody:
@@ -609,8 +654,8 @@ const vi: Dictionary = {
     tryBody: "Bấm nút, nói một câu, rồi bấm lại. Xem chữ ra có đúng không.",
     tryHint: "Chữ của bạn sẽ hiện ở đây…",
     tryStart: "Bắt đầu nói",
-    keyToggle: "bật và tắt, từ bất kỳ ứng dụng nào",
-    keyHold: "hoặc giữ phím này rồi nói",
+    keyToggle: "hoặc bấm một lần để bắt đầu, bấm lại để dừng — từ ứng dụng bất kỳ",
+    keyHold: "GIỮ phím này rồi nói, thả ra là chữ được dán",
     tryFinale:
       "Vậy là xong. Giờ bấm vào một ứng dụng bất kỳ — trình duyệt, Notes, ô chat — bấm phím tắt rồi nói. Chữ sẽ được dán ngay chỗ con trỏ.",
 
@@ -630,6 +675,8 @@ const vi: Dictionary = {
     no_llm_key: "Chưa lưu key cho nhà cung cấp AI. Dán bản gốc chưa qua AI.",
     cleanup_failed: "AI viết lại thất bại. Dán bản gốc chưa qua AI.",
     mic_unavailable: "Không mở được micro.",
+    no_audio_captured:
+      "Micro có mở nhưng im hoàn toàn, nên không có gì để nhận dạng. Chọn đúng micro ở tab Đọc → Micro và kiểm tra xem nó có bị tắt tiếng không.",
     transcription_failed: "Nhận dạng giọng nói thất bại.",
   },
 

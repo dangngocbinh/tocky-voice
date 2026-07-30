@@ -85,6 +85,31 @@ async fn transcribe(provider: SttProviderKind, api_key: String) -> String {
         .expect("stt stream failed")
 }
 
+/// A key the vendor rejects has to come back as an error, not as an empty transcript.
+///
+/// This is the regression behind "the recording panel appears for two seconds and then
+/// closes itself": a rejected credential arrives as an ordinary message frame followed
+/// by a close, and both used to be discarded, so the take ended with nothing to show
+/// and nothing to say. Needs no credentials — a deliberately invalid one is the point —
+/// so this is the one live test that runs without any account.
+#[tokio::test]
+#[ignore = "hits the live provider APIs"]
+async fn a_rejected_key_is_reported_rather_than_swallowed() {
+    for provider in [
+        SttProviderKind::Soniox,
+        SttProviderKind::Deepgram,
+        SttProviderKind::AssemblyAi,
+    ] {
+        let result = stt::probe(&settings(provider.clone()), "not-a-real-key".into()).await;
+        let err = result.expect_err(&format!("{provider:?} accepted an invalid key"));
+        println!("{provider:?} rejected the key with: {err:#}");
+        assert!(
+            !format!("{err:#}").trim().is_empty(),
+            "{provider:?} failed without saying why"
+        );
+    }
+}
+
 #[tokio::test]
 #[ignore = "hits the live Soniox API"]
 async fn soniox_transcribes_the_fixture() {

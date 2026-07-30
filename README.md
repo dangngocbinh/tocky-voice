@@ -129,12 +129,16 @@ chữ chỉ vào clipboard chứ không bao giờ vào được ứng dụng b�
 
 Bấm phím tắt trong ứng dụng bất kỳ, nói, bấm lại lần nữa. Chữ được dán ngay chỗ con trỏ.
 
-| Việc | Mặc định |
-| --- | --- |
-| Bắt đầu / dừng | `Control+Alt+D` |
-| Giữ để nói | Right Option *(chỉ macOS — Windows/Linux dùng tổ hợp phím)* |
-| Huỷ lần ghi này | `Control+Alt+X` |
-| Chuyển chế độ | `Control+Alt+M` |
+| Việc | macOS | Windows / Linux |
+| --- | --- | --- |
+| Giữ để nói | Right Option | Giữ `F9` |
+| Bắt đầu / dừng | `Control+Alt+D` | `Control+Shift+Space` |
+| Huỷ lần ghi này | `Control+Alt+X` | `Control+Shift+X` |
+| Chuyển chế độ | `Control+Alt+M` | `Control+Shift+M` |
+
+Hai nền tảng khác mặc định vì lý do kỹ thuật: giữ một phím bổ trợ trần chỉ bắt được trên
+macOS, còn `Control+Alt` trên bàn phím PC chính là thứ AltGr gửi đi nên hành xử khác nhau
+tuỳ layout bàn phím.
 
 Đổi lại được hết trong **Cài đặt → Phím tắt**.
 
@@ -143,7 +147,8 @@ Bấm phím tắt trong ứng dụng bất kỳ, nói, bấm lại lần nữa. 
 Một chế độ là một câu lệnh cho AI cộng với cách giao chữ, nên cùng một câu nói có thể ra
 những thứ khác nhau. Có sẵn 4 chế độ, và bạn tự thêm được, mỗi cái một phím tắt riêng:
 
-- **Raw** — không qua AI, dán thẳng bản nhận dạng (nhanh nhất, gần như không tốn thêm thời gian)
+- **Raw** — không qua AI, dán thẳng bản nhận dạng (nhanh nhất, gần như không tốn thêm thời
+  gian). Đây là chế độ mặc định: cài xong là chạy được ngay, chưa cần key AI nào.
 - **Clean** — sửa chính tả, dấu câu, bỏ từ đệm; giữ nguyên thuật ngữ tiếng Anh
 - **Prompt** — viết lại thành một yêu cầu mạch lạc cho AI coding agent
 - **Email** — viết lại thành email/tin nhắn công việc trang trọng

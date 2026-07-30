@@ -6,7 +6,7 @@
 
 mod pipeline;
 
-use crate::audio::{capture, feedback, resample};
+use crate::audio::{capture, feedback, mic_test, resample};
 use crate::focus;
 use crate::overlay;
 use crate::settings::secrets;
@@ -26,6 +26,10 @@ struct ActiveTake {
     audio_tx: Option<mpsc::UnboundedSender<Vec<u8>>>,
     /// Set when the user aborts, so the pipeline knows to throw the result away.
     cancelled: Arc<AtomicBool>,
+    /// Set the first time a chunk arrives above [`AUDIBLE_PEAK`]. An empty transcript
+    /// means something very different depending on this flag: either nothing was said,
+    /// or the selected input never produced a sound in the first place.
+    heard_audio: Arc<AtomicBool>,
     pcm: Arc<Mutex<Vec<i16>>>,
     mode_id: String,
     /// The app that was frontmost when recording began — the one the text belongs in,
@@ -33,6 +37,11 @@ struct ActiveTake {
     target_app: focus::TargetApp,
     stt_task: tauri::async_runtime::JoinHandle<anyhow::Result<String>>,
 }
+
+/// Peak amplitude (0..1) a chunk has to reach to count as "the microphone is live".
+/// A muted or disconnected Windows input hands back exact zeros or near-zeros; even a
+/// quiet room on a low-gain mic sits above this.
+const AUDIBLE_PEAK: f32 = 0.01;
 
 #[derive(Default)]
 pub struct Recorder {
@@ -63,6 +72,11 @@ pub fn start(app: &AppHandle, mode_id: Option<String>) {
     if recorder.is_recording() {
         return;
     }
+
+    // The setup wizard's level meter holds the device open. Some Windows drivers give
+    // exclusive access, so a preview left running would make the real take fail to open
+    // the very microphone it just proved was working.
+    mic_test::stop(app);
 
     if let Some(id) = mode_id {
         set_active_mode(app, &id);
@@ -96,8 +110,10 @@ pub fn start(app: &AppHandle, mode_id: Option<String>) {
     let (audio_tx, audio_rx) = mpsc::unbounded_channel::<Vec<u8>>();
     let (event_tx, mut event_rx) = mpsc::unbounded_channel::<stt::SttEvent>();
     let pcm = Arc::new(Mutex::new(Vec::<i16>::new()));
+    let heard_audio = Arc::new(AtomicBool::new(false));
 
     let pump_pcm = pcm.clone();
+    let pump_heard = heard_audio.clone();
     let pump_audio_tx = audio_tx.clone();
 
     // Live transcript preview.
@@ -125,6 +141,7 @@ pub fn start(app: &AppHandle, mode_id: Option<String>) {
             capture,
             audio_tx: Some(audio_tx),
             cancelled: Arc::new(AtomicBool::new(false)),
+            heard_audio,
             pcm,
             mode_id: mode_id.clone(),
             target_app,
@@ -143,6 +160,9 @@ pub fn start(app: &AppHandle, mode_id: Option<String>) {
             while let Some(chunk) = chunk_rx.recv().await {
                 if let Ok(mut buffer) = pump_pcm.lock() {
                     buffer.extend_from_slice(&chunk.pcm16);
+                }
+                if chunk.peak >= AUDIBLE_PEAK {
+                    pump_heard.store(true, Ordering::Relaxed);
                 }
                 if pump_audio_tx
                     .send(resample::i16_to_le_bytes(&chunk.pcm16))
@@ -224,7 +244,15 @@ pub fn stop(app: &AppHandle) {
             .lock()
             .map(|buffer| buffer.clone())
             .unwrap_or_default();
-        pipeline::finish(&app, &take.mode_id, transcript, pcm, take.target_app).await;
+        pipeline::finish(
+            &app,
+            &take.mode_id,
+            transcript,
+            pcm,
+            take.target_app,
+            take.heard_audio.load(Ordering::Relaxed),
+        )
+        .await;
     });
 }
 

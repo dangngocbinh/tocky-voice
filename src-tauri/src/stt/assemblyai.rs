@@ -6,7 +6,7 @@
 
 use super::{request_with_header, SttEvent, WsProtocol};
 use crate::audio::capture::TARGET_SAMPLE_RATE;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use serde_json::json;
 use tokio_tungstenite::tungstenite::http::Request;
 use tokio_tungstenite::tungstenite::Message;
@@ -44,19 +44,24 @@ impl WsProtocol for AssemblyAi {
         Message::Text(json!({ "type": "Terminate" }).to_string())
     }
 
-    fn parse(&mut self, text: &str) -> Vec<SttEvent> {
+    fn parse(&mut self, text: &str) -> Result<Vec<SttEvent>> {
         let Ok(value) = serde_json::from_str::<serde_json::Value>(text) else {
-            return Vec::new();
+            return Ok(Vec::new());
         };
+        // v3 reports a rejected session — bad key, unsupported audio, quota — as an
+        // `error` field, then closes. Reported rather than ignored so the user sees why.
+        if let Some(err) = value.get("error").and_then(|e| e.as_str()) {
+            return Err(anyhow!("AssemblyAI: {err}"));
+        }
         if value.get("type").and_then(|t| t.as_str()) != Some("Turn") {
-            return Vec::new();
+            return Ok(Vec::new());
         }
         let transcript = value
             .get("transcript")
             .and_then(|t| t.as_str())
             .unwrap_or_default();
         if transcript.trim().is_empty() {
-            return Vec::new();
+            return Ok(Vec::new());
         }
 
         let end_of_turn = value
@@ -69,11 +74,11 @@ impl WsProtocol for AssemblyAi {
             .unwrap_or(false);
         let turn_order = value.get("turn_order").and_then(|v| v.as_i64()).unwrap_or(0);
 
-        if end_of_turn && formatted && turn_order > self.last_committed_turn {
+        Ok(if end_of_turn && formatted && turn_order > self.last_committed_turn {
             self.last_committed_turn = turn_order;
             vec![SttEvent::Final(transcript.to_string())]
         } else {
             vec![SttEvent::Partial(transcript.to_string())]
-        }
+        })
     }
 }

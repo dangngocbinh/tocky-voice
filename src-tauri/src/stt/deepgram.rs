@@ -5,7 +5,7 @@
 use super::{request_with_header, SttEvent, WsProtocol};
 use crate::audio::capture::TARGET_SAMPLE_RATE;
 use crate::settings::SttSettings;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use serde_json::json;
 use tokio_tungstenite::tungstenite::http::Request;
 use tokio_tungstenite::tungstenite::Message;
@@ -52,29 +52,38 @@ impl WsProtocol for Deepgram {
         Message::Text(json!({ "type": "CloseStream" }).to_string())
     }
 
-    fn parse(&mut self, text: &str) -> Vec<SttEvent> {
+    fn parse(&mut self, text: &str) -> Result<Vec<SttEvent>> {
         let Ok(value) = serde_json::from_str::<serde_json::Value>(text) else {
-            return Vec::new();
+            return Ok(Vec::new());
         };
+        // Deepgram announces a rejected request as an `Error` frame and then closes.
+        if value.get("type").and_then(|t| t.as_str()) == Some("Error") {
+            let description = value
+                .get("description")
+                .or_else(|| value.get("message"))
+                .and_then(|d| d.as_str())
+                .unwrap_or("stream rejected");
+            return Err(anyhow!("Deepgram: {description}"));
+        }
         if value.get("type").and_then(|t| t.as_str()) != Some("Results") {
-            return Vec::new();
+            return Ok(Vec::new());
         }
         let transcript = value
             .pointer("/channel/alternatives/0/transcript")
             .and_then(|t| t.as_str())
             .unwrap_or_default();
         if transcript.trim().is_empty() {
-            return Vec::new();
+            return Ok(Vec::new());
         }
 
         let is_final = value
             .get("is_final")
             .and_then(|f| f.as_bool())
             .unwrap_or(false);
-        vec![if is_final {
+        Ok(vec![if is_final {
             SttEvent::Final(transcript.to_string())
         } else {
             SttEvent::Partial(transcript.to_string())
-        }]
+        }])
     }
 }

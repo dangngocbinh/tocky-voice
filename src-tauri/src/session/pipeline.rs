@@ -46,6 +46,7 @@ pub async fn finish(
     transcript: String,
     pcm: Vec<i16>,
     target_app: crate::focus::TargetApp,
+    heard_audio: bool,
 ) {
     let settings = state::settings_snapshot(app);
     let mode = match settings.mode(mode_id) {
@@ -54,9 +55,18 @@ pub async fn finish(
     };
 
     if transcript.trim().is_empty() {
-        // Nothing was heard — treat it as a quiet no-op rather than an error toast.
-        overlay::hide(app);
-        state::emit_status(app, Phase::Idle, mode_id);
+        if heard_audio {
+            // Someone pressed the key and said nothing, or the take was too short to
+            // land a word. A quiet no-op, not an error toast.
+            overlay::hide(app);
+            state::emit_status(app, Phase::Idle, mode_id);
+        } else {
+            // The microphone opened but never produced a sound: it is muted, the OS
+            // privacy switch is off, or the chosen device is not the one being spoken
+            // into. Silently closing the panel here is what made this look like the
+            // app "just stops after two seconds".
+            fail(app, mode_id, ErrorPayload::new(ErrorKind::NoAudioCaptured));
+        }
         return;
     }
 

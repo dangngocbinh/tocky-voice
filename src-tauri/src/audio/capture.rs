@@ -5,6 +5,7 @@
 use super::resample;
 use anyhow::{anyhow, Context, Result};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::Sample as _;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
@@ -39,6 +40,59 @@ pub fn list_input_devices() -> Vec<String> {
     host.input_devices()
         .map(|devices| devices.filter_map(|d| d.name().ok()).collect())
         .unwrap_or_default()
+}
+
+/// One line per input, describing what the driver says it can do.
+///
+/// "That device does not work" is unanswerable from the outside: the sample format, the
+/// rate and the channel count all come from the driver, they differ per device, and a
+/// USB interface reports something quite unlike a built-in microphone. This is the
+/// inventory to ask for in a bug report.
+pub fn describe_input_devices() -> Vec<String> {
+    let host = cpal::default_host();
+    let default = host
+        .default_input_device()
+        .and_then(|d| d.name().ok())
+        .unwrap_or_default();
+
+    let Ok(devices) = host.input_devices() else {
+        return vec!["could not enumerate input devices".into()];
+    };
+
+    devices
+        .map(|device| {
+            let name = device.name().unwrap_or_else(|_| "<unnamed>".into());
+            let marker = if name == default { " (system default)" } else { "" };
+            match device.default_input_config() {
+                Ok(config) => {
+                    let supported: Vec<String> = device
+                        .supported_input_configs()
+                        .map(|configs| {
+                            configs
+                                .map(|c| {
+                                    format!(
+                                        "{:?}/{}ch/{}-{}Hz",
+                                        c.sample_format(),
+                                        c.channels(),
+                                        c.min_sample_rate().0,
+                                        c.max_sample_rate().0
+                                    )
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    format!(
+                        "{name}{marker}: default {:?}/{}ch/{}Hz; supports [{}]",
+                        config.sample_format(),
+                        config.channels(),
+                        config.sample_rate().0,
+                        supported.join(", ")
+                    )
+                }
+                Err(e) => format!("{name}{marker}: no usable input config ({e})"),
+            }
+        })
+        .collect()
 }
 
 fn pick_device(name: Option<&str>) -> Result<cpal::Device> {
@@ -125,34 +179,45 @@ fn build_stream(
         });
     };
 
+    // Every sample format cpal can hand us, converted to f32 by the same rule.
+    //
+    // Only F32, I16 and U16 used to be accepted and everything else was a hard error.
+    // That is fine for a laptop's built-in microphone, which is almost always one of
+    // those — but USB interfaces and "Line in" codecs commonly negotiate I32 (24 bits
+    // carried in 32) under WASAPI shared mode, and those devices could not be used at
+    // all. The conversion is `dasp`'s, so each format is scaled by its own range rather
+    // than by a hand-written constant per arm.
+    macro_rules! input_stream {
+        ($sample:ty) => {
+            device.build_input_stream(
+                &stream_config,
+                move |data: &[$sample], _: &_| {
+                    forward(data.iter().map(|s| s.to_sample::<f32>()).collect())
+                },
+                on_error,
+                None,
+            )
+        };
+    }
+
     let stream = match sample_format {
-        cpal::SampleFormat::F32 => device.build_input_stream(
-            &stream_config,
-            move |data: &[f32], _: &_| forward(data.to_vec()),
-            on_error,
-            None,
-        ),
-        cpal::SampleFormat::I16 => device.build_input_stream(
-            &stream_config,
-            move |data: &[i16], _: &_| {
-                forward(data.iter().map(|s| *s as f32 / i16::MAX as f32).collect())
-            },
-            on_error,
-            None,
-        ),
-        cpal::SampleFormat::U16 => device.build_input_stream(
-            &stream_config,
-            move |data: &[u16], _: &_| {
-                forward(
-                    data.iter()
-                        .map(|s| (*s as f32 - u16::MAX as f32 / 2.0) / (u16::MAX as f32 / 2.0))
-                        .collect(),
-                )
-            },
-            on_error,
-            None,
-        ),
-        other => return Err(anyhow!("unsupported sample format: {other:?}")),
+        cpal::SampleFormat::F32 => input_stream!(f32),
+        cpal::SampleFormat::F64 => input_stream!(f64),
+        cpal::SampleFormat::I8 => input_stream!(i8),
+        cpal::SampleFormat::I16 => input_stream!(i16),
+        cpal::SampleFormat::I32 => input_stream!(i32),
+        cpal::SampleFormat::I64 => input_stream!(i64),
+        cpal::SampleFormat::U8 => input_stream!(u8),
+        cpal::SampleFormat::U16 => input_stream!(u16),
+        cpal::SampleFormat::U32 => input_stream!(u32),
+        cpal::SampleFormat::U64 => input_stream!(u64),
+        other => {
+            return Err(anyhow!(
+                "this input delivers {other:?} samples, which cpal does not give us a \
+                 typed callback for. Inputs on this machine: [{}]",
+                describe_input_devices().join(" | ")
+            ))
+        }
     }
     .context("building input stream")?;
 

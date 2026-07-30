@@ -28,6 +28,8 @@ pub enum ErrorKind {
     CleanupFailed,
     /// The microphone could not be opened.
     MicUnavailable,
+    /// The microphone opened but delivered nothing but silence for the whole take.
+    NoAudioCaptured,
     /// The speech stream failed before producing a transcript.
     TranscriptionFailed,
 }

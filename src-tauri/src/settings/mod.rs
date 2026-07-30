@@ -220,12 +220,99 @@ pub fn load(app: &AppHandle) -> AppSettings {
         Err(_) => return defaults::default_settings(),
     };
     match serde_json::from_str::<AppSettings>(&raw) {
-        Ok(s) => s,
+        Ok(mut s) => {
+            repair_unusable_hotkeys(&mut s);
+            s
+        }
         Err(e) => {
             log::error!("settings.json unreadable ({e}); backing up and using defaults");
             let _ = std::fs::write(path.with_extension("json.bak"), &raw);
             defaults::default_settings()
         }
+    }
+}
+
+/// Replaces bindings that cannot work on this platform.
+///
+/// Builds before this one shipped a hold-a-bare-modifier push-to-talk as the factory
+/// default on every platform, but the listener behind it exists only on macOS. Anyone
+/// who installed on Windows or Linux got a settings file whose main binding was dead on
+/// arrival and gave no hint as to why, so it is swapped for the working default rather
+/// than left to fail quietly on every launch.
+fn repair_unusable_hotkeys(settings: &mut AppSettings) {
+    #[cfg(not(target_os = "macos"))]
+    if matches!(settings.hotkeys.push_to_talk, PushToTalk::Modifier { .. }) {
+        let replacement = defaults::default_hotkeys().push_to_talk;
+        log::info!(
+            "push-to-talk was set to hold a bare modifier, which only works on macOS; \
+             using {replacement:?} instead"
+        );
+        settings.hotkeys.push_to_talk = replacement;
+    }
+    #[cfg(target_os = "macos")]
+    let _ = settings;
+}
+
+#[cfg(test)]
+mod default_tests {
+    use super::*;
+
+    /// Setup asks for a speech key and nothing else, so the mode a fresh install lands
+    /// in must not need an AI key. Picking one that does meant every first dictation
+    /// raised "no AI provider key saved" and then pasted the raw transcript regardless —
+    /// an error message attached to an outcome that was already correct.
+    #[test]
+    fn the_out_of_the_box_mode_works_without_an_ai_key() {
+        let settings = defaults::default_settings();
+        let mode = settings.active_mode();
+        assert!(
+            !mode.ai_cleanup,
+            "default mode {:?} needs an AI key that setup never asks for",
+            mode.id
+        );
+    }
+
+    #[test]
+    fn the_default_active_mode_actually_exists() {
+        let settings = defaults::default_settings();
+        assert!(settings.mode(&settings.active_mode_id).is_some());
+    }
+}
+
+#[cfg(all(test, not(target_os = "macos")))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_settings_file_carrying_the_old_mac_only_push_to_talk_is_repaired() {
+        let mut settings = defaults::default_settings();
+        settings.hotkeys.push_to_talk = PushToTalk::Modifier {
+            key: ModifierKey::RightOption,
+        };
+
+        repair_unusable_hotkeys(&mut settings);
+
+        assert!(matches!(
+            settings.hotkeys.push_to_talk,
+            PushToTalk::Shortcut { .. }
+        ));
+    }
+
+    #[test]
+    fn a_push_to_talk_the_user_chose_themselves_is_left_alone() {
+        let mut settings = defaults::default_settings();
+        settings.hotkeys.push_to_talk = PushToTalk::Shortcut {
+            accelerator: "Control+Alt+Space".into(),
+        };
+
+        repair_unusable_hotkeys(&mut settings);
+
+        assert_eq!(
+            settings.hotkeys.push_to_talk,
+            PushToTalk::Shortcut {
+                accelerator: "Control+Alt+Space".into()
+            }
+        );
     }
 }
 

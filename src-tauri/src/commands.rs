@@ -3,7 +3,7 @@
 //! Commands return `Result<_, String>` because Tauri needs a serializable error;
 //! anyhow's chain is flattened with `{:#}` so the UI can show the root cause.
 
-use crate::audio::capture;
+use crate::audio::{capture, mic_test};
 use crate::history::{self, HistoryEntry};
 use crate::settings::{self, defaults, secrets, AppSettings};
 use crate::state::{events, AppState};
@@ -87,6 +87,22 @@ pub fn list_llm_presets() -> Vec<PresetDto> {
 #[tauri::command]
 pub fn list_input_devices() -> Vec<String> {
     capture::list_input_devices()
+}
+
+/// Opens a microphone and streams its level to the UI, without a speech provider or a
+/// session behind it. This is how the setup wizard proves the chosen input actually
+/// carries sound before the user gets as far as needing an API key.
+#[tauri::command]
+pub fn start_mic_test(app: AppHandle, device: Option<String>) -> Result<(), String> {
+    if app.state::<session::Recorder>().is_recording() {
+        return Err("a dictation is already running".into());
+    }
+    mic_test::start(&app, device).map_err(to_err)
+}
+
+#[tauri::command]
+pub fn stop_mic_test(app: AppHandle) {
+    mic_test::stop(&app);
 }
 
 /// Writes a credential to the OS keychain. There is deliberately no "read key"
@@ -233,6 +249,22 @@ pub async fn test_llm(app: AppHandle) -> Result<String, String> {
     .map_err(to_err)
 }
 
+/// Checks the saved speech credential against the provider, the way [`test_llm`] does
+/// for the AI side. Opens a real stream so a rejected key, an unknown model or an empty
+/// balance is reported here rather than as a dictation that quietly produces nothing.
+///
+/// Takes the speech settings from the caller rather than the saved snapshot: the
+/// settings UI writes through a debounce, so a provider the user picked a moment ago
+/// has not reached disk yet and reading the snapshot would test the previous one.
+#[tauri::command]
+pub async fn test_stt_key(stt: settings::SttSettings) -> Result<(), String> {
+    let account = secrets::stt_account(&stt.provider);
+    let Some(api_key) = secrets::get_key(account) else {
+        return Err(format!("no key saved for {account}"));
+    };
+    crate::stt::probe(&stt, api_key).await.map_err(to_err)
+}
+
 /// Releases the global hotkeys so the settings UI can capture a key combination
 /// without the app reacting to it.
 #[tauri::command]
@@ -271,6 +303,15 @@ pub fn show_main_window(app: AppHandle) {
 fn apply_autostart(app: &AppHandle, enabled: bool) {
     use tauri_plugin_autostart::ManagerExt;
     let manager = app.autolaunch();
+
+    // Skip the no-op. Settings are saved on a debounce, so this runs on nearly every
+    // keystroke in the UI, and on Windows `disable()` on an entry that was never
+    // created fails with "the system cannot find the file specified" — a warning per
+    // save, about nothing, drowning out the lines worth reading.
+    if manager.is_enabled().map(|now| now == enabled).unwrap_or(false) {
+        return;
+    }
+
     let result = if enabled {
         manager.enable()
     } else {

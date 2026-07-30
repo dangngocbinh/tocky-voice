@@ -172,6 +172,7 @@ export type ErrorKind =
   | "no_llm_key"
   | "cleanup_failed"
   | "mic_unavailable"
+  | "no_audio_captured"
   | "transcription_failed";
 
 export interface ErrorPayload {

@@ -49,6 +49,7 @@ pub fn run() {
         )
         .manage(session::Recorder::default())
         .manage(hotkeys::HotkeyRegistry::default())
+        .manage(audio::mic_test::MicTest::default())
         .setup(|app| {
             let handle = app.handle().clone();
 
@@ -69,6 +70,13 @@ pub fn run() {
                 settings.active_mode_id,
                 inject::can_synthesize_input(),
             );
+            // Written on every launch because "that microphone does not work" cannot be
+            // answered without it: the format, rate and channel count all come from the
+            // driver and differ per device, and the machine with the problem is rarely
+            // the machine with the debugger.
+            for line in audio::capture::describe_input_devices() {
+                log::info!("input: {line}");
+            }
             log::info!(
                 "credential store: {}",
                 if settings.use_os_keychain {
@@ -112,6 +120,8 @@ pub fn run() {
             commands::reset_settings,
             commands::list_llm_presets,
             commands::list_input_devices,
+            commands::start_mic_test,
+            commands::stop_mic_test,
             commands::set_api_key,
             commands::delete_api_key,
             commands::key_status,
@@ -128,6 +138,7 @@ pub fn run() {
             commands::open_accessibility_settings,
             commands::open_url,
             commands::test_llm,
+            commands::test_stt_key,
             commands::list_models,
             commands::show_main_window,
             commands::suspend_hotkeys,

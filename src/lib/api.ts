@@ -5,6 +5,7 @@ import type {
   AppSettings,
   HistoryEntry,
   LlmPreset,
+  SttSettings,
 } from "./types";
 import { RELEASES_URL } from "./update-policy";
 
@@ -25,6 +26,11 @@ export const resetSettings = () => invoke<AppSettings>("reset_settings");
 
 export const listLlmPresets = () => invoke<LlmPreset[]>("list_llm_presets");
 export const listInputDevices = () => invoke<string[]>("list_input_devices");
+/** Opens a microphone and streams `EVENTS.level` from it, with no session behind it —
+ *  the setup wizard's proof that the chosen input actually carries sound. */
+export const startMicTest = (device: string | null) =>
+  invoke<void>("start_mic_test", { device });
+export const stopMicTest = () => invoke<void>("stop_mic_test");
 
 export const setApiKey = (account: string, value: string) =>
   invoke<void>("set_api_key", { account, value });
@@ -57,6 +63,9 @@ export const openUrl = (url: string) => invoke<void>("open_url", { url });
 /** Manual-download fallback for every update path. */
 export const openReleasesPage = () => openUrl(RELEASES_URL);
 export const testLlm = () => invoke<string>("test_llm");
+/** Opens a real speech stream with the saved key, so a rejected credential is caught
+ *  where it is entered instead of as a dictation that produces nothing. */
+export const testSttKey = (stt: SttSettings) => invoke<void>("test_stt_key", { stt });
 /** Live model list straight from the configured provider. */
 export const listModels = () => invoke<string[]>("list_models");
 

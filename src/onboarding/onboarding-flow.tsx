@@ -1,11 +1,15 @@
 /**
  * First-run walkthrough.
  *
- * The app is useless until three things are true: a speech provider has a key, macOS
- * has granted Accessibility, and the user knows the hotkey. Each of those fails
- * silently in its own way, so rather than leaving people to discover them one broken
- * dictation at a time, this walks through them in order and refuses to advance until
- * each one actually works.
+ * The app is useless until four things are true: the microphone is delivering sound, a
+ * speech provider has a key, macOS has granted Accessibility, and the user knows the
+ * hotkey. Each of those fails silently in its own way, so rather than leaving people to
+ * discover them one broken dictation at a time, this walks through them in order and
+ * refuses to advance until each one actually works.
+ *
+ * The microphone comes first because everything after it assumes sound is arriving: a
+ * dead input shows up as an empty transcript, which looks like a broken speech service
+ * and sends people to re-check a key that was never the problem.
  *
  * Re-runnable on purpose — it doubles as the "why has it stopped working" checklist.
  */
@@ -16,6 +20,7 @@ import type { UiLanguage } from "../lib/i18n";
 import { isMac } from "../lib/platform";
 import type { AppSettings } from "../lib/types";
 import { StepLanguage } from "./step-language";
+import { StepMic } from "./step-mic";
 import { StepSpeech } from "./step-speech";
 import { StepPermission } from "./step-permission";
 import { StepTryIt } from "./step-try-it";
@@ -27,14 +32,17 @@ interface Props {
 }
 
 // Accessibility is a macOS concept. Showing a step that is already green and talks
-// about System Settings would be four steps of setup where three are real.
+// about System Settings would be five steps of setup where four are real.
+//
+// Language leads because it decides what language every screen after it is written in;
+// the microphone is the first step that sets anything up.
 const STEPS = (
   isMac
-    ? (["language", "speech", "permission", "try"] as const)
-    : (["language", "speech", "try"] as const)
+    ? (["language", "mic", "speech", "permission", "try"] as const)
+    : (["language", "mic", "speech", "try"] as const)
 ) as readonly StepId[];
 
-export type StepId = "language" | "speech" | "permission" | "try";
+export type StepId = "language" | "mic" | "speech" | "permission" | "try";
 
 export function OnboardingFlow({ settings, onSettingsChange, onDone }: Props) {
   const [index, setIndex] = useState(0);
@@ -46,6 +54,7 @@ export function OnboardingFlow({ settings, onSettingsChange, onDone }: Props) {
 
   const titles: Record<StepId, string> = {
     language: t.onboarding.languageTitle,
+    mic: t.onboarding.micTitle,
     speech: t.onboarding.speechTitle,
     permission: t.onboarding.permissionTitle,
     try: t.onboarding.tryTitle,
@@ -88,6 +97,13 @@ export function OnboardingFlow({ settings, onSettingsChange, onDone }: Props) {
               onChange={(ui_language: UiLanguage) =>
                 onSettingsChange({ ...settings, ui_language })
               }
+            />
+          )}
+          {step === "mic" && (
+            <StepMic
+              settings={settings}
+              onSettingsChange={onSettingsChange}
+              onReadyChange={setCanAdvance}
             />
           )}
           {step === "speech" && (

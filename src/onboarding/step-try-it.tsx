@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from "react";
 import * as api from "../lib/api";
-import { formatAccelerator, formatModifier } from "../lib/format-accelerator";
+import { formatAccelerator, pushToTalkLabel } from "../lib/format-accelerator";
 import { useT } from "../lib/i18n";
 import type { AppSettings } from "../lib/types";
 import { useDictationEvents } from "../lib/use-dictation-events";
@@ -31,8 +31,10 @@ export function StepTryIt({ settings, onSettingsChange }: Props) {
 
   const recording = phase === "recording";
   const text = [transcript, partial].filter(Boolean).join(" ");
-  const ptt = settings.hotkeys.push_to_talk;
-  const hold = ptt.kind === "modifier" ? formatModifier(ptt.key) : null;
+  // Outside macOS push-to-talk is bound to an accelerator rather than a held bare
+  // modifier, and reading only the modifier case hid the hold key on every other
+  // platform — on the one screen whose job is to teach it.
+  const hold = pushToTalkLabel(settings.hotkeys);
 
   return (
     <>
@@ -58,17 +60,19 @@ export function StepTryIt({ settings, onSettingsChange }: Props) {
         </select>
       </div>
 
+      {/* Hold-to-talk leads: it is the faster of the two, and the one that is invisible
+          unless someone says out loud that the key is held rather than pressed. */}
       <div className="onb__keys">
-        <div>
-          <kbd>{formatAccelerator(settings.hotkeys.toggle)}</kbd>
-          <span>{t.onboarding.keyToggle}</span>
-        </div>
         {hold && (
           <div>
             <kbd>{hold}</kbd>
             <span>{t.onboarding.keyHold}</span>
           </div>
         )}
+        <div>
+          <kbd>{formatAccelerator(settings.hotkeys.toggle)}</kbd>
+          <span>{t.onboarding.keyToggle}</span>
+        </div>
       </div>
 
       <div className="onb__stage">

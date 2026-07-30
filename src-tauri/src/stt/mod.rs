@@ -13,7 +13,7 @@ use crate::audio::capture::TARGET_SAMPLE_RATE;
 use crate::settings::{SttProviderKind, SttSettings};
 use anyhow::{anyhow, Context, Result};
 use futures_util::{SinkExt, StreamExt};
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::http::Request;
 use tokio_tungstenite::tungstenite::Message;
@@ -47,7 +47,13 @@ pub trait WsProtocol: Send {
     /// Frame that tells the vendor no more audio is coming.
     fn finish_message(&self) -> Message;
     /// Turn one inbound text frame into zero or more transcript events.
-    fn parse(&mut self, text: &str) -> Vec<SttEvent>;
+    ///
+    /// Returns `Err` when the frame is the vendor telling us the session is over —
+    /// a rejected key, an unknown model, an exhausted quota. Those arrive as ordinary
+    /// text frames a second or two into the take and are followed by a close, so a
+    /// parser that shrugs them off turns a fixable configuration mistake into an
+    /// empty transcript and an overlay that vanishes for no stated reason.
+    fn parse(&mut self, text: &str) -> Result<Vec<SttEvent>>;
 }
 
 pub fn build_protocol(settings: &SttSettings, api_key: String) -> Box<dyn WsProtocol> {
@@ -78,6 +84,10 @@ pub async fn run_stream(
     let mut transcript = String::new();
     let mut audio_done = false;
     let mut pending = Vec::with_capacity(MIN_FRAME_BYTES * 2);
+    // Why the socket stopped accepting audio, when it was not because the user
+    // finished speaking. Reported at the end, but only if nothing was transcribed —
+    // a stream that dies after producing words should still hand those words over.
+    let mut broke_early: Option<String> = None;
 
     loop {
         tokio::select! {
@@ -90,6 +100,7 @@ pub async fn run_stream(
                         pending.reserve(MIN_FRAME_BYTES * 2);
                         if let Err(e) = writer.send(Message::Binary(frame)).await {
                             log::warn!("stt socket closed while sending audio: {e}");
+                            broke_early = Some(format!("the connection dropped mid-take: {e}"));
                             audio_done = true;
                         }
                     }
@@ -108,14 +119,28 @@ pub async fn run_stream(
             // Result side.
             msg = reader.next() => match msg {
                 Some(Ok(Message::Text(text))) => {
-                    for event in protocol.parse(&text) {
+                    for event in protocol.parse(&text)? {
                         if let SttEvent::Final(ref t) = event {
                             append_segment(&mut transcript, t);
                         }
                         let _ = events.send(event);
                     }
                 }
-                Some(Ok(Message::Close(_))) | None => break,
+                // A close before the user has finished speaking is the provider ending
+                // the session on us, and its reason is the only clue about why.
+                Some(Ok(Message::Close(frame))) => {
+                    if !audio_done {
+                        broke_early = Some(close_reason(frame.as_ref()));
+                    }
+                    break;
+                }
+                None => {
+                    if !audio_done {
+                        broke_early
+                            .get_or_insert_with(|| "the provider dropped the connection".into());
+                    }
+                    break;
+                }
                 Some(Ok(_)) => {}
                 Some(Err(e)) => return Err(anyhow!("speech provider stream error: {e}")),
             },
@@ -130,7 +155,10 @@ pub async fn run_stream(
                         append_segment(&mut transcript, &segment);
                     }
                 }
-                Ok(Err(e)) => log::warn!("stt drain error: {e}"),
+                Ok(Err(e)) => {
+                    log::warn!("stt drain error: {e}");
+                    broke_early.get_or_insert_with(|| format!("{e}"));
+                }
                 Err(_) => log::warn!("stt drain timed out; using transcript so far"),
             }
             break;
@@ -138,7 +166,54 @@ pub async fn run_stream(
     }
 
     let _ = writer.close().await;
-    Ok(transcript.trim().to_string())
+    let transcript = transcript.trim().to_string();
+    match broke_early {
+        Some(reason) if transcript.is_empty() => Err(anyhow!("{reason}")),
+        _ => Ok(transcript),
+    }
+}
+
+/// Longest a key check is allowed to take. Every vendor answers a bad credential
+/// within a second or two; this only has to stop a hung socket from hanging the UI.
+const PROBE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(15);
+
+/// Opens a real stream, pushes a moment of silence through it, and closes.
+///
+/// Saving a speech key used to be a write with nothing on the other end, so a typo, a
+/// revoked key or an out-of-credit account looked identical to success and only showed
+/// up as a dictation that produced nothing. This runs the same path a real take does —
+/// connect, authenticate, send the config frame, send PCM — so whatever the vendor
+/// objects to is reported in its own words, at the moment the key is entered.
+pub async fn probe(settings: &SttSettings, api_key: String) -> Result<()> {
+    let protocol = build_protocol(settings, api_key);
+    let (audio_tx, audio_rx) = mpsc::unbounded_channel::<Vec<u8>>();
+    // Held, not dropped: `run_stream` sends interim results here and there is nothing
+    // to display them, but a closed receiver would be a different code path than the
+    // one a real take takes.
+    let (event_tx, _events) = mpsc::unbounded_channel::<SttEvent>();
+
+    // Vendors that authenticate lazily only complain once audio arrives, so send some.
+    // 200 ms of silence clears the 50 ms floor with room to spare.
+    let silence = vec![0u8; (TARGET_SAMPLE_RATE as usize / 5) * 2];
+    let _ = audio_tx.send(silence);
+    drop(audio_tx);
+
+    tokio::time::timeout(PROBE_TIMEOUT, run_stream(protocol, audio_rx, event_tx))
+        .await
+        .map_err(|_| anyhow!("the provider did not answer within {PROBE_TIMEOUT:?}"))??;
+    Ok(())
+}
+
+/// Human-readable version of a WebSocket close frame. Vendors put the actual
+/// complaint — "invalid api key", "unknown model" — in the reason string.
+fn close_reason(frame: Option<&tokio_tungstenite::tungstenite::protocol::CloseFrame>) -> String {
+    match frame {
+        Some(frame) if !frame.reason.is_empty() => {
+            format!("the provider closed the stream: {} ({})", frame.reason, frame.code)
+        }
+        Some(frame) => format!("the provider closed the stream (code {})", frame.code),
+        None => "the provider closed the stream without saying why".into(),
+    }
 }
 
 type WsReader = futures_util::stream::SplitStream<
@@ -155,7 +230,7 @@ async fn drain(
     while let Some(msg) = reader.next().await {
         match msg {
             Ok(Message::Text(text)) => {
-                for event in protocol.parse(&text) {
+                for event in protocol.parse(&text)? {
                     if let SttEvent::Final(ref t) = event {
                         tail.push(t.clone());
                     }
