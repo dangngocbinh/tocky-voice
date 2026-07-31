@@ -114,7 +114,7 @@ export function OnboardingFlow({ settings, onSettingsChange, onDone }: Props) {
             />
           )}
           {step === "permission" && <StepPermission onReadyChange={setCanAdvance} />}
-          {step === "try" && <StepTryIt settings={settings} onSettingsChange={onSettingsChange} />}
+          {step === "try" && <StepTryIt settings={settings} />}
         </div>
 
         <footer className="onb__foot">

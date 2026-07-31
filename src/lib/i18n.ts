@@ -319,14 +319,16 @@ const en = {
     permissionStep4: "Come back here — this turns green on its own.",
 
     tryTitle: "Try it once",
-    tryBody: "Press the button, say a sentence, and press it again. Check the words look right.",
-    tryHint: "Your words will appear here…",
-    tryStart: "Start talking",
+    tryBody: "Last check: prove the hotkey works somewhere other than this window.",
     keyToggle: "or press once to start, again to stop — from any app",
     keyHold: "hold this key down and talk, let go and it pastes",
     keyCancel: "said the wrong thing? this key throws the take away — nothing gets pasted",
-    tryFinale:
-      "That is the whole app. Now click into any other app — a browser, Notes, a chat box — press the hotkey, and talk. The text is pasted where your cursor is.",
+    tryNote:
+      "Click into a text field in another app — a browser, Notes, a chat box — then use one of the keys above and talk. The text is pasted where your cursor is.",
+    tryWaiting: "Waiting for you to try it in another app…",
+    trySuccess: "Got it — that landed. The hotkey works.",
+    tryEmpty: "Heard nothing that turned into words. Try again, closer to the mic.",
+    tryFallback: "Or click here to try it right in this window",
 
     rerunTitle: "Setup walkthrough",
     rerunBody: "Run the four-step setup again — handy if something stopped working.",
@@ -654,14 +656,16 @@ const vi: Dictionary = {
     permissionStep4: "Quay lại đây — dòng này sẽ tự chuyển xanh.",
 
     tryTitle: "Thử một lần",
-    tryBody: "Bấm nút, nói một câu, rồi bấm lại. Xem chữ ra có đúng không.",
-    tryHint: "Chữ của bạn sẽ hiện ở đây…",
-    tryStart: "Bắt đầu nói",
+    tryBody: "Kiểm tra cuối: chứng minh phím tắt hoạt động ở nơi khác, không phải cửa sổ này.",
     keyToggle: "hoặc bấm một lần để bắt đầu, bấm lại để dừng — từ ứng dụng bất kỳ",
     keyHold: "GIỮ phím này rồi nói, thả ra là chữ được dán",
     keyCancel: "lỡ nói sai? phím này huỷ luôn lần thu — không có gì được dán cả",
-    tryFinale:
-      "Vậy là xong. Giờ bấm vào một ứng dụng bất kỳ — trình duyệt, Notes, ô chat — bấm phím tắt rồi nói. Chữ sẽ được dán ngay chỗ con trỏ.",
+    tryNote:
+      "Bấm vào ô nhập chữ ở một ứng dụng khác — trình duyệt, Notes, ô chat — rồi dùng 1 trong các phím ở trên và nói. Chữ sẽ được dán ngay chỗ con trỏ.",
+    tryWaiting: "Đang chờ bạn thử ở ứng dụng khác…",
+    trySuccess: "Nhận được rồi — phím tắt hoạt động tốt.",
+    tryEmpty: "Chưa nghe ra chữ nào. Thử lại, nói gần mic hơn.",
+    tryFallback: "Hoặc bấm vào đây để thử ngay trong cửa sổ này",
 
     rerunTitle: "Hướng dẫn cài đặt",
     rerunBody: "Chạy lại 4 bước cài đặt — hữu ích khi có gì đó ngừng hoạt động.",

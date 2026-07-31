@@ -1,64 +1,58 @@
 /**
- * Step 4: one real dictation, then the sentence that matters.
+ * Step 4: prove the hotkey works somewhere that is not this window.
  *
- * Reading that a hotkey exists is not the same as having pressed it once and watched
- * words appear. This step is deliberately a live take rather than a diagram: it also
- * triggers the microphone permission prompt here, in a screen that explains it, instead
- * of during the user's first real attempt in someone else's app.
+ * This used to be a boxed waveform + Start button, which is the exact shape of the
+ * microphone check one step earlier — same box, same bars moving, different purpose.
+ * People landing here read it as "didn't I just do this?" The fix is to not look like
+ * it: no waveform, no device picker (already chosen), just the keys, an instruction to
+ * go use one in another app, and a checkmark once real text lands. The in-window button
+ * stays as a quiet fallback for anyone whose hotkey registration isn't working yet, but
+ * it shares the exact same status readout rather than a second stage box.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as api from "../lib/api";
 import { formatAccelerator, pushToTalkLabel } from "../lib/format-accelerator";
+import { formatError } from "../lib/format-error";
 import { useT } from "../lib/i18n";
 import type { AppSettings } from "../lib/types";
 import { useDictationEvents } from "../lib/use-dictation-events";
-import { Waveform } from "../components/waveform";
 
 interface Props {
   settings: AppSettings;
-  onSettingsChange: (settings: AppSettings) => void;
 }
 
-export function StepTryIt({ settings, onSettingsChange }: Props) {
-  const { phase, transcript, partial, levels } = useDictationEvents();
-  const [devices, setDevices] = useState<string[]>([]);
+type TryResult = "waiting" | "success" | "empty" | "error";
+
+export function StepTryIt({ settings }: Props) {
+  const { phase, transcript, error } = useDictationEvents();
   const t = useT();
+  const [result, setResult] = useState<TryResult>("waiting");
+  const prevPhase = useRef(phase);
 
   useEffect(() => {
-    api.listInputDevices().then(setDevices).catch(() => setDevices([]));
-  }, []);
+    const prev = prevPhase.current;
+    prevPhase.current = phase;
+    if (phase === "recording" && prev !== "recording") {
+      setResult("waiting");
+    } else if (phase === "idle" && prev !== "idle" && prev !== "recording") {
+      // A take ran the full pipeline and landed back on idle: read the verdict off
+      // whatever the event stream settled on.
+      setResult(error ? "error" : transcript.trim() ? "success" : "empty");
+    }
+  }, [phase, error, transcript]);
 
-  const recording = phase === "recording";
-  const text = [transcript, partial].filter(Boolean).join(" ");
   // Outside macOS push-to-talk is bound to an accelerator rather than a held bare
   // modifier, and reading only the modifier case hid the hold key on every other
   // platform — on the one screen whose job is to teach it.
   const hold = pushToTalkLabel(settings.hotkeys);
+  const toggle = formatAccelerator(settings.hotkeys.toggle);
+  const cancel = formatAccelerator(settings.hotkeys.cancel);
+  const recording = phase === "recording";
 
   return (
     <>
       <p className="onb__lede">{t.onboarding.tryBody}</p>
-
-      <div className="onb__row">
-        <span className="onb__row-label">{t.dictate.microphone}</span>
-        <select
-          value={settings.audio.input_device ?? ""}
-          onChange={(e) =>
-            onSettingsChange({
-              ...settings,
-              audio: { ...settings.audio, input_device: e.target.value || null },
-            })
-          }
-        >
-          <option value="">{t.common.systemDefault}</option>
-          {devices.map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </select>
-      </div>
 
       {/* Hold-to-talk leads: it is the faster of the two, and the one that is invisible
           unless someone says out loud that the key is held rather than pressed. */}
@@ -70,32 +64,32 @@ export function StepTryIt({ settings, onSettingsChange }: Props) {
           </div>
         )}
         <div>
-          <kbd>{formatAccelerator(settings.hotkeys.toggle)}</kbd>
+          <kbd>{toggle}</kbd>
           <span>{t.onboarding.keyToggle}</span>
         </div>
-        {formatAccelerator(settings.hotkeys.cancel) && (
+        {cancel && (
           <div>
-            <kbd>{formatAccelerator(settings.hotkeys.cancel)}</kbd>
+            <kbd>{cancel}</kbd>
             <span>{t.onboarding.keyCancel}</span>
           </div>
         )}
       </div>
 
-      <div className="onb__stage">
-        <Waveform levels={levels} active={recording} />
-        <div className="onb__stage-text">
-          {text || <span className="muted">{t.onboarding.tryHint}</span>}
-        </div>
-        <button
-          className={recording ? "btn-quiet btn-danger" : "btn-primary"}
-          onClick={() => (recording ? api.stopRecording() : api.startRecording())}
-        >
-          {recording ? t.dictate.stop : t.onboarding.tryStart}
-        </button>
-      </div>
+      <p className="onb__note">{t.onboarding.tryNote}</p>
 
-      {/* The payoff line. Everything above is setup; this is the actual product. */}
-      <p className="onb__finale">{t.onboarding.tryFinale}</p>
+      <p className="onb__lede">
+        {result === "waiting" && <span className="muted">{t.onboarding.tryWaiting}</span>}
+        {result === "success" && <span className="onb__good">✓ {t.onboarding.trySuccess}</span>}
+        {result === "empty" && <span className="muted">{t.onboarding.tryEmpty}</span>}
+        {result === "error" && error && <span className="onb__bad">{formatError(error, t)}</span>}
+      </p>
+
+      <button
+        className="btn-quiet"
+        onClick={() => (recording ? api.stopRecording() : api.startRecording())}
+      >
+        {recording ? t.dictate.stop : t.onboarding.tryFallback}
+      </button>
     </>
   );
 }
