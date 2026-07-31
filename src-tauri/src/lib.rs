@@ -128,6 +128,7 @@ pub fn run() {
             commands::start_recording,
             commands::stop_recording,
             commands::cancel_recording,
+            commands::set_overlay_suppressed,
             commands::toggle_recording,
             commands::set_active_mode,
             commands::get_history,

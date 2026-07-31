@@ -148,6 +148,14 @@ pub fn cancel_recording(app: AppHandle) {
     session::cancel(&app);
 }
 
+/// Onboarding's "try it" step calls this while it is on screen, so a take started
+/// there — by its own button or by the real hotkey — renders in that step's own
+/// preview instead of popping the floating overlay on top of it.
+#[tauri::command]
+pub fn set_overlay_suppressed(suppressed: bool) {
+    crate::overlay::set_suppressed(suppressed);
+}
+
 #[tauri::command]
 pub fn toggle_recording(app: AppHandle) {
     session::toggle(&app);

@@ -5,6 +5,7 @@
 //! must never take keyboard focus — the whole point is that the app you were typing in
 //! stays frontmost, so the paste keystroke lands there and not here.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Manager, PhysicalPosition, WebviewWindow};
 
 pub const LABEL: &str = "overlay";
@@ -13,12 +14,26 @@ pub const LABEL: &str = "overlay";
 /// at 1x — scaled by the monitor's DPI factor below.
 const BOTTOM_MARGIN_LOGICAL: f64 = 90.0;
 
+/// Set while onboarding's "try it" step is on screen. That step drives a real take
+/// from our own window on purpose, to show recognized text without sending anyone
+/// to another app — and it already renders its own level meter and transcript from
+/// the same event stream this window listens to. Showing the overlay on top of it
+/// would just be the same take on screen twice.
+static SUPPRESSED: AtomicBool = AtomicBool::new(false);
+
+pub fn set_suppressed(suppressed: bool) {
+    SUPPRESSED.store(suppressed, Ordering::Relaxed);
+}
+
 fn window(app: &AppHandle) -> Option<WebviewWindow> {
     app.get_webview_window(LABEL)
 }
 
 /// Shows the overlay without focusing it. Deliberately never calls `set_focus`.
 pub fn show(app: &AppHandle) {
+    if SUPPRESSED.load(Ordering::Relaxed) {
+        return;
+    }
     let Some(window) = window(app) else {
         log::warn!("overlay window is missing");
         return;

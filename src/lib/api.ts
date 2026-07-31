@@ -43,6 +43,10 @@ export const startRecording = (modeId?: string) =>
   invoke<void>("start_recording", { modeId: modeId ?? null });
 export const stopRecording = () => invoke<void>("stop_recording");
 export const cancelRecording = () => invoke<void>("cancel_recording");
+/** While onboarding's "try it" step is mounted, a take started there renders in its
+ *  own preview instead of popping the floating overlay on top of it. */
+export const setOverlaySuppressed = (suppressed: boolean) =>
+  invoke<void>("set_overlay_suppressed", { suppressed });
 export const toggleRecording = () => invoke<void>("toggle_recording");
 export const setActiveMode = (modeId: string) =>
   invoke<void>("set_active_mode", { modeId });

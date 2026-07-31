@@ -1,13 +1,15 @@
 /**
- * Step 4: prove the hotkey works somewhere that is not this window.
+ * Step 4: press a key, say a sentence, watch it land — right here.
  *
- * This used to be a boxed waveform + Start button, which is the exact shape of the
- * microphone check one step earlier — same box, same bars moving, different purpose.
- * People landing here read it as "didn't I just do this?" The fix is to not look like
- * it: no waveform, no device picker (already chosen), just the keys, an instruction to
- * go use one in another app, and a checkmark once real text lands. The in-window button
- * stays as a quiet fallback for anyone whose hotkey registration isn't working yet, but
- * it shares the exact same status readout rather than a second stage box.
+ * Sending people to another app to prove the hotkey works adds a second window to
+ * juggle for something the event stream already tells us: recognized text arrives
+ * over the same channel the floating overlay reads from, whether or not there was
+ * anywhere to paste it. So this take is deliberately started from our own window,
+ * and the overlay is told to stay hidden for it (`setOverlaySuppressed`) — otherwise
+ * it pops up on top of this step for a take that has nowhere to paste into, which
+ * reads as a second recording indicator fighting the one already on screen. A
+ * `no_paste_target` error here is the expected outcome, not a failure: it means the
+ * take started from this window, which is exactly what just happened.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -33,7 +35,7 @@ const WALKTHROUGH_VIDEO_URL =
 const WALKTHROUGH_PLAYBACK_RATE = 1.3;
 
 export function StepTryIt({ settings }: Props) {
-  const { phase, transcript, error } = useDictationEvents();
+  const { phase, transcript, partial, error } = useDictationEvents();
   const t = useT();
   const [result, setResult] = useState<TryResult>("waiting");
   const prevPhase = useRef(phase);
@@ -45,14 +47,21 @@ export function StepTryIt({ settings }: Props) {
   }, [showVideo]);
 
   useEffect(() => {
+    api.setOverlaySuppressed(true);
+    return () => void api.setOverlaySuppressed(false);
+  }, []);
+
+  useEffect(() => {
     const prev = prevPhase.current;
     prevPhase.current = phase;
     if (phase === "recording" && prev !== "recording") {
       setResult("waiting");
     } else if (phase === "idle" && prev !== "idle" && prev !== "recording") {
-      // A take ran the full pipeline and landed back on idle: read the verdict off
-      // whatever the event stream settled on.
-      setResult(error ? "error" : transcript.trim() ? "success" : "empty");
+      // A take ran the full pipeline and landed back on idle. `no_paste_target` is
+      // the expected shape here — this take started from our own window on purpose
+      // — so it reads as a normal landing, not a failure; anything else is real.
+      const realError = error && error.kind !== "no_paste_target" ? error : null;
+      setResult(realError ? "error" : transcript.trim() ? "success" : "empty");
     }
   }, [phase, error, transcript]);
 
@@ -63,6 +72,8 @@ export function StepTryIt({ settings }: Props) {
   const toggle = formatAccelerator(settings.hotkeys.toggle);
   const cancel = formatAccelerator(settings.hotkeys.cancel);
   const recording = phase === "recording";
+  const text = [transcript, partial].filter(Boolean).join(" ");
+  const displayError = error && error.kind !== "no_paste_target" ? error : null;
 
   return (
     <>
@@ -107,21 +118,26 @@ export function StepTryIt({ settings }: Props) {
         )}
       </div>
 
-      <p className="onb__note">{t.onboarding.tryNote}</p>
+      <div className="onb__stage">
+        <div className="onb__stage-text">
+          {text || <span className="muted">{t.onboarding.tryPreviewHint}</span>}
+        </div>
+        <button
+          className={recording ? "btn-quiet btn-danger" : "btn-primary"}
+          onClick={() => (recording ? api.stopRecording() : api.startRecording())}
+        >
+          {recording ? t.dictate.stop : t.onboarding.tryButton}
+        </button>
+      </div>
 
       <p className="onb__lede">
         {result === "waiting" && <span className="muted">{t.onboarding.tryWaiting}</span>}
         {result === "success" && <span className="onb__good">✓ {t.onboarding.trySuccess}</span>}
         {result === "empty" && <span className="muted">{t.onboarding.tryEmpty}</span>}
-        {result === "error" && error && <span className="onb__bad">{formatError(error, t)}</span>}
+        {result === "error" && displayError && (
+          <span className="onb__bad">{formatError(displayError, t)}</span>
+        )}
       </p>
-
-      <button
-        className="btn-quiet"
-        onClick={() => (recording ? api.stopRecording() : api.startRecording())}
-      >
-        {recording ? t.dictate.stop : t.onboarding.tryFallback}
-      </button>
     </>
   );
 }
