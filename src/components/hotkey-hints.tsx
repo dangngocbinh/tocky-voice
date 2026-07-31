@@ -15,8 +15,9 @@ export function HotkeyHints({ hotkeys }: { hotkeys: HotkeySettings }) {
   const t = useT();
   const hold = pushToTalkLabel(hotkeys);
   const toggle = formatAccelerator(hotkeys.toggle);
+  const cancel = formatAccelerator(hotkeys.cancel);
 
-  if (!hold && !toggle) return null;
+  if (!hold && !toggle && !cancel) return null;
 
   return (
     <div className="keyhints">
@@ -32,6 +33,12 @@ export function HotkeyHints({ hotkeys }: { hotkeys: HotkeySettings }) {
         <span className="keyhints__item">
           <kbd>{toggle}</kbd>
           <span>{t.dictate.pressHint}</span>
+        </span>
+      )}
+      {cancel && (
+        <span className="keyhints__item">
+          <kbd>{cancel}</kbd>
+          <span>{t.dictate.cancelHint}</span>
         </span>
       )}
     </div>

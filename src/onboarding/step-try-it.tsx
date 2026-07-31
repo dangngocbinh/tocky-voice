@@ -73,6 +73,12 @@ export function StepTryIt({ settings, onSettingsChange }: Props) {
           <kbd>{formatAccelerator(settings.hotkeys.toggle)}</kbd>
           <span>{t.onboarding.keyToggle}</span>
         </div>
+        {formatAccelerator(settings.hotkeys.cancel) && (
+          <div>
+            <kbd>{formatAccelerator(settings.hotkeys.cancel)}</kbd>
+            <span>{t.onboarding.keyCancel}</span>
+          </div>
+        )}
       </div>
 
       <div className="onb__stage">

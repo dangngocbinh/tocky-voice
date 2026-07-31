@@ -77,6 +77,7 @@ const en = {
     // once and released, which starts and instantly ends a take.
     holdHint: "hold it down and talk — let go and the text is pasted",
     pressHint: "press once to start, press again to paste",
+    cancelHint: "said the wrong thing? press to cancel and start over",
     inputSection: "Input",
     microphone: "Microphone",
     microphoneHint: "Switch inputs without leaving this screen.",
@@ -323,6 +324,7 @@ const en = {
     tryStart: "Start talking",
     keyToggle: "or press once to start, again to stop — from any app",
     keyHold: "hold this key down and talk, let go and it pastes",
+    keyCancel: "said the wrong thing? this key throws the take away — nothing gets pasted",
     tryFinale:
       "That is the whole app. Now click into any other app — a browser, Notes, a chat box — press the hotkey, and talk. The text is pasted where your cursor is.",
 
@@ -414,6 +416,7 @@ const vi: Dictionary = {
     empty: "Chưa có gì. Cứ nói, chữ sẽ hiện ở đây ngay khi nhận dạng được.",
     holdHint: "giữ phím này rồi nói — thả ra là chữ được dán",
     pressHint: "bấm một lần để bắt đầu, bấm lại để dán",
+    cancelHint: "lỡ nói sai? bấm để huỷ và nói lại từ đầu",
     inputSection: "Đầu vào",
     microphone: "Micro",
     microphoneHint: "Đổi micro ngay tại đây, không cần vào Cài đặt.",
@@ -656,6 +659,7 @@ const vi: Dictionary = {
     tryStart: "Bắt đầu nói",
     keyToggle: "hoặc bấm một lần để bắt đầu, bấm lại để dừng — từ ứng dụng bất kỳ",
     keyHold: "GIỮ phím này rồi nói, thả ra là chữ được dán",
+    keyCancel: "lỡ nói sai? phím này huỷ luôn lần thu — không có gì được dán cả",
     tryFinale:
       "Vậy là xong. Giờ bấm vào một ứng dụng bất kỳ — trình duyệt, Notes, ô chat — bấm phím tắt rồi nói. Chữ sẽ được dán ngay chỗ con trỏ.",
 
