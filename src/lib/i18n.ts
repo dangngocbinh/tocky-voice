@@ -321,6 +321,7 @@ const en = {
     permissionStep4: "Come back here — this turns green on its own.",
 
     tryTitle: "Try it once",
+    tryVideoCaption: "50-second walkthrough",
     tryBody: "Last check: prove the hotkey works somewhere other than this window.",
     keyToggle: "or press once to start, again to stop — from any app",
     keyHold: "hold this key down and talk, let go and it pastes",
@@ -660,6 +661,7 @@ const vi: Dictionary = {
     permissionStep4: "Quay lại đây — dòng này sẽ tự chuyển xanh.",
 
     tryTitle: "Thử một lần",
+    tryVideoCaption: "Video hướng dẫn 50 giây (tiếng Anh)",
     tryBody: "Kiểm tra cuối: chứng minh phím tắt hoạt động ở nơi khác, không phải cửa sổ này.",
     keyToggle: "hoặc bấm một lần để bắt đầu, bấm lại để dừng — từ ứng dụng bất kỳ",
     keyHold: "GIỮ phím này rồi nói, thả ra là chữ được dán",

@@ -1467,6 +1467,15 @@ a:hover {
   background: var(--ink-900);
 }
 
+.onb__video {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--ink-900);
+  margin: 14px 0;
+}
+
 .onb__stage-text {
   min-height: 52px;
   margin: 12px 0;

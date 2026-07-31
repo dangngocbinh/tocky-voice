@@ -12,6 +12,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as api from "../lib/api";
+import walkthroughVideo from "../assets/onboarding/walkthrough-en.mp4";
 import { formatAccelerator, pushToTalkLabel } from "../lib/format-accelerator";
 import { formatError } from "../lib/format-error";
 import { useT } from "../lib/i18n";
@@ -53,6 +54,11 @@ export function StepTryIt({ settings }: Props) {
   return (
     <>
       <p className="onb__lede">{t.onboarding.tryBody}</p>
+
+      {/* One real recording of the whole loop — hotkey, dictation, cursor placement —
+          settles what a paragraph of instructions leaves people guessing about. */}
+      <video className="onb__video" src={walkthroughVideo} controls preload="metadata" />
+      <p className="onb__note">{t.onboarding.tryVideoCaption}</p>
 
       {/* Hold-to-talk leads: it is the faster of the two, and the one that is invisible
           unless someone says out loud that the key is held rather than pressed. */}
