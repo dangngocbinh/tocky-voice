@@ -293,8 +293,10 @@ const en = {
     micWaiting: "Say something…",
     micHeard: "Heard you. This microphone works.",
     micFailed: "Could not open this microphone:",
-    micSilentHint:
-      "Nothing yet? Try a different input above. If none of them move, check that Windows lets apps use the microphone (Settings → Privacy & security → Microphone) and that the device is not muted.",
+    micSilentHintMac:
+      "Nothing yet? Try a different input above. If none of them move, check that System Settings → Privacy & Security → Microphone allows this app, and that the device is not muted.",
+    micSilentHintOther:
+      "Nothing yet? Try a different input above. If none of them move, check that your system lets apps use the microphone and that the device is not muted.",
 
     speechTitle: "Connect a speech service",
     speechBody:
@@ -630,8 +632,10 @@ const vi: Dictionary = {
     micWaiting: "Nói thử một câu…",
     micHeard: "Nghe thấy rồi. Micro này chạy tốt.",
     micFailed: "Không mở được micro này:",
-    micSilentHint:
-      "Chưa thấy gì? Thử đổi sang micro khác ở trên. Nếu không cái nào nhảy, kiểm tra xem Windows có cho ứng dụng dùng micro không (Settings → Privacy & security → Microphone) và micro có đang bị tắt tiếng không.",
+    micSilentHintMac:
+      "Chưa thấy gì? Thử đổi sang micro khác ở trên. Nếu không cái nào nhảy, kiểm tra System Settings → Privacy & Security → Microphone có cho phép app này không, và micro có đang bị tắt tiếng không.",
+    micSilentHintOther:
+      "Chưa thấy gì? Thử đổi sang micro khác ở trên. Nếu không cái nào nhảy, kiểm tra xem hệ điều hành có cho ứng dụng dùng micro không, và micro có đang bị tắt tiếng không.",
 
     speechTitle: "Kết nối dịch vụ nhận dạng giọng nói",
     speechBody:
