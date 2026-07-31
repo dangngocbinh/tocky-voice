@@ -660,7 +660,7 @@ const vi: Dictionary = {
     permissionStep4: "Quay lại đây — dòng này sẽ tự chuyển xanh.",
 
     tryTitle: "Thử một lần",
-    tryVideoCaption: "Video hướng dẫn 50 giây (tiếng Anh)",
+    tryVideoCaption: "Video hướng dẫn 50 giây",
     tryBody: "Kiểm tra cuối: bấm 1 phím bên dưới, nói một câu, xem chữ hiện ra.",
     keyToggle: "hoặc bấm một lần để bắt đầu, bấm lại để dừng — từ ứng dụng bất kỳ",
     keyHold: "GIỮ phím này rồi nói, thả ra là chữ được dán",

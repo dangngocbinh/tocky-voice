@@ -26,12 +26,14 @@ interface Props {
 
 type TryResult = "waiting" | "success" | "empty" | "error";
 
-// Fetched from GitHub rather than bundled: a 1.4MB video baked into every install
-// costs everyone the download, for a clip most people watch once. English-only
-// narration for now, so it only makes sense to show — and only worth autoplaying —
-// when the UI is already in English.
-const WALKTHROUGH_VIDEO_URL =
-  "https://raw.githubusercontent.com/dangngocbinh/tocky-voice/feature/onboarding-cancel-hint-and-demo-video/brand/videos/onboarding-walkthrough-en.mp4";
+// Fetched from GitHub rather than bundled: a ~1.5MB video baked into every install
+// costs everyone the download, for a clip most people watch once. One recording,
+// dubbed twice, so the language on screen always matches the language of the UI
+// around it rather than one language talking past the other.
+const WALKTHROUGH_VIDEO_URLS = {
+  en: "https://raw.githubusercontent.com/dangngocbinh/tocky-voice/feature/onboarding-cancel-hint-and-demo-video/brand/videos/onboarding-walkthrough-en.mp4",
+  vi: "https://raw.githubusercontent.com/dangngocbinh/tocky-voice/feature/onboarding-cancel-hint-and-demo-video/brand/videos/onboarding-walkthrough-vi.mp4",
+} as const;
 const WALKTHROUGH_PLAYBACK_RATE = 1.3;
 
 export function StepTryIt({ settings }: Props) {
@@ -40,11 +42,11 @@ export function StepTryIt({ settings }: Props) {
   const [result, setResult] = useState<TryResult>("waiting");
   const prevPhase = useRef(phase);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const showVideo = resolveLanguage(settings.ui_language) === "en";
+  const videoUrl = WALKTHROUGH_VIDEO_URLS[resolveLanguage(settings.ui_language)];
 
   useEffect(() => {
     if (videoRef.current) videoRef.current.playbackRate = WALKTHROUGH_PLAYBACK_RATE;
-  }, [showVideo]);
+  }, [videoUrl]);
 
   useEffect(() => {
     api.setOverlaySuppressed(true);
@@ -80,22 +82,19 @@ export function StepTryIt({ settings }: Props) {
       <p className="onb__lede">{t.onboarding.tryBody}</p>
 
       {/* One real recording of the whole loop — hotkey, dictation, cursor placement —
-          settles what a paragraph of instructions leaves people guessing about. English
-          narration only, so it stays off for a Vietnamese UI rather than talk past the
-          person reading it. */}
-      {showVideo && (
-        <>
-          <video
-            ref={videoRef}
-            className="onb__video"
-            src={WALKTHROUGH_VIDEO_URL}
-            controls
-            autoPlay
-            preload="metadata"
-          />
-          <p className="onb__note">{t.onboarding.tryVideoCaption}</p>
-        </>
-      )}
+          settles what a paragraph of instructions leaves people guessing about. Keyed
+          on the URL so switching languages mid-onboarding swaps and replays the right
+          dub instead of just relabeling the wrong one. */}
+      <video
+        key={videoUrl}
+        ref={videoRef}
+        className="onb__video"
+        src={videoUrl}
+        controls
+        autoPlay
+        preload="metadata"
+      />
+      <p className="onb__note">{t.onboarding.tryVideoCaption}</p>
 
       {/* Hold-to-talk leads: it is the faster of the two, and the one that is invisible
           unless someone says out loud that the key is held rather than pressed. */}
