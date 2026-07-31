@@ -12,10 +12,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as api from "../lib/api";
-import walkthroughVideo from "../assets/onboarding/walkthrough-en.mp4";
 import { formatAccelerator, pushToTalkLabel } from "../lib/format-accelerator";
 import { formatError } from "../lib/format-error";
-import { useT } from "../lib/i18n";
+import { resolveLanguage, useT } from "../lib/i18n";
 import type { AppSettings } from "../lib/types";
 import { useDictationEvents } from "../lib/use-dictation-events";
 
@@ -25,11 +24,25 @@ interface Props {
 
 type TryResult = "waiting" | "success" | "empty" | "error";
 
+// Fetched from GitHub rather than bundled: a 1.4MB video baked into every install
+// costs everyone the download, for a clip most people watch once. English-only
+// narration for now, so it only makes sense to show — and only worth autoplaying —
+// when the UI is already in English.
+const WALKTHROUGH_VIDEO_URL =
+  "https://raw.githubusercontent.com/dangngocbinh/tocky-voice/feature/onboarding-cancel-hint-and-demo-video/brand/videos/onboarding-walkthrough-en.mp4";
+const WALKTHROUGH_PLAYBACK_RATE = 1.3;
+
 export function StepTryIt({ settings }: Props) {
   const { phase, transcript, error } = useDictationEvents();
   const t = useT();
   const [result, setResult] = useState<TryResult>("waiting");
   const prevPhase = useRef(phase);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const showVideo = resolveLanguage(settings.ui_language) === "en";
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.playbackRate = WALKTHROUGH_PLAYBACK_RATE;
+  }, [showVideo]);
 
   useEffect(() => {
     const prev = prevPhase.current;
@@ -56,9 +69,22 @@ export function StepTryIt({ settings }: Props) {
       <p className="onb__lede">{t.onboarding.tryBody}</p>
 
       {/* One real recording of the whole loop — hotkey, dictation, cursor placement —
-          settles what a paragraph of instructions leaves people guessing about. */}
-      <video className="onb__video" src={walkthroughVideo} controls preload="metadata" />
-      <p className="onb__note">{t.onboarding.tryVideoCaption}</p>
+          settles what a paragraph of instructions leaves people guessing about. English
+          narration only, so it stays off for a Vietnamese UI rather than talk past the
+          person reading it. */}
+      {showVideo && (
+        <>
+          <video
+            ref={videoRef}
+            className="onb__video"
+            src={WALKTHROUGH_VIDEO_URL}
+            controls
+            autoPlay
+            preload="metadata"
+          />
+          <p className="onb__note">{t.onboarding.tryVideoCaption}</p>
+        </>
+      )}
 
       {/* Hold-to-talk leads: it is the faster of the two, and the one that is invisible
           unless someone says out loud that the key is held rather than pressed. */}
