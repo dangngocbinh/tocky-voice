@@ -61,13 +61,19 @@ jobs:
             }
             const notes = match[1].trim()
 
+            // Vietnamese first, same as the changelog entry above it — this footer is
+            // read by the same people, at the moment they are trying to open the app.
             const gatekeeperFooter = [
-              '**macOS**: the app is not notarised, so the first launch needs',
-              'right-click → Open, and Accessibility permission has to be granted',
-              'before pasting works.',
+              '**macOS**: app chưa được notarize, nên lần mở đầu tiên phải bấm chuột phải →',
+              'Open, và phải cấp quyền Accessibility thì thao tác dán mới chạy.',
               '',
-              'If macOS instead says the app "is damaged and can\'t be opened", run',
-              '`xattr -cr "/Applications/Tocky Voice.app"` in Terminal, then open it normally.',
+              'Nếu macOS báo app "is damaged and can\'t be opened", chạy lệnh này trong',
+              'Terminal rồi mở lại bình thường:',
+              '`xattr -cr "/Applications/Tocky Voice.app"`',
+              '',
+              '_English_: the app is not notarised — first launch needs right-click → Open,',
+              'and Accessibility permission must be granted before pasting works. If macOS',
+              'says the app is damaged, run the `xattr -cr` command above.',
             ].join('\n')
 
             const body = `${notes}\n\n---\n\n${gatekeeperFooter}`
