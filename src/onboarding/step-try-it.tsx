@@ -30,9 +30,15 @@ type TryResult = "waiting" | "success" | "empty" | "error";
 // costs everyone the download, for a clip most people watch once. One recording,
 // dubbed twice, so the language on screen always matches the language of the UI
 // around it rather than one language talking past the other.
+//
+// Pinned to `main`, not to the branch it was recorded on — a branch ref stops
+// resolving the moment the branch is merged and deleted. The host is also named
+// explicitly in `media-src` in tauri.conf.json: the bundled app runs under a CSP that
+// allows only `self`, so without that entry this player is dead in every release
+// build while still working in `tauri dev`.
 const WALKTHROUGH_VIDEO_URLS = {
-  en: "https://raw.githubusercontent.com/dangngocbinh/tocky-voice/feature/onboarding-cancel-hint-and-demo-video/brand/videos/onboarding-walkthrough-en.mp4",
-  vi: "https://raw.githubusercontent.com/dangngocbinh/tocky-voice/feature/onboarding-cancel-hint-and-demo-video/brand/videos/onboarding-walkthrough-vi.mp4",
+  en: "https://raw.githubusercontent.com/dangngocbinh/tocky-voice/main/brand/videos/onboarding-walkthrough-en.mp4",
+  vi: "https://raw.githubusercontent.com/dangngocbinh/tocky-voice/main/brand/videos/onboarding-walkthrough-vi.mp4",
 } as const;
 const WALKTHROUGH_PLAYBACK_RATE = 1.3;
 

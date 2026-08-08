@@ -4,6 +4,58 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each re
 section here becomes that release's GitHub notes and the text shown in the app's
 "what's new" panel — write it for a user, not for a commit log.
 
+## [0.4.0] - 2026-08-08
+
+### Removed
+
+- Hold-to-talk is gone. There were two ways to dictate — hold a key, or press it once and
+  press it again — and having both meant every screen had to explain both, while a key
+  shown as `F9` gave no clue which of the two it was. Dictation is now one key: press to
+  start, press again to paste.
+- Settings → Push to talk is gone with it. A settings file from an older build still
+  loads; the old binding is simply ignored. If it was your only dictation key, the
+  press-once default is restored on first launch so you are not left with no way in.
+
+### Changed
+
+- The default dictation key is now `⌘/` on macOS and `Control+Alt+D` on Windows and
+  Linux. Existing installs keep whatever key you already had.
+- New app icon: the text cursor in the middle of the waveform is now a microphone. The
+  waveform and the colour are unchanged.
+
+### Added
+
+- A 50-second walkthrough video, narrated in the language the app is set to, in the
+  "try it" step of first-run setup.
+- First-run setup's "try it" step now shows the text land in the app itself, so proving
+  the hotkey works no longer means opening a second app to paste into.
+- The cancel key is now shown in setup and in the hotkey hints — it existed before but
+  nothing on screen said so.
+
+### Fixed
+
+- A dictation could hang on "transcribing" forever. If the connection to the speech
+  provider half-died mid-take — sleeping laptop, dropped wifi, a VPN reconnecting — the
+  app waited on an answer that was never coming: the panel stayed busy, the button
+  stayed disabled, and Cancel wasn't even on screen. Every step of that conversation is
+  now on a clock, a stuck take gives up after 20 seconds with a real error, and Cancel
+  is available for the whole take instead of only while recording.
+- Opening the microphone could freeze the entire window, not just the dictation. A
+  wedged audio driver or a Bluetooth headset switching profiles held up the thread that
+  draws the window and answers the hotkeys. Opening now gives up after 5 seconds and
+  says the microphone is unavailable.
+- Startup asked every audio device for its full capability list before showing anything,
+  which on Windows machines with several inputs meant seconds of blank window. That now
+  happens in the background.
+- The update check could sit on "Checking…" for the rest of the session if the
+  connection to GitHub stalled. It now gives up after 15 seconds.
+- The walkthrough video never appeared in an installed build — the app's content policy
+  allowed no remote media, something only a packaged build enforces.
+- The mic-check hint on macOS pointed at Windows privacy settings.
+- The "try it" step showed the microphone box a second time.
+- Release notes never reached `latest.json`, so the app's "what's new" panel was blank
+  for every update.
+
 ## [0.3.0] - 2026-07-30
 
 ### Added
