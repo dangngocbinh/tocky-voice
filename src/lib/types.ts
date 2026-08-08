@@ -29,22 +29,10 @@ export interface Mode {
   output: OutputAction;
 }
 
-export type ModifierKey =
-  | "right_option"
-  | "left_option"
-  | "right_command"
-  | "fn";
-
-export type PushToTalk =
-  | { kind: "disabled" }
-  | { kind: "modifier"; key: ModifierKey }
-  | { kind: "shortcut"; accelerator: string };
-
 export interface HotkeySettings {
   toggle: string | null;
   cancel: string | null;
   next_mode: string | null;
-  push_to_talk: PushToTalk;
 }
 
 export interface AudioSettings {

@@ -79,36 +79,14 @@ pub struct Mode {
     pub output: OutputAction,
 }
 
-/// Push-to-talk binding. A held modifier can't be expressed as a normal accelerator,
-/// so it gets its own variant backed by a platform key listener.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(tag = "kind", rename_all = "snake_case")]
-pub enum PushToTalk {
-    Disabled,
-    /// Hold a bare modifier key (macOS only for now).
-    Modifier { key: ModifierKey },
-    /// Hold a regular accelerator such as `Control+Alt+Space`.
-    Shortcut { accelerator: String },
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum ModifierKey {
-    RightOption,
-    LeftOption,
-    RightCommand,
-    Fn,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HotkeySettings {
-    /// Press once to start, again to stop-and-transcribe.
+    /// Press once to start, again to stop-and-transcribe. The only way in.
     pub toggle: Option<String>,
     /// Abort the take: stops capture and throws the audio away.
     pub cancel: Option<String>,
     /// Cycle to the next mode in the list.
     pub next_mode: Option<String>,
-    pub push_to_talk: PushToTalk,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -221,7 +199,7 @@ pub fn load(app: &AppHandle) -> AppSettings {
     };
     match serde_json::from_str::<AppSettings>(&raw) {
         Ok(mut s) => {
-            repair_unusable_hotkeys(&mut s);
+            restore_missing_dictation_hotkey(&mut s);
             s
         }
         Err(e) => {
@@ -232,25 +210,18 @@ pub fn load(app: &AppHandle) -> AppSettings {
     }
 }
 
-/// Replaces bindings that cannot work on this platform.
+/// Guarantees there is a key that starts a dictation.
 ///
-/// Builds before this one shipped a hold-a-bare-modifier push-to-talk as the factory
-/// default on every platform, but the listener behind it exists only on macOS. Anyone
-/// who installed on Windows or Linux got a settings file whose main binding was dead on
-/// arrival and gave no hint as to why, so it is swapped for the working default rather
-/// than left to fail quietly on every launch.
-fn repair_unusable_hotkeys(settings: &mut AppSettings) {
-    #[cfg(not(target_os = "macos"))]
-    if matches!(settings.hotkeys.push_to_talk, PushToTalk::Modifier { .. }) {
-        let replacement = defaults::default_hotkeys().push_to_talk;
-        log::info!(
-            "push-to-talk was set to hold a bare modifier, which only works on macOS; \
-             using {replacement:?} instead"
-        );
-        settings.hotkeys.push_to_talk = replacement;
+/// Earlier builds offered a second, hold-to-talk binding, and someone who dictated that
+/// way could reasonably have cleared the press-once key they never used. That settings
+/// file now describes an app with no way to start a take at all, so the factory key is
+/// put back rather than leaving the hotkey silently dead.
+fn restore_missing_dictation_hotkey(settings: &mut AppSettings) {
+    if settings.hotkeys.toggle.is_none() {
+        let replacement = defaults::default_hotkeys().toggle;
+        log::info!("no dictation hotkey was set; restoring the default {replacement:?}");
+        settings.hotkeys.toggle = replacement;
     }
-    #[cfg(target_os = "macos")]
-    let _ = settings;
 }
 
 #[cfg(test)]
@@ -279,40 +250,41 @@ mod default_tests {
     }
 }
 
-#[cfg(all(test, not(target_os = "macos")))]
+#[cfg(test)]
 mod tests {
     use super::*;
 
+    /// A settings file written by a build that still had hold-to-talk keeps loading:
+    /// the retired `push_to_talk` key is simply not read any more.
     #[test]
-    fn a_settings_file_carrying_the_old_mac_only_push_to_talk_is_repaired() {
-        let mut settings = defaults::default_settings();
-        settings.hotkeys.push_to_talk = PushToTalk::Modifier {
-            key: ModifierKey::RightOption,
-        };
+    fn a_settings_file_from_the_hold_to_talk_era_still_loads() {
+        let mut raw = serde_json::to_value(defaults::default_settings()).unwrap();
+        raw["hotkeys"]["push_to_talk"] =
+            serde_json::json!({ "kind": "modifier", "key": "right_option" });
 
-        repair_unusable_hotkeys(&mut settings);
+        let parsed: AppSettings = serde_json::from_value(raw).unwrap();
 
-        assert!(matches!(
-            settings.hotkeys.push_to_talk,
-            PushToTalk::Shortcut { .. }
-        ));
+        assert!(parsed.hotkeys.toggle.is_some());
     }
 
     #[test]
-    fn a_push_to_talk_the_user_chose_themselves_is_left_alone() {
+    fn a_settings_file_with_no_dictation_key_gets_the_default_back() {
         let mut settings = defaults::default_settings();
-        settings.hotkeys.push_to_talk = PushToTalk::Shortcut {
-            accelerator: "Control+Alt+Space".into(),
-        };
+        settings.hotkeys.toggle = None;
 
-        repair_unusable_hotkeys(&mut settings);
+        restore_missing_dictation_hotkey(&mut settings);
 
-        assert_eq!(
-            settings.hotkeys.push_to_talk,
-            PushToTalk::Shortcut {
-                accelerator: "Control+Alt+Space".into()
-            }
-        );
+        assert_eq!(settings.hotkeys.toggle, defaults::default_hotkeys().toggle);
+    }
+
+    #[test]
+    fn a_dictation_key_the_user_chose_themselves_is_left_alone() {
+        let mut settings = defaults::default_settings();
+        settings.hotkeys.toggle = Some("Control+Shift+Space".into());
+
+        restore_missing_dictation_hotkey(&mut settings);
+
+        assert_eq!(settings.hotkeys.toggle.as_deref(), Some("Control+Shift+Space"));
     }
 }
 

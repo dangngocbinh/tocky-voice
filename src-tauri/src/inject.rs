@@ -113,7 +113,7 @@ fn synthesize_paste() -> Result<()> {
 pub fn can_synthesize_input() -> bool {
     #[cfg(target_os = "macos")]
     {
-        crate::hotkeys::macos_ptt::has_accessibility_permission()
+        crate::macos_accessibility::has_accessibility_permission()
     }
     #[cfg(not(target_os = "macos"))]
     {

@@ -1,8 +1,7 @@
 /** Hotkeys, sound cues, history retention, and launch-at-login. */
 
-import type { AppSettings, ModifierKey, PushToTalk } from "../lib/types";
+import type { AppSettings } from "../lib/types";
 import { useT } from "../lib/i18n";
-import { isMac } from "../lib/platform";
 import { HotkeyRecorder } from "./hotkey-recorder";
 import { Switch } from "./providers-editor";
 
@@ -10,14 +9,6 @@ interface Props {
   settings: AppSettings;
   onSettingsChange: (settings: AppSettings) => void;
 }
-
-/** Hold-to-talk is watched by a macOS-only event tap, so these are Mac key names. */
-const MODIFIERS: Record<ModifierKey, string> = {
-  right_option: "Right Option ⌥",
-  left_option: "Left Option ⌥",
-  right_command: "Right Command ⌘",
-  fn: "Fn / Globe",
-};
 
 export function BehaviourEditor({ settings, onSettingsChange }: Props) {
   const t = useT();
@@ -30,23 +21,6 @@ export function BehaviourEditor({ settings, onSettingsChange }: Props) {
 
   const patchHistory = (patch: Partial<AppSettings["history"]>) =>
     onSettingsChange({ ...settings, history: { ...settings.history, ...patch } });
-
-  const ptt = settings.hotkeys.push_to_talk;
-
-  // Suggested binding when switching to "hold a combination". On a PC keyboard
-  // Control+Alt is what AltGr sends, so a plain function key is both simpler to hold
-  // and free of layout surprises; it matches the factory default on those platforms.
-  const suggestedPttShortcut = isMac ? "Control+Alt+Space" : "F9";
-
-  const setPttKind = (kind: PushToTalk["kind"]) =>
-    patchHotkeys({
-      push_to_talk:
-        kind === "modifier"
-          ? { kind: "modifier", key: "right_option" }
-          : kind === "shortcut"
-            ? { kind: "shortcut", accelerator: suggestedPttShortcut }
-            : { kind: "disabled" },
-    });
 
   return (
     <>
@@ -148,82 +122,6 @@ export function BehaviourEditor({ settings, onSettingsChange }: Props) {
             />
           </div>
         </div>
-      </section>
-
-      <section className="section">
-        <h2 className="section__title">{t.behaviour.pttSection}</h2>
-
-        <div className="row">
-          <div>
-            <div className="row__label">{t.behaviour.pttTrigger}</div>
-            <span className="row__hint">{t.behaviour.pttTriggerHint}</span>
-          </div>
-          <div className="row__control">
-            <select value={ptt.kind} onChange={(e) => setPttKind(e.target.value as PushToTalk["kind"])}>
-              {/* Holding a bare modifier is watched by a macOS event tap. Offering it
-                  elsewhere means the setting reads as configured and then silently does
-                  nothing when the key is pressed — the worst kind of broken. */}
-              {isMac && <option value="modifier">{t.behaviour.pttModifier}</option>}
-              <option value="shortcut">{t.behaviour.pttShortcut}</option>
-              <option value="disabled">{t.behaviour.pttDisabled}</option>
-            </select>
-          </div>
-        </div>
-
-        {ptt.kind === "modifier" && !isMac && (
-          <div className="row">
-            <div>
-              <div className="row__label">{t.behaviour.pttMacOnly}</div>
-              <span className="row__hint">{t.behaviour.pttMacOnlyHint}</span>
-            </div>
-            <div className="row__control">
-              <button onClick={() => setPttKind("shortcut")}>{t.behaviour.pttUseShortcut}</button>
-            </div>
-          </div>
-        )}
-
-        {ptt.kind === "modifier" && isMac && (
-          <div className="row">
-            <div>
-              <div className="row__label">{t.behaviour.pttKey}</div>
-<span className="row__hint">{t.behaviour.pttKeyHint}</span>
-            </div>
-            <div className="row__control">
-              <select
-                value={ptt.key}
-                onChange={(e) =>
-                  patchHotkeys({
-                    push_to_talk: { kind: "modifier", key: e.target.value as ModifierKey },
-                  })
-                }
-              >
-                {Object.entries(MODIFIERS).map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        )}
-
-        {ptt.kind === "shortcut" && (
-          <div className="row">
-            <div className="row__label">{t.behaviour.pttCombo}</div>
-            <div className="row__control">
-              <HotkeyRecorder
-                value={ptt.accelerator}
-                onChange={(accelerator) =>
-                  patchHotkeys({
-                    push_to_talk: accelerator
-                      ? { kind: "shortcut", accelerator }
-                      : { kind: "disabled" },
-                  })
-                }
-              />
-            </div>
-          </div>
-        )}
       </section>
 
       <section className="section">

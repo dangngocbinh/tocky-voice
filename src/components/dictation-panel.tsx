@@ -69,7 +69,10 @@ export function DictationPanel({ settings, onSettingsChange }: Props) {
           >
             {recording ? t.dictate.stop : busy ? t.dictate.working : t.dictate.start}
           </button>
-          {recording && (
+          {/* Also while busy, not just while recording. Waiting on the provider is
+              exactly where a take can get stuck, and hiding the only way out at that
+              moment leaves restarting the app as the alternative. */}
+          {(recording || busy) && (
             <button className="btn-quiet" onClick={() => api.cancelRecording()}>
               {t.common.cancel}
             </button>

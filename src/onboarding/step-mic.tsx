@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as api from "../lib/api";
 import { useT } from "../lib/i18n";
+import { isMac } from "../lib/platform";
 import type { AppSettings } from "../lib/types";
 import { useDictationEvents } from "../lib/use-dictation-events";
 import { Waveform } from "../components/waveform";
@@ -116,7 +117,11 @@ export function StepMic({ settings, onSettingsChange, onReadyChange }: Props) {
         </div>
       </div>
 
-      {!heard && !error && <p className="onb__note">{t.onboarding.micSilentHint}</p>}
+      {!heard && !error && (
+        <p className="onb__note">
+          {isMac ? t.onboarding.micSilentHintMac : t.onboarding.micSilentHintOther}
+        </p>
+      )}
     </>
   );
 }

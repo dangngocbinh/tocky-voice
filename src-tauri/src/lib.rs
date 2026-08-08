@@ -14,6 +14,8 @@ mod focus;
 mod history;
 mod hotkeys;
 mod inject;
+#[cfg(target_os = "macos")]
+mod macos_accessibility;
 mod overlay;
 mod private_file;
 mod session;
@@ -74,9 +76,16 @@ pub fn run() {
             // answered without it: the format, rate and channel count all come from the
             // driver and differ per device, and the machine with the problem is rarely
             // the machine with the debugger.
-            for line in audio::capture::describe_input_devices() {
-                log::info!("input: {line}");
-            }
+            //
+            // Off the setup thread, though. Asking every endpoint for its full config
+            // list means one driver query per device, and a machine with several
+            // endpoints plus a Bluetooth headset takes seconds — seconds spent before
+            // the event loop starts, with no window on screen to explain the wait.
+            std::thread::spawn(|| {
+                for line in audio::capture::describe_input_devices() {
+                    log::info!("input: {line}");
+                }
+            });
             log::info!(
                 "credential store: {}",
                 if settings.use_os_keychain {
@@ -95,11 +104,11 @@ pub fn run() {
             // nothing but a menu-bar icon.
             show_settings_window(&handle);
 
-            // Ask for Accessibility up front. Without it there is no paste and no
-            // hold-a-modifier push-to-talk, and both fail silently — the system prompt
-            // with its "Open System Settings" button is far better than a log line.
+            // Ask for Accessibility up front. Without it the paste fails silently, and
+            // the system prompt with its "Open System Settings" button is far better
+            // than a log line nobody reads.
             #[cfg(target_os = "macos")]
-            if !hotkeys::macos_ptt::prompt_for_accessibility_permission() {
+            if !macos_accessibility::prompt_for_accessibility_permission() {
                 log::warn!("Accessibility permission is not granted yet");
             }
 
@@ -128,6 +137,7 @@ pub fn run() {
             commands::start_recording,
             commands::stop_recording,
             commands::cancel_recording,
+            commands::set_overlay_suppressed,
             commands::toggle_recording,
             commands::set_active_mode,
             commands::get_history,

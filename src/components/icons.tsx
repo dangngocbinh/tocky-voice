@@ -57,19 +57,33 @@ export const InfoIcon = ({ className }: Props) => (
   </svg>
 );
 
-/** Brand mark — the app icon's waveform, same forward lean, drawn as a line glyph. */
+/**
+ * Brand mark — the app icon at sidebar size, drawn as a line glyph.
+ *
+ * Redrawn rather than scaled: at 22px the icon's six bars a side close into a block and
+ * its cradle thins to nothing, so the waveform is cut to two bars a side and each part
+ * carries its own stroke weight. The capsule is a stroke too, not a filled shape, so the
+ * whole mark stays one `currentColor` line drawing like the rest of the icon set.
+ */
 export const WaveMark = ({ className }: Props) => (
   <svg
     viewBox="0 0 22 22"
     fill="none"
     stroke="currentColor"
-    strokeWidth="1.9"
     strokeLinecap="round"
     className={className}
     aria-hidden="true"
   >
-    <g transform="rotate(-9 11 11)">
-      <path d="M2.6 11h0M6.2 8.2v5.6M9.8 5.1v11.8M13.4 7.4v7.2M17 9.6v2.8M20.4 11h0" />
+    <g strokeWidth="1.5">
+      <path d="M2.2 9.4v3.2" />
+      <path d="M5.4 7.2v7.6" />
+      <path d="M16.6 7.2v7.6" />
+      <path d="M19.8 9.4v3.2" />
     </g>
+    {/* Capsule head: a bar thick enough to read as a body rather than another wave. */}
+    <path d="M11 4.5v5.4" strokeWidth="3.4" />
+    <path d="M8 10.3a3 3 0 0 0 6 0" strokeWidth="1.2" />
+    <path d="M11 13.3v2.9" strokeWidth="1.2" />
+    <path d="M8.8 17.2h4.4" strokeWidth="1.3" />
   </svg>
 );

@@ -264,40 +264,32 @@ pub fn default_modes() -> Vec<Mode> {
     ]
 }
 
-/// Factory hotkeys for macOS: hold right Option to talk, and Control+Alt combinations
-/// for the rest — none of which collide with anything the system claims.
+/// Factory hotkeys for macOS.
+///
+/// Starting a dictation is the one thing people do constantly, so it gets the shortest
+/// binding on the board — `⌘/`, two keys next to each other under the right hand. The
+/// rest keep their Control+Alt combinations, which collide with nothing the system
+/// claims.
 #[cfg(target_os = "macos")]
 pub fn default_hotkeys() -> HotkeySettings {
     HotkeySettings {
-        toggle: Some("Control+Alt+D".into()),
+        toggle: Some("Command+Slash".into()),
         cancel: Some("Control+Alt+X".into()),
         next_mode: Some("Control+Alt+M".into()),
-        push_to_talk: PushToTalk::Modifier {
-            key: ModifierKey::RightOption,
-        },
     }
 }
 
 /// Factory hotkeys for Windows and Linux.
 ///
-/// Push-to-talk is the way the app is meant to be used, and the macOS default — hold a
-/// bare modifier — has no listener outside macOS, so shipping it here left the main
-/// interaction doing nothing at all. `F9` is the closest equivalent: one key, held and
-/// released, with no chord to assemble. `RegisterHotKey` reports key-up for it, which
-/// is what push-to-talk needs.
-///
-/// The others avoid `Control+Alt` deliberately: on a PC layout that combination is what
-/// AltGr sends, so `Control+Alt+D` is indistinguishable from typing an AltGr character
-/// and behaves differently depending on the keyboard layout in use.
+/// The others avoid `Control+Alt`: on a PC layout that combination is what AltGr sends,
+/// so a `Control+Alt` binding is indistinguishable from typing an AltGr character and
+/// behaves differently depending on the keyboard layout in use.
 #[cfg(not(target_os = "macos"))]
 pub fn default_hotkeys() -> HotkeySettings {
     HotkeySettings {
-        toggle: Some("Control+Shift+Space".into()),
+        toggle: Some("Control+Alt+D".into()),
         cancel: Some("Control+Shift+X".into()),
         next_mode: Some("Control+Shift+M".into()),
-        push_to_talk: PushToTalk::Shortcut {
-            accelerator: "F9".into(),
-        },
     }
 }
 

@@ -138,9 +138,23 @@ pub fn start(
         })
         .context("spawning audio capture thread")?;
 
-    ready_rx
-        .recv()
-        .context("audio capture thread died during startup")??;
+    // Bounded, because this is awaited on the thread that runs the window and the
+    // hotkeys. Opening a device goes through the OS audio stack, and a wedged driver,
+    // an exclusive-mode device, or a Bluetooth headset renegotiating its profile can
+    // sit there indefinitely — which stops being "the microphone is slow" and becomes
+    // "the whole app is frozen". Five seconds is far longer than any healthy open.
+    match ready_rx.recv_timeout(std::time::Duration::from_secs(5)) {
+        Ok(result) => result?,
+        Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+            // The thread is left to finish opening and shut itself down: `stop` is
+            // already shared with it, so setting it here is what ends it.
+            stop.store(true, Ordering::Relaxed);
+            return Err(anyhow!("the microphone did not open within 5s"));
+        }
+        Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+            return Err(anyhow!("audio capture thread died during startup"))
+        }
+    }
     Ok(CaptureHandle { stop })
 }
 

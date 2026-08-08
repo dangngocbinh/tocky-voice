@@ -1,6 +1,6 @@
 [package]
 name = "tockyvoice"
-version = "0.3.0"
+version = "0.4.0"
 description = "Tocky Voice — realtime STT + AI cleanup, pasted anywhere"
 authors = ["Dang Ngoc Binh (ME Code) <hello@mecode.pro>"]
 license = "MIT"
@@ -58,10 +58,9 @@ uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 sys-locale = "0.3"
 
-# Right-Option push-to-talk needs a raw modifier listener, not a normal shortcut,
-# and pasting needs to hand focus back to whichever app the user was typing in.
+# Pasting needs the Accessibility permission checked through ApplicationServices, and
+# it has to hand focus back to whichever app the user was typing in.
 [target.'cfg(target_os = "macos")'.dependencies]
-core-graphics = "0.24"
 core-foundation = "0.10"
 objc2 = "0.5"
 # `libc` gates the pid-typed methods on NSRunningApplication.
@@ -70,3 +69,7 @@ objc2-app-kit = { version = "0.2", features = [
     "NSRunningApplication",
     "libc",
 ] }
+
+# `test-util` lets the timeout tests advance the clock instead of sleeping through it.
+[dev-dependencies]
+tokio = { version = "1", features = ["test-util"] }

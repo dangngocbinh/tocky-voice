@@ -21,6 +21,20 @@ use tokio_tungstenite::tungstenite::Message;
 /// How long to keep reading after we tell the provider we're done talking.
 const DRAIN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(8);
 
+/// How long to wait for the socket to open.
+///
+/// A blackholed route eventually errors at the OS level, but a stalled TLS handshake,
+/// a hung proxy, or a captive portal never does — and an unbounded connect means the
+/// take records with no partials and only reveals itself as a hang at stop time.
+const CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+
+/// How long any single write to the socket may take.
+///
+/// Sends stall rather than fail when the far end stops reading and the kernel buffer
+/// fills, which is what a half-dead connection looks like. This is awaited inside the
+/// same `select!` that reads results, so a stalled write freezes the whole take.
+const SEND_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+
 /// Smallest audio frame worth putting on the wire, in bytes of 16 kHz mono PCM16.
 ///
 /// The microphone hands us whatever the device's buffer size works out to — often 10 ms
@@ -72,8 +86,14 @@ pub async fn run_stream(
     events: UnboundedSender<SttEvent>,
 ) -> Result<String> {
     let request = protocol.request()?;
-    let (ws, _) = tokio_tungstenite::connect_async(request)
+    let (ws, _) = tokio::time::timeout(CONNECT_TIMEOUT, tokio_tungstenite::connect_async(request))
         .await
+        .map_err(|_| {
+            anyhow!(
+                "the speech provider did not answer within {}s — check your connection",
+                CONNECT_TIMEOUT.as_secs()
+            )
+        })?
         .context("connecting to speech provider")?;
     let (mut writer, mut reader) = ws.split();
 
@@ -98,8 +118,8 @@ pub async fn run_stream(
                     if pending.len() >= MIN_FRAME_BYTES {
                         let frame = std::mem::take(&mut pending);
                         pending.reserve(MIN_FRAME_BYTES * 2);
-                        if let Err(e) = writer.send(Message::Binary(frame)).await {
-                            log::warn!("stt socket closed while sending audio: {e}");
+                        if let Err(e) = send_bounded(&mut writer, Message::Binary(frame)).await {
+                            log::warn!("stt socket unusable while sending audio: {e}");
                             broke_early = Some(format!("the connection dropped mid-take: {e}"));
                             audio_done = true;
                         }
@@ -110,9 +130,10 @@ pub async fn run_stream(
                     // The tail is usually shorter than a full frame. Vendors accept a
                     // short final frame; dropping it would clip the last syllable.
                     if !pending.is_empty() {
-                        let _ = writer.send(Message::Binary(std::mem::take(&mut pending))).await;
+                        let tail = Message::Binary(std::mem::take(&mut pending));
+                        let _ = send_bounded(&mut writer, tail).await;
                     }
-                    let _ = writer.send(protocol.finish_message()).await;
+                    let _ = send_bounded(&mut writer, protocol.finish_message()).await;
                 }
             },
 
@@ -165,7 +186,7 @@ pub async fn run_stream(
         }
     }
 
-    let _ = writer.close().await;
+    let _ = tokio::time::timeout(SEND_TIMEOUT, writer.close()).await;
     let transcript = transcript.trim().to_string();
     match broke_early {
         Some(reason) if transcript.is_empty() => Err(anyhow!("{reason}")),
@@ -213,6 +234,63 @@ fn close_reason(frame: Option<&tokio_tungstenite::tungstenite::protocol::CloseFr
         }
         Some(frame) => format!("the provider closed the stream (code {})", frame.code),
         None => "the provider closed the stream without saying why".into(),
+    }
+}
+
+/// Writes one frame, treating "the socket never accepted it" the same as a write error.
+///
+/// A TCP connection whose far end has gone away without a FIN accepts data until the
+/// send buffer fills and then simply stops — the await never resolves either way. That
+/// is indistinguishable from a broken socket as far as the take is concerned, so it is
+/// reported as one instead of stalling the loop that reads results.
+async fn send_bounded<S>(writer: &mut S, message: Message) -> Result<()>
+where
+    S: futures_util::Sink<Message> + Unpin,
+    <S as futures_util::Sink<Message>>::Error: std::fmt::Display,
+{
+    match tokio::time::timeout(SEND_TIMEOUT, writer.send(message)).await {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(e)) => Err(anyhow!("{e}")),
+        Err(_) => Err(anyhow!(
+            "the socket stopped accepting audio for {}s",
+            SEND_TIMEOUT.as_secs()
+        )),
+    }
+}
+
+#[cfg(test)]
+mod send_tests {
+    use super::*;
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+
+    /// What a half-dead TCP connection looks like once the send buffer fills: it never
+    /// accepts the frame and never reports an error either.
+    struct StalledSink;
+
+    impl futures_util::Sink<Message> for StalledSink {
+        type Error = std::io::Error;
+
+        fn poll_ready(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+            Poll::Pending
+        }
+        fn start_send(self: Pin<&mut Self>, _: Message) -> Result<(), Self::Error> {
+            Ok(())
+        }
+        fn poll_flush(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+            Poll::Pending
+        }
+        fn poll_close(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+            Poll::Pending
+        }
+    }
+
+    /// Regression: an unbounded send sits in the same `select!` as the result reader,
+    /// so a stalled write froze the entire take with the panel left mid-dictation.
+    #[tokio::test(start_paused = true)]
+    async fn a_socket_that_never_accepts_a_frame_fails_instead_of_hanging() {
+        let result = send_bounded(&mut StalledSink, Message::Binary(vec![0; MIN_FRAME_BYTES])).await;
+        assert!(result.is_err(), "a stalled write has to be reported, not awaited");
     }
 }
 
