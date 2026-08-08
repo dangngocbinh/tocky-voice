@@ -66,7 +66,7 @@ pub fn toggle(app: &AppHandle) {
 }
 
 /// Begins recording. `mode_id` switches mode first; `None` keeps the active one.
-/// A no-op if a take is already running, so holding a push-to-talk key is harmless.
+/// A no-op if a take is already running, so a repeated key press is harmless.
 pub fn start(app: &AppHandle, mode_id: Option<String>) {
     let recorder = app.state::<Recorder>();
     if recorder.is_recording() {

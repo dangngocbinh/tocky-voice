@@ -64,18 +64,17 @@ const en = {
   dictate: {
     title: "Dictate",
     lede:
-      "Hold your push-to-talk key in any app and talk; let go and the text is transcribed, optionally rewritten by the active mode, then pasted where your cursor was.",
+      "Press your dictation key in any app and talk; press it again and the text is transcribed, optionally rewritten by the active mode, then pasted where your cursor was.",
     accessibilityTitle: "Accessibility permission needed.",
     accessibilityBody:
-      "Without it macOS blocks the paste keystroke and the hold-to-talk key, so text reaches your clipboard but never the app you are typing in.",
+      "Without it macOS blocks the paste keystroke, so text reaches your clipboard but never the app you are typing in.",
     start: "Start dictation",
     stop: "Stop & paste",
     working: "Working…",
     copyText: "Copy text",
     empty: "Nothing yet. Start talking and the words appear here as they are recognised.",
-    // The verb, not just the key. Shown as a bare key name, push-to-talk gets pressed
-    // once and released, which starts and instantly ends a take.
-    holdHint: "hold it down and talk — let go and the text is pasted",
+    // The verb, not just the key: a bare key name says nothing about whether it starts
+    // a take or ends one.
     pressHint: "press once to start, press again to paste",
     cancelHint: "said the wrong thing? press to cancel and start over",
     inputSection: "Input",
@@ -163,20 +162,6 @@ const en = {
     cancel: "Cancel",
     cancelHint: "Throws the current take away.",
     nextMode: "Next mode",
-    pttSection: "Push to talk",
-    pttTrigger: "Trigger",
-    pttTriggerHint: "Hold to record, release to transcribe and paste.",
-    pttModifier: "Hold one modifier key",
-    pttShortcut: "Hold a combination",
-    pttDisabled: "Disabled",
-    pttKey: "Key",
-    pttKeyHint:
-      "Watched by a listen-only event tap, so the key keeps working normally everywhere else. macOS only.",
-    pttMacOnly: "Holding one key is macOS-only",
-    pttMacOnlyHint:
-      "This setting came from the defaults but does nothing here — the listener behind it exists only on macOS. Switch to a key combination.",
-    pttUseShortcut: "Use a combination",
-    pttCombo: "Combination",
     feedbackSection: "Feedback",
     sounds: "Sound cues",
     soundsHint:
@@ -263,8 +248,7 @@ const en = {
     // On screen at the moment someone is wondering how to finish, so it says what to
     // do with the key rather than only naming it. Kept short: this is a 480px HUD
     // glanced at mid-sentence, not the place to teach — that is the Dictate tab.
-    release: "let go to paste",
-    stop: "or press to stop",
+    stop: "press to stop and paste",
   },
 
   recorder: {
@@ -285,7 +269,7 @@ const en = {
     tagline: "Don't type. Just talk.",
     languageTitle: "Welcome to Tocky Voice",
     languageBody:
-      "Hold a key anywhere on your computer, talk, and what you said is typed into whatever app you are in. A few short steps and you are ready. First, which language should this app be in?",
+      "Press one key anywhere on your computer, talk, press it again, and what you said is typed into whatever app you are in. A few short steps and you are ready. First, which language should this app be in?",
 
     micTitle: "Check your microphone",
     micBody:
@@ -323,8 +307,7 @@ const en = {
     tryTitle: "Try it once",
     tryVideoCaption: "50-second walkthrough",
     tryBody: "Last check: press a key below, say a sentence, and watch it land.",
-    keyToggle: "or press once to start, again to stop — from any app",
-    keyHold: "hold this key down and talk, let go and it pastes",
+    keyToggle: "press once to start, again to stop and paste — from any app",
     keyCancel: "said the wrong thing? this key throws the take away — nothing gets pasted",
     tryPreviewHint: "Your words will appear here…",
     tryWaiting: "Waiting for you to talk…",
@@ -409,16 +392,15 @@ const vi: Dictionary = {
   dictate: {
     title: "Đọc",
     lede:
-      "Giữ phím nói ở bất kỳ ứng dụng nào rồi nói; thả ra là lời nói được chuyển thành chữ, có thể được AI viết lại theo chế độ đang chọn, rồi dán vào đúng chỗ con trỏ.",
+      "Bấm phím nói ở bất kỳ ứng dụng nào rồi nói; bấm lần nữa là lời nói được chuyển thành chữ, có thể được AI viết lại theo chế độ đang chọn, rồi dán vào đúng chỗ con trỏ.",
     accessibilityTitle: "Cần quyền Accessibility.",
     accessibilityBody:
-      "Thiếu quyền này macOS sẽ chặn thao tác dán và phím giữ-để-nói, nên chữ chỉ vào clipboard chứ không vào được ứng dụng anh đang gõ.",
+      "Thiếu quyền này macOS sẽ chặn thao tác dán, nên chữ chỉ vào clipboard chứ không vào được ứng dụng anh đang gõ.",
     start: "Bắt đầu đọc",
     stop: "Dừng & dán",
     working: "Đang xử lý…",
     copyText: "Chép đoạn này",
     empty: "Chưa có gì. Cứ nói, chữ sẽ hiện ở đây ngay khi nhận dạng được.",
-    holdHint: "giữ phím này rồi nói — thả ra là chữ được dán",
     pressHint: "bấm một lần để bắt đầu, bấm lại để dán",
     cancelHint: "lỡ nói sai? bấm để huỷ và nói lại từ đầu",
     inputSection: "Đầu vào",
@@ -506,20 +488,6 @@ const vi: Dictionary = {
     cancel: "Huỷ",
     cancelHint: "Bỏ luôn lần thu đang chạy.",
     nextMode: "Chế độ kế tiếp",
-    pttSection: "Giữ để nói",
-    pttTrigger: "Kiểu kích hoạt",
-    pttTriggerHint: "Giữ để thu, thả ra là nhận dạng rồi dán.",
-    pttModifier: "Giữ một phím bổ trợ",
-    pttShortcut: "Giữ một tổ hợp",
-    pttDisabled: "Tắt",
-    pttKey: "Phím",
-    pttKeyHint:
-      "Theo dõi bằng event tap chỉ-nghe, nên phím đó vẫn hoạt động bình thường ở mọi nơi khác. Chỉ có trên macOS.",
-    pttMacOnly: "Giữ một phím chỉ chạy trên macOS",
-    pttMacOnlyHint:
-      "Thiết lập này đến từ mặc định nhưng ở đây nó không làm gì cả — bộ lắng nghe phía sau chỉ có trên macOS. Hãy chuyển sang một tổ hợp phím.",
-    pttUseShortcut: "Dùng tổ hợp phím",
-    pttCombo: "Tổ hợp",
     feedbackSection: "Phản hồi",
     sounds: "Âm báo",
     soundsHint:
@@ -602,8 +570,7 @@ const vi: Dictionary = {
 
   overlay: {
     speak: "Nói đi…",
-    release: "thả ra là dán",
-    stop: "hoặc bấm để dừng",
+    stop: "bấm để dừng và dán",
   },
 
   recorder: {
@@ -624,7 +591,7 @@ const vi: Dictionary = {
     tagline: "Đã đến lúc bớt gõ lại. Vì Tocky sẽ ghi ra chính xác những gì bạn nói trên máy tính.",
     languageTitle: "Chào mừng đến Tocky Voice",
     languageBody:
-      "Giữ một phím ở bất kỳ đâu trên máy, nói, và chữ được gõ thẳng vào ứng dụng bạn đang mở. Vài bước ngắn là xong. Trước tiên, bạn muốn app hiển thị bằng ngôn ngữ nào?",
+      "Bấm một phím ở bất kỳ đâu trên máy, nói, bấm lại, và chữ được gõ thẳng vào ứng dụng bạn đang mở. Vài bước ngắn là xong. Trước tiên, bạn muốn app hiển thị bằng ngôn ngữ nào?",
 
     micTitle: "Kiểm tra micro",
     micBody:
@@ -662,8 +629,7 @@ const vi: Dictionary = {
     tryTitle: "Thử một lần",
     tryVideoCaption: "Video hướng dẫn 50 giây",
     tryBody: "Kiểm tra cuối: bấm 1 phím bên dưới, nói một câu, xem chữ hiện ra.",
-    keyToggle: "hoặc bấm một lần để bắt đầu, bấm lại để dừng — từ ứng dụng bất kỳ",
-    keyHold: "GIỮ phím này rồi nói, thả ra là chữ được dán",
+    keyToggle: "bấm một lần để bắt đầu, bấm lại để dừng và dán — từ ứng dụng bất kỳ",
     keyCancel: "lỡ nói sai? phím này huỷ luôn lần thu — không có gì được dán cả",
     tryPreviewHint: "Chữ của bạn sẽ hiện ở đây…",
     tryWaiting: "Đang chờ bạn nói…",

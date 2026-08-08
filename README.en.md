@@ -4,8 +4,9 @@
 
 ### Don't type. Just talk.
 
-Hold a key anywhere on your computer, talk, and the text lands in whatever app you were
-typing in — transcribed by a realtime speech API and optionally cleaned up by an LLM first.
+Press one key anywhere on your computer, talk, press it again, and the text lands in
+whatever app you were typing in — transcribed by a realtime speech API and optionally
+cleaned up by an LLM first.
 
 Free and open source. You bring your own API keys, so there is no subscription and no
 middleman: your audio goes from your machine straight to the provider you chose.
@@ -133,14 +134,11 @@ Press the hotkey in any app, talk, press it again. The text is pasted where your
 
 | Action | macOS | Windows / Linux |
 | --- | --- | --- |
-| Hold to talk | Right Option | Hold `F9` |
-| Start / stop | `Control+Alt+D` | `Control+Shift+Space` |
+| Start / stop | `⌘/` | `Control+Alt+D` |
 | Cancel the take | `Control+Alt+X` | `Control+Shift+X` |
 | Next mode | `Control+Alt+M` | `Control+Shift+M` |
 
-The two platforms differ for concrete reasons: holding a bare modifier can only be watched
-on macOS, and `Control+Alt` on a PC keyboard is what AltGr sends, so it behaves differently
-depending on the layout in use.
+There is one way in: press once to record, press again to paste. No hold-to-talk mode.
 
 All of these are configurable in **Settings → Shortcuts**.
 
@@ -215,7 +213,6 @@ them as beta and please report what breaks.
 | --- | --- | --- | --- |
 | Dictate → paste | ✅ | ✅ built, untested | ⚠️ runs; clipboard caveat below |
 | Global hotkeys | ✅ | ✅ built, untested | ✅ verified on GNOME Wayland |
-| Hold a bare modifier to talk | ✅ | ❌ use a key combination | ❌ use a key combination |
 | Return focus to the exact app you started from | ✅ | not implemented — hiding the overlay restores focus in practice | same |
 | Key file permissions | `0600` | inherits the per-user AppData ACL | `0600` |
 
@@ -223,8 +220,7 @@ them as beta and please report what breaks.
 global hotkeys register**, and settings and the key vault load. One measured limitation:
 the compositor does not implement the `wlr-data-control` clipboard protocol, so the app
 falls back to the X11 clipboard via XWayland — pasting most likely reaches X11/XWayland
-apps but not native Wayland ones. That part is not fully measured. Hold-to-talk on a bare
-modifier is macOS-only; bind a key combination on Linux.
+apps but not native Wayland ones. That part is not fully measured.
 
 ---
 

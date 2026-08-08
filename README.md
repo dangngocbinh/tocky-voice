@@ -4,9 +4,9 @@
 
 ### Đã đến lúc bớt gõ lại. Vì Tocky sẽ ghi ra chính xác những gì bạn nói trên máy tính.
 
-Giữ một phím ở bất kỳ đâu trên máy, nói, và chữ hiện ra ngay trong ứng dụng bạn đang gõ —
-được nhận dạng bởi dịch vụ speech-to-text thời gian thực, và nếu muốn thì được AI viết lại
-cho gọn gàng trước khi dán.
+Bấm một phím ở bất kỳ đâu trên máy, nói, bấm lại, và chữ hiện ra ngay trong ứng dụng bạn
+đang gõ — được nhận dạng bởi dịch vụ speech-to-text thời gian thực, và nếu muốn thì được
+AI viết lại cho gọn gàng trước khi dán.
 
 Miễn phí và mã nguồn mở. Bạn dùng API key của chính mình, nên không có phí thuê bao và
 không có bên trung gian: âm thanh đi thẳng từ máy bạn tới nhà cung cấp bạn chọn.
@@ -131,14 +131,11 @@ Bấm phím tắt trong ứng dụng bất kỳ, nói, bấm lại lần nữa. 
 
 | Việc | macOS | Windows / Linux |
 | --- | --- | --- |
-| Giữ để nói | Right Option | Giữ `F9` |
-| Bắt đầu / dừng | `Control+Alt+D` | `Control+Shift+Space` |
+| Bắt đầu / dừng | `⌘/` | `Control+Alt+D` |
 | Huỷ lần ghi này | `Control+Alt+X` | `Control+Shift+X` |
 | Chuyển chế độ | `Control+Alt+M` | `Control+Shift+M` |
 
-Hai nền tảng khác mặc định vì lý do kỹ thuật: giữ một phím bổ trợ trần chỉ bắt được trên
-macOS, còn `Control+Alt` trên bàn phím PC chính là thứ AltGr gửi đi nên hành xử khác nhau
-tuỳ layout bàn phím.
+Chỉ có một cách bắt đầu: bấm một lần để thu, bấm lần nữa để dán. Không có chế độ giữ phím.
 
 Đổi lại được hết trong **Cài đặt → Phím tắt**.
 
@@ -213,7 +210,6 @@ báo lại giúp nếu có gì hỏng.
 | --- | --- | --- | --- |
 | Nói → dán chữ | ✅ | ✅ biên dịch được, chưa thử tay | ⚠️ chạy được; clipboard xem ghi chú |
 | Phím tắt toàn cục | ✅ | ✅ biên dịch được, chưa thử tay | ✅ đã thử trên GNOME Wayland |
-| Giữ một phím đơn để nói | ✅ | ❌ dùng tổ hợp phím | ❌ dùng tổ hợp phím |
 | Trả focus đúng ứng dụng lúc bắt đầu ghi | ✅ | chưa làm — ẩn overlay đi thì focus tự về, thực tế vẫn đúng | như Windows |
 | Quyền file chứa key | `0600` | theo ACL thư mục AppData của tài khoản | `0600` |
 
@@ -221,8 +217,7 @@ báo lại giúp nếu có gì hỏng.
 **cả ba phím tắt toàn cục đăng ký thành công**, đọc được settings và kho key. Một hạn chế
 đo được: compositor không hỗ trợ giao thức clipboard `wlr-data-control`, nên app lùi về
 clipboard X11 qua XWayland — thao tác dán nhiều khả năng chỉ tới được ứng dụng X11/XWayland
-chứ không tới ứng dụng Wayland thuần. Phần này chưa đo hết. Giữ-phím-để-nói là tính năng
-riêng của macOS, trên Linux hãy dùng một tổ hợp phím.
+chứ không tới ứng dụng Wayland thuần. Phần này chưa đo hết.
 
 ---
 

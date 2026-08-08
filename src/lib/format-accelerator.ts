@@ -6,7 +6,6 @@
  */
 
 import { isMac } from "./platform";
-import type { HotkeySettings } from "./types";
 
 const MAC_SYMBOLS: Record<string, string> = {
   commandorcontrol: "⌘",
@@ -84,34 +83,3 @@ export function formatAccelerator(accelerator: string | null): string | null {
     .join(isMac ? "" : "+");
 }
 
-const MODIFIER_SYMBOLS: Record<string, string> = isMac
-  ? {
-      right_option: "right ⌥",
-      left_option: "left ⌥",
-      right_command: "right ⌘",
-      fn: "Fn",
-    }
-  : {
-      right_option: "right Alt",
-      left_option: "left Alt",
-      right_command: "right Win",
-      fn: "Fn",
-    };
-
-export function formatModifier(key: string): string {
-  return MODIFIER_SYMBOLS[key] ?? key;
-}
-
-/**
- * How the push-to-talk binding reads, whichever kind it is.
- *
- * It can be a held bare modifier or an ordinary accelerator depending on the platform,
- * and every screen that shows it needs the same answer — reading only one of the two
- * cases is what hid the hold key on Windows.
- */
-export function pushToTalkLabel(hotkeys: HotkeySettings): string | null {
-  const ptt = hotkeys.push_to_talk;
-  if (ptt.kind === "modifier") return formatModifier(ptt.key);
-  if (ptt.kind === "shortcut") return formatAccelerator(ptt.accelerator);
-  return null;
-}

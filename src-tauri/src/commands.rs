@@ -192,7 +192,7 @@ pub fn copy_text(app: AppHandle, text: String) -> Result<(), String> {
 
 #[derive(Serialize)]
 pub struct PermissionStatus {
-    /// Needed both for the paste keystroke and for hold-a-modifier push-to-talk.
+    /// Needed for the paste keystroke.
     pub accessibility: bool,
 }
 

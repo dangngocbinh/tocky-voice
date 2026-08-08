@@ -14,7 +14,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as api from "../lib/api";
-import { formatAccelerator, pushToTalkLabel } from "../lib/format-accelerator";
+import { formatAccelerator } from "../lib/format-accelerator";
 import { formatError } from "../lib/format-error";
 import { resolveLanguage, useT } from "../lib/i18n";
 import type { AppSettings } from "../lib/types";
@@ -67,10 +67,6 @@ export function StepTryIt({ settings }: Props) {
     }
   }, [phase, error, transcript]);
 
-  // Outside macOS push-to-talk is bound to an accelerator rather than a held bare
-  // modifier, and reading only the modifier case hid the hold key on every other
-  // platform — on the one screen whose job is to teach it.
-  const hold = pushToTalkLabel(settings.hotkeys);
   const toggle = formatAccelerator(settings.hotkeys.toggle);
   const cancel = formatAccelerator(settings.hotkeys.cancel);
   const recording = phase === "recording";
@@ -96,15 +92,7 @@ export function StepTryIt({ settings }: Props) {
       />
       <p className="onb__note">{t.onboarding.tryVideoCaption}</p>
 
-      {/* Hold-to-talk leads: it is the faster of the two, and the one that is invisible
-          unless someone says out loud that the key is held rather than pressed. */}
       <div className="onb__keys">
-        {hold && (
-          <div>
-            <kbd>{hold}</kbd>
-            <span>{t.onboarding.keyHold}</span>
-          </div>
-        )}
         <div>
           <kbd>{toggle}</kbd>
           <span>{t.onboarding.keyToggle}</span>
