@@ -70,3 +70,7 @@ objc2-app-kit = { version = "0.2", features = [
     "NSRunningApplication",
     "libc",
 ] }
+
+# `test-util` lets the timeout tests advance the clock instead of sleeping through it.
+[dev-dependencies]
+tokio = { version = "1", features = ["test-util"] }

@@ -76,9 +76,16 @@ pub fn run() {
             // answered without it: the format, rate and channel count all come from the
             // driver and differ per device, and the machine with the problem is rarely
             // the machine with the debugger.
-            for line in audio::capture::describe_input_devices() {
-                log::info!("input: {line}");
-            }
+            //
+            // Off the setup thread, though. Asking every endpoint for its full config
+            // list means one driver query per device, and a machine with several
+            // endpoints plus a Bluetooth headset takes seconds — seconds spent before
+            // the event loop starts, with no window on screen to explain the wait.
+            std::thread::spawn(|| {
+                for line in audio::capture::describe_input_devices() {
+                    log::info!("input: {line}");
+                }
+            });
             log::info!(
                 "credential store: {}",
                 if settings.use_os_keychain {

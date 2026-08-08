@@ -15,8 +15,9 @@ use crate::state::{self, emit_error, events, Phase};
 use crate::stt;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 
 /// A recording in flight.
 struct ActiveTake {
@@ -43,9 +44,21 @@ struct ActiveTake {
 /// quiet room on a low-gain mic sits above this.
 const AUDIBLE_PEAK: f32 = 0.01;
 
+/// How long a stopped take gets to come back with a transcript.
+///
+/// The stream has its own, shorter drain window, but that one only starts once the
+/// finalize frame has been written. A connection that half-dies mid-take — sleeping
+/// laptop, dropped wifi, roaming VPN — never gets that far: the socket neither errors
+/// nor answers, and without an outer bound the panel sits on "transcribing" until the
+/// app is restarted. Generous enough that a merely slow provider still lands.
+const FINALIZE_TIMEOUT: Duration = Duration::from_secs(20);
+
 #[derive(Default)]
 pub struct Recorder {
     active: Mutex<Option<ActiveTake>>,
+    /// Present while a stopped take is still waiting on the provider. Sending on it
+    /// abandons that wait — the escape hatch from a socket that never answers.
+    finalizing: Mutex<Option<oneshot::Sender<()>>>,
 }
 
 impl Recorder {
@@ -212,11 +225,38 @@ pub fn stop(app: &AppHandle) {
     feedback::play(feedback::Cue::Stop, settings.audio.feedback_volume);
     state::emit_status(app, Phase::Transcribing, &take.mode_id);
 
+    // Registered before the task is spawned, so cancelling during transcription can
+    // never race a handle that has not been stored yet.
+    let (abort_tx, abort_rx) = oneshot::channel();
+    if let Ok(mut slot) = app.state::<Recorder>().finalizing.lock() {
+        *slot = Some(abort_tx);
+    }
+
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        let transcript = match take.stt_task.await {
-            Ok(Ok(text)) => text,
-            Ok(Err(e)) => {
+        // Only an actual send counts as a cancel. The sender is also dropped when a
+        // later take replaces it in the slot, and treating that as a cancel would
+        // throw away the transcript of a take that was finishing perfectly well.
+        let cancelled = async {
+            if abort_rx.await.is_err() {
+                std::future::pending::<()>().await;
+            }
+        };
+        tokio::pin!(cancelled);
+
+        let streamed = tokio::select! {
+            _ = &mut cancelled => {
+                take.stt_task.abort();
+                log::info!("take abandoned while waiting on the speech provider");
+                abandon(&app, &take.mode_id);
+                return;
+            }
+            result = tokio::time::timeout(FINALIZE_TIMEOUT, &mut take.stt_task) => result,
+        };
+
+        let transcript = match streamed {
+            Ok(Ok(Ok(text))) => text,
+            Ok(Ok(Err(e))) => {
                 pipeline::fail(
                     &app,
                     &take.mode_id,
@@ -224,11 +264,26 @@ pub fn stop(app: &AppHandle) {
                 );
                 return;
             }
-            Err(e) => {
+            Ok(Err(e)) => {
                 pipeline::fail(
                     &app,
                     &take.mode_id,
                     ErrorPayload::with_detail(ErrorKind::TranscriptionFailed, format!("{e}")),
+                );
+                return;
+            }
+            Err(_elapsed) => {
+                take.stt_task.abort();
+                pipeline::fail(
+                    &app,
+                    &take.mode_id,
+                    ErrorPayload::with_detail(
+                        ErrorKind::TranscriptionFailed,
+                        format!(
+                            "the speech provider stopped responding after {}s",
+                            FINALIZE_TIMEOUT.as_secs()
+                        ),
+                    ),
                 );
                 return;
             }
@@ -256,28 +311,38 @@ pub fn stop(app: &AppHandle) {
     });
 }
 
-/// Aborts the current take and discards its audio.
+/// Aborts the take in flight and discards its audio.
+///
+/// Works in both halves of a take: while recording, and afterwards while the provider
+/// is still being waited on. The second half matters — that is where a dead connection
+/// strands the panel, and until this existed the only way out was restarting the app.
 pub fn cancel(app: &AppHandle) {
-    let Some(mut take) = app
-        .state::<Recorder>()
-        .active
-        .lock()
-        .ok()
-        .and_then(|mut slot| slot.take())
-    else {
+    let recorder = app.state::<Recorder>();
+
+    let recording = recorder.active.lock().ok().and_then(|mut slot| slot.take());
+    if let Some(mut take) = recording {
+        take.cancelled.store(true, Ordering::Relaxed);
+        take.capture.stop();
+        take.audio_tx.take();
+        take.stt_task.abort();
+        abandon(app, &take.mode_id);
         return;
-    };
+    }
 
-    take.cancelled.store(true, Ordering::Relaxed);
-    take.capture.stop();
-    take.audio_tx.take();
-    take.stt_task.abort();
+    // Nothing recording: there may still be a stopped take waiting on the provider.
+    // The finalize task owns the state, so it is told to give up and does the rest.
+    if let Some(abort) = recorder.finalizing.lock().ok().and_then(|mut s| s.take()) {
+        let _ = abort.send(());
+    }
+}
 
+/// The shared ending of an abandoned take: no text, no error, back to idle.
+fn abandon(app: &AppHandle, mode_id: &str) {
     let settings = state::settings_snapshot(app);
     overlay::hide(app);
     feedback::play(feedback::Cue::Cancel, settings.audio.feedback_volume);
     let _ = app.emit(events::PARTIAL, String::new());
-    state::emit_status(app, Phase::Idle, &take.mode_id);
+    state::emit_status(app, Phase::Idle, mode_id);
 }
 
 /// Cycles to the next mode without recording — handy for a "switch mode" hotkey.

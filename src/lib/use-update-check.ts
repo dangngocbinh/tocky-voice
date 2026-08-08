@@ -46,7 +46,10 @@ export function useUpdateCheck(autoCheckEnabled: boolean): UseUpdateCheck {
     setState("checking");
     setErrorMessage(null);
     try {
-      const found = await check();
+      // The plugin defaults to no timeout at all, so a stalled connection to GitHub
+      // leaves this stuck on "checking" with the button disabled for the rest of the
+      // session — and it runs automatically on every launch.
+      const found = await check({ timeout: 15000 });
       if (!found) {
         setState("none");
         return;
