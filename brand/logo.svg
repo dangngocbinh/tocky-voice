@@ -1,31 +1,29 @@
 <!-- Tocky Voice.
-     A key you press whose face is a voice. The waveform leans forward — speed is
-     carried by the form itself rather than bolted on as motion lines, which is what
-     keeps it legible once the icon is 32px in a Dock. -->
+     A microphone standing in the middle of its own waveform: what you speak into, and
+     what comes out. Drawn as vector rather than kept as the generated raster because
+     the mark has to survive a 16px menu-bar and a 32px Dock tile, where a downscaled
+     bitmap turns the outer bars into grey mush.
+
+     Geometry is symmetrical about x=256 and the whole mark is centred in the canvas.
+     Bars are strokes with round caps, so their drawn extent runs half a stroke width
+     past each endpoint — the numbers below are centrelines, not edges. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <defs>
-    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#2C2825"/><stop offset="1" stop-color="#0E0D0C"/>
-    </linearGradient>
-    <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#F5BE63"/><stop offset=".55" stop-color="#E5A63F"/>
-      <stop offset="1" stop-color="#C9861F"/>
-    </linearGradient>
-  </defs>
-
-  <rect width="512" height="512" rx="114" fill="url(#plate)"/>
-
-  <!-- Keycap: a lower dark shoulder gives it depth so it reads as pressable. -->
-  <rect x="92" y="118" width="328" height="292" rx="60" fill="#7A5312"/>
-  <rect x="92" y="106" width="328" height="292" rx="60" fill="url(#cap)"/>
-  <rect x="120" y="130" width="272" height="120" rx="42" fill="#FFD48C" opacity=".32"/>
-
-  <!-- Voice, leaning into the direction of travel. -->
-  <g transform="rotate(-9 256 252)" stroke="#1A1409" stroke-linecap="round" fill="none">
-    <path d="M166 252h0"      stroke-width="30"/>
-    <path d="M214 214v76"     stroke-width="30"/>
-    <path d="M262 170v164"    stroke-width="30"/>
-    <path d="M310 200v104"    stroke-width="30"/>
-    <path d="M356 236v32"     stroke-width="30"/>
+  <g fill="none" stroke="#FFC147" stroke-linecap="round">
+    <!-- Waveform: three bars each side, growing towards the middle. -->
+    <g stroke-width="28">
+      <path d="M81 244v46"/>
+      <path d="M126 219v96"/>
+      <path d="M173 192v150"/>
+      <path d="M339 192v150"/>
+      <path d="M386 219v96"/>
+      <path d="M431 244v46"/>
+    </g>
+    <!-- Cradle, then the stand. -->
+    <path d="M206 262a50 50 0 0 0 100 0" stroke-width="12"/>
+    <path d="M256 312v74" stroke-width="19"/>
   </g>
+  <!-- Capsule head. Taller than the tallest bar so it stays the subject. -->
+  <rect x="221" y="105" width="70" height="194" rx="35" fill="#FFC147"/>
+  <!-- Foot. -->
+  <rect x="217" y="386" width="78" height="20" rx="10" fill="#FFC147"/>
 </svg>

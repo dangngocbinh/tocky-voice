@@ -1,12 +1,25 @@
 <!-- macOS template image: black shapes plus alpha only. The system recolours it for
-     light/dark menu bars, so any colour here would be discarded anyway. -->
+     light/dark menu bars, so any colour here would be discarded anyway.
+
+     The same mark as the app icon, but redrawn rather than scaled down. At menu-bar
+     size the app icon's proportions collapse: its cradle stroke would land near half a
+     point and vanish, and six bars either side would close into a solid block. So the
+     waveform is cut to two bars a side and every stroke is floored at ~2 units, which
+     is what keeps the microphone readable as a microphone at 22pt. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="44" height="44">
-  <g transform="rotate(-9 22 22)" stroke="#000" stroke-linecap="round" fill="none">
-    <path d="M7 22h0"    stroke-width="3.4"/>
-    <path d="M13.5 17.5v9" stroke-width="3.4"/>
-    <path d="M20 12v20"  stroke-width="3.4"/>
-    <path d="M26.5 16v12" stroke-width="3.4"/>
-    <path d="M33 19.5v5" stroke-width="3.4"/>
-    <path d="M37 22h0"   stroke-width="3.4"/>
+  <g fill="none" stroke="#000" stroke-linecap="round">
+    <!-- Waveform, two bars a side. -->
+    <g stroke-width="2.8">
+      <path d="M4.5 18.4v7.2"/>
+      <path d="M11 14.4v15.2"/>
+      <path d="M33 14.4v15.2"/>
+      <path d="M39.5 18.4v7.2"/>
+    </g>
+    <!-- Cradle, stand, foot. -->
+    <path d="M15.5 20a6.5 6.5 0 0 0 13 0" stroke-width="2.2"/>
+    <path d="M22 26.5v7.4" stroke-width="2.2"/>
+    <path d="M17.6 35.2h8.8" stroke-width="2.4"/>
   </g>
+  <!-- Capsule head. -->
+  <rect x="18.5" y="5" width="7" height="18" rx="3.5" fill="#000"/>
 </svg>
