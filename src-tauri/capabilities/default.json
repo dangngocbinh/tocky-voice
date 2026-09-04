@@ -1,8 +1,8 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Settings window and the floating recording overlay",
-  "windows": ["main", "overlay"],
+  "description": "Settings window, the floating recording overlay, and the read-aloud mini player",
+  "windows": ["main", "overlay", "player"],
   "permissions": [
     "core:default",
     "core:window:allow-show",

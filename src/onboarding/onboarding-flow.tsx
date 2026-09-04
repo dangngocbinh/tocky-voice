@@ -24,6 +24,7 @@ import { StepMic } from "./step-mic";
 import { StepSpeech } from "./step-speech";
 import { StepPermission } from "./step-permission";
 import { StepTryIt } from "./step-try-it";
+import { StepReadAloud } from "./step-read-aloud";
 
 interface Props {
   settings: AppSettings;
@@ -38,11 +39,11 @@ interface Props {
 // the microphone is the first step that sets anything up.
 const STEPS = (
   isMac
-    ? (["language", "mic", "speech", "permission", "try"] as const)
-    : (["language", "mic", "speech", "try"] as const)
+    ? (["language", "mic", "speech", "permission", "try", "readAloud"] as const)
+    : (["language", "mic", "speech", "try", "readAloud"] as const)
 ) as readonly StepId[];
 
-export type StepId = "language" | "mic" | "speech" | "permission" | "try";
+export type StepId = "language" | "mic" | "speech" | "permission" | "try" | "readAloud";
 
 export function OnboardingFlow({ settings, onSettingsChange, onDone }: Props) {
   const [index, setIndex] = useState(0);
@@ -58,10 +59,23 @@ export function OnboardingFlow({ settings, onSettingsChange, onDone }: Props) {
     speech: t.onboarding.speechTitle,
     permission: t.onboarding.permissionTitle,
     try: t.onboarding.tryTitle,
+    readAloud: t.onboarding.readAloudTitle,
   };
 
   const finish = () => {
     onSettingsChange({ ...settings, onboarding_completed: true });
+    onDone();
+  };
+
+  // The one path that also flips a setting: combined into a single update so the
+  // enable and the "onboarding is done" flag land together, not as two renders that
+  // could otherwise race and drop one of them.
+  const enableReadAloudAndFinish = () => {
+    onSettingsChange({
+      ...settings,
+      tts: { ...settings.tts, enabled: true },
+      onboarding_completed: true,
+    });
     onDone();
   };
 
@@ -115,6 +129,9 @@ export function OnboardingFlow({ settings, onSettingsChange, onDone }: Props) {
           )}
           {step === "permission" && <StepPermission onReadyChange={setCanAdvance} />}
           {step === "try" && <StepTryIt settings={settings} />}
+          {step === "readAloud" && (
+            <StepReadAloud settings={settings} onEnableAndFinish={enableReadAloudAndFinish} />
+          )}
         </div>
 
         <footer className="onb__foot">
@@ -136,7 +153,11 @@ export function OnboardingFlow({ settings, onSettingsChange, onDone }: Props) {
               </button>
             )}
             <button className="btn-primary" onClick={next} disabled={!canAdvance}>
-              {last ? t.onboarding.finish : t.onboarding.next}
+              {step === "readAloud"
+                ? t.onboarding.readAloudLater
+                : last
+                  ? t.onboarding.finish
+                  : t.onboarding.next}
             </button>
           </div>
         </footer>

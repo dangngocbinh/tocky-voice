@@ -32,9 +32,12 @@ const en = {
     // naming it after just one of those hides the rest.
     hotkeys: "Settings",
     history: "History",
+    read: "Read aloud",
     about: "About",
     idle: "idle",
     loading: "Loading",
+    loadFailed: "Could not read your settings",
+    retry: "Try again",
   },
 
   phase: {
@@ -198,6 +201,60 @@ const en = {
     confirmClear: "Delete all history and saved recordings?",
   },
 
+  read: {
+    title: "Read selected text aloud",
+    offLede:
+      "Highlight text anywhere and press a key — the app reads it back to you. Useful when there's a lot to get through and your eyes are tired.",
+    offKeyNote: "Uses the API key you already saved — nothing new to sign up for.",
+    enable: "Turn on read-aloud",
+    onLede: "Highlight text anywhere, press {hotkey} to hear it.",
+    readHotkey: "Read shortcut",
+    enabledLabel: "On",
+    voiceSection: "Voice",
+    provider: "Service",
+    providerReuseNote: "uses your existing key",
+    appId: "App ID",
+    credentials: "App ID + token",
+    appIdHint: "Vbee needs both, from the same page of its console. Saved together.",
+    model: "Model",
+    modelHint: "Rarely needs changing — the default matches this provider's current TTS model/endpoint.",
+    voice: "Voice",
+    voiceLoading: "Loading…",
+    voiceNone: "(no voices returned)",
+    speed: "Speed",
+    speedUnsupported: "This provider does not support a speed control.",
+    preview: "▶ Try it",
+    previewing: "Playing…",
+    modesSection: "Read modes",
+    addMode: "+ Add",
+    modeListHint: "Click a mode to edit its prompt or hotkey.",
+    modeAi: "AI",
+    modeVerbatim: "verbatim",
+    aiToggle: "Run an AI pass first",
+    aiToggleHint: "Off reads the highlighted text exactly as-is.",
+    promptHint: "Written for listening: short sentences, no bullet points, no markdown.",
+    voiceCommandSection: "Give a spoken instruction",
+    voiceCommandBody:
+      'Highlight text, press {hotkey}, say what you want ("summarize this and read it to me"), press again, listen.',
+    voiceCommandHotkey: "Shortcut",
+    maxChars: "Refuse selections longer than",
+    maxCharsHint: "Blocks an accidental whole-page selection before it reaches a paid API.",
+    privacy:
+      "Highlighted text is sent to the AI and text-to-speech providers selected above — nothing is saved and no read-aloud history is kept. When an app will not hand over its selection, the player offers to read your clipboard instead; that text is only ever sent if you press the button.",
+  },
+
+  player: {
+    preparing: "Preparing…",
+    pause: "Pause",
+    resume: "Resume",
+    close: "Stop",
+    clipboardOffer: "Couldn't grab the highlighted text. On your clipboard:",
+    readClipboard: "Read the clipboard",
+    mode: "Mode",
+    speedLabel: "Speed",
+    speed: "Applies from the next sentence",
+  },
+
   about: {
     title: "About",
     lede:
@@ -318,6 +375,13 @@ const en = {
     rerunTitle: "Setup walkthrough",
     rerunBody: "Run the four-step setup again — handy if something stopped working.",
     rerun: "Run setup again",
+
+    readAloudTitle: "By the way — it reads too",
+    readAloudBody:
+      "Highlight text anywhere and press {hotkey}, and the app reads it back to you. Uses the key you just entered.",
+    readAloudHint: "Handy for long documents when your eyes need a break.",
+    readAloudLater: "Maybe later",
+    readAloudEnable: "Turn it on, {hotkey}",
   },
 
   errors: {
@@ -334,6 +398,12 @@ const en = {
     no_audio_captured:
       "The microphone opened but stayed completely silent, so there was nothing to transcribe. Pick the right input under Dictate → Microphone and check it is not muted.",
     transcription_failed: "Transcription failed.",
+    nothing_selected:
+      "Nothing is highlighted. Select some text anywhere, then try again.",
+    selection_too_long:
+      "That selection is longer than the read-aloud limit. Select a shorter piece, or raise the limit in the Read tab.",
+    tts_failed: "Could not read that aloud.",
+    no_tts_key: "No API key saved for the read-aloud provider. Add one in the Read tab.",
   },
 
   stt: {
@@ -360,9 +430,12 @@ const vi: Dictionary = {
     providers: "Nhà cung cấp",
     hotkeys: "Cài đặt",
     history: "Lịch sử",
+    read: "Đọc to",
     about: "Giới thiệu",
     idle: "chờ",
     loading: "Đang tải",
+    loadFailed: "Không đọc được cài đặt",
+    retry: "Thử lại",
   },
 
   phase: {
@@ -524,6 +597,60 @@ const vi: Dictionary = {
     confirmClear: "Xoá toàn bộ lịch sử và file ghi âm?",
   },
 
+  read: {
+    title: "Đọc văn bản bôi đen",
+    offLede:
+      "Bôi đen chữ ở bất kỳ đâu rồi bấm một phím — app đọc cho bạn nghe. Cần khi thông tin nhiều mà đọc bằng mắt thì mỏi.",
+    offKeyNote: "Dùng chung API key bạn đã lưu, không phải đăng ký thêm gì.",
+    enable: "Bật tính năng đọc",
+    onLede: "Bôi đen chữ ở bất kỳ đâu, bấm {hotkey} để nghe.",
+    readHotkey: "Phím tắt đọc",
+    enabledLabel: "Bật",
+    voiceSection: "Giọng đọc",
+    provider: "Dịch vụ",
+    providerReuseNote: "dùng key sẵn có",
+    appId: "App ID",
+    credentials: "App ID + token",
+    appIdHint: "Vbee cần cả hai, lấy cùng một trang trong console của họ. Lưu chung một lần.",
+    model: "Model",
+    modelHint: "Ít khi cần đổi — giá trị mặc định khớp với model/endpoint TTS hiện tại của dịch vụ này.",
+    voice: "Giọng",
+    voiceLoading: "Đang tải…",
+    voiceNone: "(không nạp được danh sách)",
+    speed: "Tốc độ",
+    speedUnsupported: "Nhà cung cấp này không chỉnh được tốc độ.",
+    preview: "▶ Nghe thử",
+    previewing: "Đang phát…",
+    modesSection: "Chế độ đọc",
+    addMode: "+ Thêm",
+    modeListHint: "Bấm vào một chế độ để sửa prompt / gán phím tắt.",
+    modeAi: "AI",
+    modeVerbatim: "không AI",
+    aiToggle: "Cho AI xử lý trước",
+    aiToggleHint: "Tắt thì đọc đúng nguyên văn bôi đen.",
+    promptHint: "Viết để nghe: câu ngắn, không gạch đầu dòng, không markdown.",
+    voiceCommandSection: "Ra lệnh bằng giọng nói",
+    voiceCommandBody:
+      'Bôi đen → bấm {hotkey} → nói "tóm tắt rồi đọc cho tôi nghe" → bấm lại → nghe.',
+    voiceCommandHotkey: "Phím tắt",
+    maxChars: "Chặn khi bôi đen quá",
+    maxCharsHint: "Chặn trường hợp lỡ bôi đen cả trang trước khi gọi API tốn tiền.",
+    privacy:
+      "Văn bản bôi đen được gửi tới nhà cung cấp AI và đọc mà anh chọn ở trên — không lưu lại, không giữ lịch sử các lần đọc. Khi app nào đó không cho lấy chữ bôi đen, thanh điều khiển sẽ hỏi có đọc nội dung trong clipboard không; chỉ khi anh bấm nút thì nội dung đó mới được gửi đi.",
+  },
+
+  player: {
+    preparing: "Đang chuẩn bị…",
+    pause: "Tạm dừng",
+    resume: "Tiếp tục",
+    close: "Dừng",
+    clipboardOffer: "Không lấy được chữ bôi đen. Trong clipboard đang có:",
+    readClipboard: "Đọc nội dung trong clipboard",
+    mode: "Chế độ",
+    speedLabel: "Tốc độ",
+    speed: "Áp dụng từ câu kế tiếp",
+  },
+
   about: {
     title: "Giới thiệu",
     lede:
@@ -640,6 +767,13 @@ const vi: Dictionary = {
     rerunTitle: "Hướng dẫn cài đặt",
     rerunBody: "Chạy lại 4 bước cài đặt — hữu ích khi có gì đó ngừng hoạt động.",
     rerun: "Chạy lại hướng dẫn",
+
+    readAloudTitle: "Nhân tiện — app còn đọc được",
+    readAloudBody:
+      "Bôi đen chữ ở bất kỳ đâu rồi bấm {hotkey}, app đọc cho bạn nghe. Dùng chung key bạn vừa nhập.",
+    readAloudHint: "Hợp khi tài liệu dài mà mắt đã mỏi.",
+    readAloudLater: "Để sau",
+    readAloudEnable: "Bật, {hotkey}",
   },
 
   errors: {
@@ -656,6 +790,11 @@ const vi: Dictionary = {
     no_audio_captured:
       "Micro có mở nhưng im hoàn toàn, nên không có gì để nhận dạng. Chọn đúng micro ở tab Đọc → Micro và kiểm tra xem nó có bị tắt tiếng không.",
     transcription_failed: "Nhận dạng giọng nói thất bại.",
+    nothing_selected: "Chưa bôi đen chữ nào. Bôi đen một đoạn bất kỳ rồi thử lại.",
+    selection_too_long:
+      "Đoạn bôi đen dài hơn ngưỡng cho phép. Bôi đen ít hơn, hoặc nâng ngưỡng ở tab Đọc.",
+    tts_failed: "Không đọc được đoạn này.",
+    no_tts_key: "Chưa lưu API key cho dịch vụ đọc. Thêm key ở tab Đọc.",
   },
 
   stt: {

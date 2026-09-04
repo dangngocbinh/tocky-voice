@@ -50,6 +50,13 @@ export const LogIcon = ({ className }: Props) => (
   </svg>
 );
 
+export const SpeakerIcon = ({ className }: Props) => (
+  <svg {...base} className={className} aria-hidden="true">
+    <path d="M2.25 6.25h2.5L8.5 3v10L4.75 9.75h-2.5v-3.5Z" strokeLinejoin="round" />
+    <path d="M11 5.5a4 4 0 0 1 0 5M13 3.75a7 7 0 0 1 0 8.5" />
+  </svg>
+);
+
 export const InfoIcon = ({ className }: Props) => (
   <svg {...base} className={className} aria-hidden="true">
     <circle cx="8" cy="8" r="6.25" />

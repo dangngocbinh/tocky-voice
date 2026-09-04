@@ -17,10 +17,14 @@ mod inject;
 #[cfg(target_os = "macos")]
 mod macos_accessibility;
 mod overlay;
+mod player_window;
 mod private_file;
+mod read;
+mod selection;
 mod session;
 mod tray;
 mod state;
+pub mod tts;
 
 use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
@@ -52,6 +56,8 @@ pub fn run() {
         .manage(session::Recorder::default())
         .manage(hotkeys::HotkeyRegistry::default())
         .manage(audio::mic_test::MicTest::default())
+        .manage(read::ReadState::default())
+        .manage(tts::player::Player::default())
         .setup(|app| {
             let handle = app.handle().clone();
 
@@ -97,6 +103,20 @@ pub fn run() {
             app.manage(state::AppState::new(settings.clone()));
             hotkeys::apply(&handle, &settings);
             tray::build(&handle, &settings)?;
+
+            // The windows are declared in tauri.conf.json with `"create": false` and
+            // built here instead, because Tauri creates config windows *before* this
+            // hook runs. Their pages then raced the lines above: the first thing the
+            // main window does is `get_settings`, and a webview that got there before
+            // `manage` was answered "state not managed for field `state` on command
+            // `get_settings`" — a rejected promise the UI swallowed, so the window sat
+            // on "Loading" for the rest of the session with nothing on screen saying
+            // why. The race was invisible for years and then reliable on WebView2
+            // Runtime 152, which starts the page sooner. Nothing below this line may
+            // move above it without re-opening that hole.
+            for config in app.config().app.windows.clone() {
+                tauri::WebviewWindowBuilder::from_config(&handle, &config)?.build()?;
+            }
 
             // Under the Accessory activation policy the app never activates on its own,
             // so the settings window would open behind everything else. Ask for focus
@@ -153,6 +173,18 @@ pub fn run() {
             commands::show_main_window,
             commands::suspend_hotkeys,
             commands::resume_hotkeys,
+            commands::start_reading,
+            commands::toggle_reading,
+            commands::read_from_clipboard,
+            commands::pause_reading,
+            commands::resume_reading,
+            commands::stop_reading,
+            commands::save_player_position,
+            commands::list_tts_voices,
+            commands::preview_voice,
+            commands::get_read_status,
+            commands::set_read_speed,
+            commands::set_read_mode,
         ])
         .build(tauri::generate_context!())
         .expect("error while starting Tocky Voice")

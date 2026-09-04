@@ -7,7 +7,7 @@ use crate::audio::{capture, mic_test};
 use crate::history::{self, HistoryEntry};
 use crate::settings::{self, defaults, secrets, AppSettings};
 use crate::state::{events, AppState};
-use crate::{hotkeys, inject, session};
+use crate::{hotkeys, inject, read, session, tts};
 use serde::Serialize;
 use std::collections::HashMap;
 use tauri::{AppHandle, Emitter, Manager};
@@ -121,7 +121,10 @@ pub fn delete_api_key(account: String) -> Result<(), String> {
 #[tauri::command]
 pub fn key_status() -> HashMap<String, bool> {
     let mut status = HashMap::new();
-    for account in ["soniox", "deepgram", "assemblyai"] {
+    // Sourced from the migration list rather than a second hand-written array: the two
+    // drifted apart once already and a provider missing here reports "no key" forever,
+    // however many times its key is actually saved.
+    for account in settings::all_secret_accounts() {
         status.insert(account.to_string(), secrets::has_key(account));
     }
     for preset in defaults::llm_presets() {
@@ -306,6 +309,134 @@ pub fn show_main_window(app: AppHandle) {
         let _ = window.show();
         let _ = window.set_focus();
     }
+}
+
+// ---------------------------------------------------------------- read-aloud
+
+#[tauri::command]
+pub fn start_reading(app: AppHandle, mode_id: Option<String>) {
+    read::start(&app, mode_id);
+}
+
+#[tauri::command]
+pub fn toggle_reading(app: AppHandle) {
+    read::toggle(&app, None);
+}
+
+/// Reads what was already on the clipboard, after a capture that came back empty
+/// offered it — the player's "read the clipboard instead?" button. Does nothing unless
+/// that offer is still standing.
+#[tauri::command]
+pub fn read_from_clipboard(app: AppHandle) {
+    read::start_from_clipboard(&app);
+}
+
+#[tauri::command]
+pub fn pause_reading(app: AppHandle) {
+    read::pause(&app);
+}
+
+#[tauri::command]
+pub fn resume_reading(app: AppHandle) {
+    read::resume(&app);
+}
+
+#[tauri::command]
+pub fn stop_reading(app: AppHandle) {
+    read::stop(&app);
+}
+
+/// Current read status, for the player window to pull as it mounts — its webview
+/// subscribes to the event stream only after booting, so on the first read it misses
+/// the `Preparing` event that was emitted to open it.
+#[tauri::command]
+pub fn get_read_status(app: AppHandle) -> Option<crate::state::ReadStatusPayload> {
+    read::last_status(&app)
+}
+
+/// Changes the reading speed mid-session. Takes effect from the next chunk — speed is
+/// a synthesis parameter, not a playback one (see `analysis §3.3`), so what is already
+/// rendered keeps its original pace.
+#[tauri::command]
+pub fn set_read_speed(app: AppHandle, state: tauri::State<AppState>, speed: f32) -> Result<(), String> {
+    let updated = {
+        let mut settings = state.settings.lock().expect("settings lock");
+        settings.tts.speed = speed;
+        settings.clone()
+    };
+    settings::save(&app, &updated).map_err(to_err)?;
+    let _ = app.emit(events::SETTINGS_CHANGED, ());
+    Ok(())
+}
+
+/// Switches read mode from the player and restarts the read with the new one, so
+/// picking "Tóm tắt" mid-article does the obvious thing rather than only applying to
+/// some future read.
+#[tauri::command]
+pub fn set_read_mode(app: AppHandle, mode_id: String) {
+    read::switch_mode(&app, mode_id);
+}
+
+#[tauri::command]
+pub fn save_player_position(app: AppHandle, state: tauri::State<AppState>, x: f64, y: f64) -> Result<(), String> {
+    let updated = {
+        let mut settings = state.settings.lock().expect("settings lock");
+        settings.tts.player_drag_position = Some((x, y));
+        settings.clone()
+    };
+    settings::save(&app, &updated).map_err(to_err)
+}
+
+/// Takes the TTS settings from the caller rather than the saved snapshot — same reason
+/// `test_stt_key` does: the settings UI writes through a debounce, so a provider the
+/// user picked a moment ago has not reached the backend snapshot yet, and reading it
+/// would list voices for the *previous* provider (confirmed live: switching to OpenAI
+/// showed Soniox's model names because the snapshot still said `provider: soniox`).
+#[tauri::command]
+pub async fn list_tts_voices(tts: settings::TtsSettings) -> Result<Vec<tts::TtsModel>, String> {
+    let Some(api_key) = secrets::get_key(tts::secret_account(tts.provider)) else {
+        return Err("no key saved for this provider".into());
+    };
+    tts::catalog(&tts, &api_key).await.map_err(to_err)
+}
+
+/// A câu mẫu cố định, không phải văn bản do frontend gửi lên — nếu nhận text tuỳ ý thì
+/// nút "Nghe thử" sẽ biến thành một đường tiêu tiền không giới hạn qua TTS API.
+const VOICE_PREVIEW_TEXT: &str = "Xin chào, đây là giọng đọc mẫu.";
+
+/// Synthesizes and plays the fixed preview sentence in the currently-selected voice.
+/// Uses its own throwaway output stream (same shape as `audio/feedback.rs`) rather than
+/// the shared read-aloud `Player`, so trying a voice in Settings can never interrupt or
+/// be interrupted by an actual read session running elsewhere.
+///
+/// Takes `tts` from the caller for the same reason [`list_tts_voices`] does — the
+/// backend's saved snapshot lags the settings UI by up to the save debounce.
+#[tauri::command]
+pub async fn preview_voice(tts: settings::TtsSettings) -> Result<(), String> {
+    let Some(api_key) = secrets::get_key(tts::secret_account(tts.provider)) else {
+        return Err("no key saved for this provider".into());
+    };
+    let engine = tts::build_engine(&tts, api_key);
+    let req = tts::SpeechRequest {
+        text: VOICE_PREVIEW_TEXT.to_string(),
+        voice: tts.voice.clone(),
+        speed: tts.speed,
+    };
+    let audio = tts::synthesize(&engine, &req).await.map_err(to_err)?;
+    std::thread::spawn(move || {
+        if let Err(e) = play_preview(audio) {
+            log::warn!("voice preview playback failed: {e:#}");
+        }
+    });
+    Ok(())
+}
+
+fn play_preview(audio: tts::Audio) -> anyhow::Result<()> {
+    let (_stream, handle) = rodio::OutputStream::try_default()?;
+    let sink = rodio::Sink::try_new(&handle)?;
+    sink.append(rodio::buffer::SamplesBuffer::new(1, audio.sample_rate, audio.pcm));
+    sink.sleep_until_end();
+    Ok(())
 }
 
 fn apply_autostart(app: &AppHandle, enabled: bool) {

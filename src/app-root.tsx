@@ -13,6 +13,7 @@ import * as api from "./lib/api";
 import { dictionaryFor, resolveLanguage, TranslationContext } from "./lib/i18n";
 import type { UiLanguage } from "./lib/i18n";
 import { OverlayPanel } from "./overlay-panel";
+import { PlayerPanel } from "./player-panel";
 import { SettingsApp } from "./settings-app";
 
 export function AppRoot() {
@@ -35,7 +36,13 @@ export function AppRoot() {
 
   return (
     <TranslationContext.Provider value={dictionaryFor(resolveLanguage(preference))}>
-      {label === "overlay" ? <OverlayPanel /> : <SettingsApp />}
+      {label === "overlay" ? (
+        <OverlayPanel />
+      ) : label === "player" ? (
+        <PlayerPanel />
+      ) : (
+        <SettingsApp />
+      )}
     </TranslationContext.Provider>
   );
 }

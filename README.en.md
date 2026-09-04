@@ -173,6 +173,40 @@ producing hidden reasoning nobody reads before answering. DeepSeek V4 went from 
 
 ---
 
+## Read selected text aloud
+
+The other direction: instead of speaking to get text, highlight text to hear it. Off by
+default — turn it on from the **Read aloud** tab in Settings; until then no hotkey is
+claimed and no window is created.
+
+| Action | macOS | Windows / Linux |
+| --- | --- | --- |
+| Read the highlighted text | `⌘⇧/` | `Control+Shift+R` |
+| Give a spoken instruction | `⌘⇧.` | `Control+Shift+K` |
+
+Four built-in read modes — **verbatim**, **summary**, **plain-language explanation**,
+**translate to Vietnamese** — each can have its own hotkey, the same way dictation modes
+work. **Spoken instructions** work differently: highlight text, press `⌘⇧.`, say what you
+want out loud ("summarize this and read it to me"), press again — the AI follows that
+exact instruction and reads the result back.
+
+| Provider | Price / 2000-word article | Needs a new key? |
+| --- | --- | --- |
+| **Soniox** (default) | ~$0.017 | No — reuses your speech-recognition key |
+| Google Gemini | ~$0.02–0.04 | No — reuses your AI-cleanup key |
+| OpenAI | ~$0.03 | No — reuses your AI-cleanup key |
+| ElevenLabs | ~$0.30–0.60 (best voice quality) | Yes |
+
+A small floating bar appears on screen while reading — pause, stop, drag it anywhere,
+it remembers where you left it. Pressing a dictation key while reading is in progress
+**stops the read session first, then starts recording** — the two never run at once.
+
+**Where the data goes:** highlighted text is sent to the AI provider (if a mode with an
+AI pass is selected) and to whichever text-to-speech provider is chosen above — nowhere
+else. No read-aloud history is kept.
+
+---
+
 ## The app
 
 | | |
