@@ -32,6 +32,14 @@ pub enum ErrorKind {
     NoAudioCaptured,
     /// The speech stream failed before producing a transcript.
     TranscriptionFailed,
+    /// `selection::capture` ran but nothing was highlighted anywhere.
+    NothingSelected,
+    /// The highlighted text is longer than `tts.max_chars`.
+    SelectionTooLong,
+    /// A text-to-speech provider call failed.
+    TtsFailed,
+    /// No credential saved for the selected text-to-speech provider.
+    NoTtsKey,
 }
 
 #[derive(Debug, Clone, Serialize)]

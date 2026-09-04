@@ -47,7 +47,7 @@ pub fn paste(app: &AppHandle, text: &str) -> Result<()> {
 
     copy(app, text)?;
     std::thread::sleep(CLIPBOARD_SETTLE);
-    send_paste_keystroke(app)?;
+    send_shortcut(app, 'v')?;
 
     // Restore on a detached thread so the caller isn't blocked waiting for the target
     // app to finish reading the clipboard.
@@ -66,24 +66,56 @@ pub fn paste(app: &AppHandle, text: &str) -> Result<()> {
 /// How long to wait for the main thread to run the keystroke before giving up.
 const MAIN_THREAD_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 
-/// Synthesizes the paste shortcut **on the main thread**.
+/// Synthesizes Cmd/Ctrl+`ch` **on the main thread**.
 ///
-/// This must not run on a worker thread. Resolving the key for 'v' goes through
-/// HIToolbox's Text Services Manager to honour the active keyboard layout, and that
-/// API calls `dispatch_assert_queue(main)` — off the main thread macOS raises
-/// SIGTRAP and the whole app dies rather than returning an error.
-fn send_paste_keystroke(app: &AppHandle) -> Result<()> {
+/// This must not run on a worker thread. Resolving the key goes through HIToolbox's
+/// Text Services Manager to honour the active keyboard layout, and that API calls
+/// `dispatch_assert_queue(main)` — off the main thread macOS raises SIGTRAP and the
+/// whole app dies rather than returning an error. Shared by paste (`v`) and, since
+/// `selection.rs`, copy (`c`).
+pub fn send_shortcut(app: &AppHandle, ch: char) -> Result<()> {
     let (tx, rx) = std::sync::mpsc::channel();
     app.run_on_main_thread(move || {
-        let _ = tx.send(synthesize_paste());
+        let _ = tx.send(synthesize_shortcut(ch));
     })
-    .context("dispatching the paste keystroke to the main thread")?;
+    .context("dispatching the keystroke to the main thread")?;
 
     rx.recv_timeout(MAIN_THREAD_TIMEOUT)
-        .context("timed out waiting for the main thread to send the paste keystroke")?
+        .context("timed out waiting for the main thread to send the keystroke")?
 }
 
-fn synthesize_paste() -> Result<()> {
+/// Synthesizes a key-*up* for every modifier, on the main thread, for the same
+/// HIToolbox reason as [`send_shortcut`].
+///
+/// The window server ORs whatever modifiers are physically down into the events we
+/// post, so a shortcut synthesized while the user is still holding their hotkey
+/// arrives as that hotkey's modifiers *plus* ours — Cmd+C fired under a held ⌥⇧ lands
+/// as ⌘⌥⇧C, which copies nothing. A synthesized release clears the server's idea of
+/// what is held until the next physical key event, which is all the copy needs.
+pub fn release_modifiers(app: &AppHandle) -> Result<()> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    app.run_on_main_thread(move || {
+        let _ = tx.send(synthesize_modifier_release());
+    })
+    .context("dispatching the modifier release to the main thread")?;
+
+    rx.recv_timeout(MAIN_THREAD_TIMEOUT)
+        .context("timed out waiting for the main thread to release the modifiers")?
+}
+
+fn synthesize_modifier_release() -> Result<()> {
+    let mut enigo = Enigo::new(&Settings::default()).context("initializing input synthesis")?;
+    // Best effort, and deliberately not short-circuiting on the first failure: a
+    // modifier we fail to clear only costs us the copy we were already going to lose.
+    for key in [Key::Shift, Key::Control, Key::Alt, Key::Meta] {
+        if let Err(e) = enigo.key(key, Direction::Release) {
+            log::debug!("could not release {key:?} before synthesizing a shortcut: {e}");
+        }
+    }
+    Ok(())
+}
+
+fn synthesize_shortcut(ch: char) -> Result<()> {
     let mut enigo = Enigo::new(&Settings::default()).context("initializing input synthesis")?;
 
     #[cfg(target_os = "macos")]
@@ -93,13 +125,13 @@ fn synthesize_paste() -> Result<()> {
 
     enigo
         .key(modifier, Direction::Press)
-        .context("pressing paste modifier")?;
-    let result = enigo.key(Key::Unicode('v'), Direction::Click);
-    // Always release the modifier, even if the 'v' press failed — a stuck modifier
+        .context("pressing shortcut modifier")?;
+    let result = enigo.key(Key::Unicode(ch), Direction::Click);
+    // Always release the modifier, even if the key press failed — a stuck modifier
     // would leave the whole system in a bad state.
     let release = enigo.key(modifier, Direction::Release);
-    result.context("sending paste keystroke")?;
-    release.context("releasing paste modifier")?;
+    result.context("sending keystroke")?;
+    release.context("releasing shortcut modifier")?;
     Ok(())
 }
 

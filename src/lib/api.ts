@@ -6,6 +6,9 @@ import type {
   HistoryEntry,
   LlmPreset,
   SttSettings,
+  ReadStatusPayload,
+  TtsModel,
+  TtsSettings,
 } from "./types";
 import { RELEASES_URL } from "./update-policy";
 
@@ -17,6 +20,7 @@ export const EVENTS = {
   historyChanged: "fvt://history-changed",
   settingsChanged: "fvt://settings-changed",
   error: "fvt://error",
+  readStatus: "fvt://read-status",
 } as const;
 
 export const getSettings = () => invoke<AppSettings>("get_settings");
@@ -77,3 +81,32 @@ export const listModels = () => invoke<string[]>("list_models");
  *  react to the very shortcut you are trying to assign. */
 export const suspendHotkeys = () => invoke<void>("suspend_hotkeys");
 export const resumeHotkeys = () => invoke<void>("resume_hotkeys");
+
+// ---------------------------------------------------------------- read-aloud
+
+export const startReading = (modeId?: string) =>
+  invoke<void>("start_reading", { modeId: modeId ?? null });
+export const toggleReading = () => invoke<void>("toggle_reading");
+export const pauseReading = () => invoke<void>("pause_reading");
+export const resumeReading = () => invoke<void>("resume_reading");
+export const stopReading = () => invoke<void>("stop_reading");
+/** Takes up the player's offer to read what was already on the clipboard, after a
+ *  capture that came back empty. */
+export const readFromClipboard = () => invoke<void>("read_from_clipboard");
+/** Current status, pulled by the player as it mounts — its webview subscribes to the
+ *  event stream only after booting, so on the first read it misses the `preparing`
+ *  event that opened it and would otherwise sit blank until audio started. */
+export const getReadStatus = () => invoke<ReadStatusPayload | null>("get_read_status");
+/** Changes reading speed mid-session; applies from the next chunk. */
+export const setReadSpeed = (speed: number) => invoke<void>("set_read_speed", { speed });
+/** Switches read mode and re-reads the original selection under it. */
+export const setReadMode = (modeId: string) => invoke<void>("set_read_mode", { modeId });
+export const savePlayerPosition = (x: number, y: number) =>
+  invoke<void>("save_player_position", { x, y });
+/** Live model catalogue (each with its voices and speed range) for the provider the
+ *  "Đọc" tab currently has selected. Takes `tts` from the caller (not the saved
+ *  snapshot) — same reason `testSttKey` does: settings save on a debounce, so a
+ *  provider picked a moment ago has not reached disk yet. */
+export const listTtsVoices = (tts: TtsSettings) => invoke<TtsModel[]>("list_tts_voices", { tts });
+/** Synthesizes and plays a fixed sample sentence in the current voice/speed. */
+export const previewVoice = (tts: TtsSettings) => invoke<void>("preview_voice", { tts });

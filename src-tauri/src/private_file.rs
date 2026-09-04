@@ -49,7 +49,7 @@ pub fn write(path: &Path, contents: &str) -> Result<()> {
         // `mode` only applies when the file is newly created; an existing file keeps
         // whatever it had, so tighten it explicitly.
         restrict_file(path);
-        return Ok(());
+        Ok(())
     }
 
     #[cfg(not(unix))]

@@ -87,6 +87,76 @@ pub struct HotkeySettings {
     pub cancel: Option<String>,
     /// Cycle to the next mode in the list.
     pub next_mode: Option<String>,
+    /// Reads the current selection aloud in the active read mode.
+    ///
+    /// Defaults to the real factory accelerator, not `None` — a bare
+    /// `#[serde(default)]` on an `Option<String>` resolves to `None`, which would leave
+    /// every settings file written before this feature existed with no read hotkey
+    /// bound at all (and no way to notice short of reading `hotkeys::apply`'s debug
+    /// log). See `restore_missing_dictation_hotkey` for the same class of bug on the
+    /// dictation hotkey, caught once already.
+    #[serde(default = "defaults::default_read_hotkey")]
+    pub read: Option<String>,
+    /// Flow C: capture the selection, then take a spoken instruction for what to do
+    /// with it before reading the result aloud.
+    #[serde(default = "defaults::default_read_with_voice_hotkey")]
+    pub read_with_voice: Option<String>,
+}
+
+/// Which text-to-speech vendor synthesizes the read-aloud audio.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum TtsProviderKind {
+    Soniox,
+    Gemini,
+    OpenAi,
+    ElevenLabs,
+    Vbee,
+}
+
+/// Read-aloud configuration. Off by default — see [`AppSettings::tts`].
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TtsSettings {
+    pub enabled: bool,
+    pub provider: TtsProviderKind,
+    pub voice: String,
+    pub model: String,
+    pub speed: f32,
+    /// Selections longer than this are refused rather than sent to a paid API by
+    /// accident — the default is generous enough for a long article, not a whole page.
+    pub max_chars: usize,
+    /// Where the mini player was last **dragged** to, so it reopens in the same spot.
+    ///
+    /// Deliberately not the old `player_position`: that one was also written whenever
+    /// the backend positioned the window itself, so it captured the default placement
+    /// as though the user had chosen it — which then permanently outranked the default,
+    /// making later changes to the default do nothing for anyone who had run the app
+    /// once. Renaming is the migration: the polluted values simply stop being read.
+    #[serde(default)]
+    pub player_drag_position: Option<(f64, f64)>,
+    /// Vbee is the one provider whose auth is two parts (`App-Id` header + bearer
+    /// token) instead of a single key. The token goes through the normal credential
+    /// vault under the `"vbee"` account like every other provider; the app id is not
+    /// the sensitive half of the pair — Vbee's own docs describe it as identifying
+    /// *which application* is calling, with the token being the actual bearer secret —
+    /// so it lives here as a plain settings field instead of a second vault entry.
+    #[serde(default)]
+    pub vbee_app_id: String,
+}
+
+/// A named recipe for reading selected text aloud: an optional AI rewrite pass
+/// (summarize, explain, translate) followed by speech synthesis. Deliberately not
+/// [`Mode`] — a read mode has a voice and speed that mean nothing for dictation, and
+/// `Mode::output` means nothing for something that is only ever heard.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReadMode {
+    pub id: String,
+    pub name: String,
+    pub hotkey: Option<String>,
+    /// `false` reads the selection verbatim, with no LLM call.
+    pub ai: bool,
+    pub prompt: String,
+    pub llm_override: Option<LlmSettings>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -139,6 +209,16 @@ pub struct AppSettings {
     /// still load.
     #[serde(default = "default_true")]
     pub auto_check_updates: bool,
+    /// Read-aloud configuration. `serde(default)` so every settings file written before
+    /// this feature existed still loads, landing on the off-by-default factory config.
+    #[serde(default = "defaults::default_tts")]
+    pub tts: TtsSettings,
+    /// The read-mode catalogue (verbatim / summary / explain / translate), separate
+    /// from `modes` — see [`ReadMode`] for why.
+    #[serde(default = "defaults::default_read_modes")]
+    pub read_modes: Vec<ReadMode>,
+    #[serde(default = "default_active_read_mode_id")]
+    pub active_read_mode_id: String,
 }
 
 fn default_ui_language() -> String {
@@ -149,9 +229,13 @@ fn default_true() -> bool {
     true
 }
 
+fn default_active_read_mode_id() -> String {
+    "verbatim".to_string()
+}
+
 /// Every credential name the app can store, for backend migration.
 pub fn all_secret_accounts() -> Vec<&'static str> {
-    let mut accounts = vec!["soniox", "deepgram", "assemblyai"];
+    let mut accounts = vec!["soniox", "deepgram", "assemblyai", "elevenlabs", "vbee"];
     accounts.extend(defaults::llm_presets().iter().map(|p| p.secret_key));
     accounts
 }
@@ -170,6 +254,26 @@ impl AppSettings {
 
     /// LLM config for a mode, falling back to the global one.
     pub fn llm_for(&self, mode: &Mode) -> LlmSettings {
+        mode.llm_override.clone().unwrap_or_else(|| self.llm.clone())
+    }
+
+    /// The read mode the current `active_read_mode_id` names, or the first one if a
+    /// hand-edited settings file points at an id that no longer exists — mirrors
+    /// `active_mode`'s `unwrap_or(&modes[0])` rather than panicking.
+    pub fn active_read_mode(&self) -> &ReadMode {
+        self.read_modes
+            .iter()
+            .find(|m| m.id == self.active_read_mode_id)
+            .unwrap_or_else(|| &self.read_modes[0])
+    }
+
+    pub fn read_mode(&self, id: &str) -> Option<&ReadMode> {
+        self.read_modes.iter().find(|m| m.id == id)
+    }
+
+    /// LLM config for a read mode, falling back to the global one — same rule as
+    /// [`Self::llm_for`].
+    pub fn llm_for_read_mode(&self, mode: &ReadMode) -> LlmSettings {
         mode.llm_override.clone().unwrap_or_else(|| self.llm.clone())
     }
 }
@@ -200,6 +304,7 @@ pub fn load(app: &AppHandle) -> AppSettings {
     match serde_json::from_str::<AppSettings>(&raw) {
         Ok(mut s) => {
             restore_missing_dictation_hotkey(&mut s);
+            restore_missing_read_hotkey(&mut s);
             s
         }
         Err(e) => {
@@ -221,6 +326,20 @@ fn restore_missing_dictation_hotkey(settings: &mut AppSettings) {
         let replacement = defaults::default_hotkeys().toggle;
         log::info!("no dictation hotkey was set; restoring the default {replacement:?}");
         settings.hotkeys.toggle = replacement;
+    }
+}
+
+/// Same repair as [`restore_missing_dictation_hotkey`], for the same reason: a
+/// settings file written by a build where `HotkeySettings::read` had a bare
+/// `#[serde(default)]` (resolving to `None` instead of the real factory accelerator)
+/// persisted that `None` to disk the first time it was saved. `#[serde(default = ...)]`
+/// only fills in a field that is *missing*, not one written out as an explicit `null`,
+/// so those already-saved files need this repair on top of the field-level fix.
+fn restore_missing_read_hotkey(settings: &mut AppSettings) {
+    if settings.hotkeys.read.is_none() {
+        let replacement = defaults::default_read_hotkey();
+        log::info!("no read-aloud hotkey was set; restoring the default {replacement:?}");
+        settings.hotkeys.read = replacement;
     }
 }
 
@@ -247,6 +366,28 @@ mod default_tests {
     fn the_default_active_mode_actually_exists() {
         let settings = defaults::default_settings();
         assert!(settings.mode(&settings.active_mode_id).is_some());
+    }
+
+    /// The whole read-aloud feature has to start invisible — see plan.md's "Bất biến
+    /// phải giữ" #1. This is the config-level half of that guarantee; `hotkeys` tests
+    /// cover the registration half.
+    #[test]
+    fn read_aloud_defaults_to_off() {
+        assert!(!defaults::default_settings().tts.enabled);
+    }
+
+    #[test]
+    fn the_default_active_read_mode_actually_exists() {
+        let settings = defaults::default_settings();
+        assert!(settings.read_mode(&settings.active_read_mode_id).is_some());
+    }
+
+    /// ElevenLabs is the one TTS provider with its own credential rather than reusing
+    /// an existing one; missing it here means switching vault ⇄ keychain silently
+    /// drops that key instead of migrating it.
+    #[test]
+    fn elevenlabs_is_included_in_credential_migration() {
+        assert!(all_secret_accounts().contains(&"elevenlabs"));
     }
 }
 
@@ -277,6 +418,19 @@ mod tests {
         assert_eq!(settings.hotkeys.toggle, defaults::default_hotkeys().toggle);
     }
 
+    /// Regression: a settings file saved by the build with the `#[serde(default)]` bug
+    /// has `"read": null` written out explicitly, which the field-level fix alone does
+    /// not repair (that only fires when the key is absent, not when it's `null`).
+    #[test]
+    fn a_settings_file_with_an_explicit_null_read_hotkey_gets_the_default_back() {
+        let mut settings = defaults::default_settings();
+        settings.hotkeys.read = None;
+
+        restore_missing_read_hotkey(&mut settings);
+
+        assert_eq!(settings.hotkeys.read, defaults::default_read_hotkey());
+    }
+
     #[test]
     fn a_dictation_key_the_user_chose_themselves_is_left_alone() {
         let mut settings = defaults::default_settings();
@@ -285,6 +439,31 @@ mod tests {
         restore_missing_dictation_hotkey(&mut settings);
 
         assert_eq!(settings.hotkeys.toggle.as_deref(), Some("Control+Shift+Space"));
+    }
+
+    /// A 0.4.0 settings file predates `tts`, `read_modes`, `active_read_mode_id` and the
+    /// two new hotkey fields entirely. Every one of them needs `#[serde(default)]` or
+    /// this fails to deserialize and every existing user's settings get replaced.
+    #[test]
+    fn a_settings_file_from_before_read_aloud_still_loads() {
+        let mut raw = serde_json::to_value(defaults::default_settings()).unwrap();
+        let obj = raw.as_object_mut().unwrap();
+        obj.remove("tts");
+        obj.remove("read_modes");
+        obj.remove("active_read_mode_id");
+        obj["hotkeys"].as_object_mut().unwrap().remove("read");
+        obj["hotkeys"].as_object_mut().unwrap().remove("read_with_voice");
+
+        let parsed: AppSettings = serde_json::from_value(raw).unwrap();
+
+        assert!(!parsed.tts.enabled);
+        assert!(!parsed.read_modes.is_empty());
+        // Regression: these two used to fall back to a bare `#[serde(default)]`, which
+        // for `Option<String>` resolves to `None` — an upgrading user got no read
+        // hotkey at all rather than the real factory binding, discoverable only by
+        // noticing `hotkeys::apply` never logged a "-> Read" registration line.
+        assert_eq!(parsed.hotkeys.read, defaults::default_read_hotkey());
+        assert_eq!(parsed.hotkeys.read_with_voice, defaults::default_read_with_voice_hotkey());
     }
 }
 

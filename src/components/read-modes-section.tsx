@@ -1,11 +1,11 @@
-/**
- * Modes are the core customisation: a prompt plus a delivery rule, so the same voice
- * input can become clean prose, a coding prompt, or a formal email.
- */
+/** Read-mode catalogue editor — the read-aloud equivalent of `modes-editor.tsx`,
+ *  reusing `ModeList` / `PromptField` rather than duplicating them. Deliberately a
+ *  separate list from dictation `modes`: a read mode's voice/speed and a dictation
+ *  mode's output rule mean nothing to each other — see analysis §3.4. */
 
 import { useState } from "react";
-import type { AppSettings, Mode } from "../lib/types";
 import { useT } from "../lib/i18n";
+import type { AppSettings, ReadMode } from "../lib/types";
 import { HotkeyRecorder } from "./hotkey-recorder";
 import { ModeList } from "./mode-list";
 import { PromptField } from "./prompt-field";
@@ -16,31 +16,31 @@ interface Props {
   onSettingsChange: (settings: AppSettings) => void;
 }
 
-export function ModesEditor({ settings, onSettingsChange }: Props) {
-  const [selectedId, setSelectedId] = useState(settings.active_mode_id);
+export function ReadModesSection({ settings, onSettingsChange }: Props) {
+  const [selectedId, setSelectedId] = useState(settings.active_read_mode_id);
   const t = useT();
-  const selected = settings.modes.find((m) => m.id === selectedId) ?? settings.modes[0];
+  const selected =
+    settings.read_modes.find((m) => m.id === selectedId) ?? settings.read_modes[0];
 
-  const updateMode = (patch: Partial<Mode>) =>
+  const updateMode = (patch: Partial<ReadMode>) =>
     onSettingsChange({
       ...settings,
-      modes: settings.modes.map((m) => (m.id === selected.id ? { ...m, ...patch } : m)),
+      read_modes: settings.read_modes.map((m) => (m.id === selected.id ? { ...m, ...patch } : m)),
     });
 
   const addMode = () => {
-    const id = `mode-${Date.now()}`;
+    const id = `read-mode-${Date.now()}`;
     onSettingsChange({
       ...settings,
-      modes: [
-        ...settings.modes,
+      read_modes: [
+        ...settings.read_modes,
         {
           id,
           name: t.modes.newModeName,
           hotkey: null,
-          ai_cleanup: true,
+          ai: true,
           prompt: t.modes.newModePrompt,
           llm_override: null,
-          output: "paste",
         },
       ],
     });
@@ -48,41 +48,35 @@ export function ModesEditor({ settings, onSettingsChange }: Props) {
   };
 
   const removeMode = (id: string) => {
-    // Keep at least one: dictation has nowhere to go without a mode.
-    if (settings.modes.length <= 1) return;
-    const modes = settings.modes.filter((m) => m.id !== id);
+    if (settings.read_modes.length <= 1) return;
+    const read_modes = settings.read_modes.filter((m) => m.id !== id);
     onSettingsChange({
       ...settings,
-      modes,
-      active_mode_id: settings.active_mode_id === id ? modes[0].id : settings.active_mode_id,
+      read_modes,
+      active_read_mode_id:
+        settings.active_read_mode_id === id ? read_modes[0].id : settings.active_read_mode_id,
     });
-    setSelectedId(modes[0].id);
+    setSelectedId(read_modes[0].id);
   };
 
   return (
-    <>
-      <h1 className="view__title">{t.modes.title}</h1>
-      <p className="view__lede">
-{t.modes.lede}
-      </p>
+    <section className="section">
+      <h2 className="section__title">{t.read.modesSection}</h2>
+      <p className="row__hint">{t.read.modeListHint}</p>
 
       <div className="modes">
         <ModeList
-          items={settings.modes.map((mode) => ({
+          items={settings.read_modes.map((mode) => ({
             id: mode.id,
             name: mode.name,
-            meta: [
-              mode.ai_cleanup ? "AI" : "RAW",
-              mode.hotkey ? t.modes.bound : null,
-              settings.active_mode_id === mode.id ? t.modes.active : null,
-            ]
+            meta: [mode.ai ? t.read.modeAi : t.read.modeVerbatim, mode.hotkey ? t.modes.bound : null]
               .filter(Boolean)
               .join(" · "),
           }))}
           selectedId={selected.id}
           onSelect={setSelectedId}
           onAdd={addMode}
-          addLabel={t.modes.add}
+          addLabel={t.read.addMode}
         />
 
         <div>
@@ -109,47 +103,30 @@ export function ModesEditor({ settings, onSettingsChange }: Props) {
 
           <div className="row">
             <div>
-              <div className="row__label">{t.modes.aiCleanup}</div>
-<span className="row__hint">{t.modes.aiCleanupHint}</span>
+              <div className="row__label">{t.read.aiToggle}</div>
+              <span className="row__hint">{t.read.aiToggleHint}</span>
             </div>
             <div className="row__control">
-              <Switch
-                checked={selected.ai_cleanup}
-                onChange={(ai_cleanup) => updateMode({ ai_cleanup })}
-              />
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="row__label">{t.modes.output}</div>
-            <div className="row__control">
-              <select
-                value={selected.output}
-                onChange={(e) => updateMode({ output: e.target.value as Mode["output"] })}
-              >
-                <option value="paste">{t.modes.outputPaste}</option>
-                <option value="copy_only">{t.modes.outputCopy}</option>
-              </select>
+              <Switch checked={selected.ai} onChange={(ai) => updateMode({ ai })} />
             </div>
           </div>
 
           <PromptField
             label={t.modes.prompt}
-            hint={t.modes.promptHint}
-            disabled={!selected.ai_cleanup}
+            hint={t.read.promptHint}
+            disabled={!selected.ai}
             value={selected.prompt}
             onChange={(prompt) => updateMode({ prompt })}
+            rows={8}
           />
 
           <div className="row row--tight">
-            <span className="row__hint">
-              {settings.modes.length <= 1 ? t.modes.lastMode : ""}
-            </span>
+            <span className="row__hint">{settings.read_modes.length <= 1 ? t.modes.lastMode : ""}</span>
             <div className="row__control">
               <button
                 className="btn-quiet btn-danger"
                 onClick={() => removeMode(selected.id)}
-                disabled={settings.modes.length <= 1}
+                disabled={settings.read_modes.length <= 1}
               >
                 {t.modes.deleteMode}
               </button>
@@ -157,6 +134,6 @@ export function ModesEditor({ settings, onSettingsChange }: Props) {
           </div>
         </div>
       </div>
-    </>
+    </section>
   );
 }

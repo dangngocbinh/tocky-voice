@@ -423,7 +423,7 @@ export function Switch({
   );
 }
 
-function KeyField({
+export function KeyField({
   account,
   configured,
   onSaved,

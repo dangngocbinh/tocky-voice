@@ -593,6 +593,36 @@ kbd {
   text-transform: uppercase;
 }
 
+/* The failure state is the one people actually have to read, so it drops the
+   uppercase mono treatment the one-word "Loading" can carry. */
+.loading__failure {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  max-width: 520px;
+  padding: 0 24px;
+  font-family: var(--sans);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.loading__headline {
+  margin: 0;
+  font-size: 15px;
+  color: var(--paper);
+}
+
+.loading__detail {
+  margin: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--paper-3);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* ============================ dictate view ============================ */
 
 .stage {
@@ -1505,6 +1535,22 @@ a:hover {
   color: var(--paper-2);
 }
 
+.onb__read {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.onb__read-icon {
+  width: 26px;
+  height: 26px;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+
+.onb__read .btn-primary {
+  margin-top: 16px;
+}
+
 .onb__foot {
   display: flex;
   align-items: center;
@@ -1583,4 +1629,311 @@ a:hover {
   height: auto;
   flex: none;
   border-radius: 8px;
+}
+
+/* ---------------------------------------------------------------------------
+   Read-aloud: rail divider, the "Đọc" tab's off-state, and the mini player.
+   --------------------------------------------------------------------------- */
+
+
+/* Two-field credential (Vbee's app id + token) stacked instead of inline: side by side
+   at this width each box is too narrow to read a pasted token in. */
+.keyline--stack {
+  flex-wrap: wrap;
+}
+
+.keyline--stack input {
+  flex: 1 1 100%;
+}
+
+.keyline--stack button {
+  margin-left: auto;
+}
+
+/* Vendor error text under a settings row — the vendor's own words, so it wraps rather
+   than truncating: "Invalid voice 'x' for model 'y'" is useless cut in half. */
+.row__error {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--live);
+  overflow-wrap: anywhere;
+}
+
+.rail__divider {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 8px 6px;
+}
+
+.read-off {
+  max-width: 420px;
+  margin: 40px auto 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.read-off__icon {
+  width: 30px;
+  height: 30px;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.read-off .btn-primary {
+  margin-top: 14px;
+}
+
+/* The mini player: borderless bar floating over whatever is being read. Same warm
+   smoked-glass treatment as `.overlay`, but its buttons are real (not click-through) —
+   `read/mod.rs` hands focus back to the target app after every command.
+
+   Inset rather than flush like the earlier version: the window is transparent, and at
+   `inset: 0` the drop shadow had nowhere to fall and the rounded corners sat hard
+   against the window edge. */
+.player {
+  position: fixed;
+  inset: 5px;
+  border-radius: 14px;
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 9px;
+  background: linear-gradient(180deg, rgba(28, 26, 24, 0.94), rgba(14, 13, 12, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 14px 34px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(22px) saturate(1.3);
+  user-select: none;
+  animation: overlay-in 180ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.player__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.player__btn {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--paper);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.player__btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.player__progress {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.player__bar {
+  position: relative;
+  flex: 1;
+  /* Thicker than a hairline: this doubles as the loading indicator, and 4px of moving
+     stripe was easy to miss entirely on a bar that is only up for a second or two. */
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.player__bar-fill {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  border-radius: 99px;
+  background: var(--accent);
+  transition: width 220ms linear;
+}
+
+/* While the first chunk is still being synthesized there is no duration to fill
+   against, so the bar sweeps instead. Two layers: a dim wash over the whole track so
+   the bar itself reads as active, and a brighter stripe travelling across it. */
+.player__bar--indeterminate {
+  background: rgba(224, 160, 60, 0.18);
+}
+
+.player__bar--indeterminate::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  border-radius: 99px;
+  background: var(--accent);
+  animation: player-indeterminate 1.05s ease-in-out infinite;
+}
+
+@keyframes player-indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+.player__time {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--paper-3);
+}
+
+.player__label {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  /* Brighter than the idle timer text — while this is on screen it is the only thing
+     telling the user the app is working rather than stuck. */
+  color: var(--accent);
+  animation: player-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes player-pulse {
+  50% { opacity: 0.5; }
+}
+
+/* The clipboard offer replaces both rows, so it can wrap onto two lines where the
+   one-line error above cannot — it is a question, and a question cut off by an
+   ellipsis is unanswerable. */
+.player__offer {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: var(--paper-2);
+  /* Three rows have to fit the same fixed-height window as two, so this line is not
+     allowed to wrap and push the button off the bottom edge. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The clipboard text itself, quoted and clipped to one line — the point is to
+   recognise it, not to read it. `title` carries the full preview on hover. */
+.player__preview {
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--paper);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player__offer-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.player__action {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.player__action:hover {
+  filter: brightness(1.08);
+}
+
+.player__error {
+  font-size: 11.5px;
+  color: var(--live);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Second row, shown by the ▾ toggle: mode picker and a live speed slider. Kept off
+   screen by default so the resting player stays a single 56px strip. */
+/* Second row: always present, hairline-separated from the transport row above so the
+   two read as distinct bands rather than one crowded block. */
+.player__controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Each control stacks under its own caption. Labelling them costs a line of 9px type
+   and removes the guesswork of an unlabelled dropdown sitting beside a bare slider. */
+.player__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* The mode name is the longest thing in this row ("Giải thích dễ hiểu"), so it takes
+   the larger share; the slider gets the rest and stays wide enough to aim with. */
+.player__field:not(.player__field--speed) {
+  flex: 1.1;
+}
+
+.player__field--speed {
+  flex: 1;
+}
+
+.player__field-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--paper-3);
+  white-space: nowrap;
+}
+
+.player__field-label b {
+  font-weight: 500;
+  color: var(--paper-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.player__select {
+  width: 100%;
+  height: 27px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.player__speed {
+  width: 100%;
+  /* Matches the select's height so the two controls sit on a shared baseline. */
+  height: 27px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.player__btn:disabled {
+  opacity: 0.4;
+  cursor: default;
 }

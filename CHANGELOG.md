@@ -9,6 +9,94 @@ notes are read by users, not by the people who wrote the code. English goes in a
 `### English` subsection at the end of the same release, as the secondary version.
 Entries before 0.4.0 predate this and are English only.
 
+## [0.5.0] - 2026-09-04
+
+### Mới
+
+- **Đọc văn bản bôi đen.** Bôi đen chữ ở bất kỳ đâu, bấm `⌘⇧/` (macOS) hay
+  `Control+Shift+R` (Windows/Linux), app đọc cho bạn nghe. Mặc định **tắt** — bật ở tab
+  "Đọc to" mới trong Cài đặt.
+- Bốn chế độ đọc: nguyên văn, tóm tắt, giải thích dễ hiểu, dịch sang tiếng Việt. Mỗi chế
+  độ gán được phím tắt riêng.
+- **Ra lệnh bằng giọng nói:** bôi đen rồi bấm `⌘⇧.`, nói yêu cầu ("tóm tắt rồi đọc cho
+  tôi nghe"), bấm lại — AI làm theo và đọc kết quả lên, không cần vào Cài đặt chọn chế độ.
+  Dùng chung API key bạn đã lưu, không phải đăng ký thêm gì.
+- Bốn nhà cung cấp giọng đọc: Soniox (mặc định, rẻ nhất), Gemini, OpenAI, ElevenLabs
+  (giọng đẹp nhất, cần key riêng). Đổi được ngay trong tab "Đọc to", có nút "Nghe thử".
+- Thanh điều khiển nhỏ nổi trên màn hình lúc đang đọc — tạm dừng, dừng, kéo đi chỗ khác
+  được, nhớ vị trí cho lần sau.
+- Thêm một màn ở cuối phần cài đặt lần đầu để giới thiệu tính năng này — bỏ qua được
+  bằng một cú bấm.
+- **Đọc từ clipboard khi không lấy được chữ bôi đen.** Một số app (rõ nhất là Terminal,
+  iTerm) không cho app khác copy hộ, nên bấm phím tắt xong thanh điều khiển hiện lên mà
+  không có gì để đọc. Giờ nếu trong clipboard đang có sẵn nội dung, app sẽ hỏi "đọc nội
+  dung đang có trong clipboard nhé?" — bạn tự `⌘C`/`Ctrl+C` trước rồi bấm phím tắt, mất
+  thêm một thao tác nhưng nghe được ở mọi chỗ.
+
+### Sửa lỗi
+
+- **Windows: app kẹt vĩnh viễn ở màn hình "Loading".** Cửa sổ chính mở ra đen thui, chỉ
+  có chữ "Loading", không bao giờ vào được giao diện — trong khi phím tắt vẫn chạy và
+  micro vẫn nhận. Cửa sổ được tạo *trước* khi phần backend kịp dựng xong kho cài đặt, nên
+  câu hỏi đầu tiên của giao diện ("cài đặt của tôi đâu?") bị trả lời là lỗi, và giao diện
+  nuốt lỗi đó rồi ngồi đợi mãi một câu trả lời không bao giờ tới. Chạy nhanh hay chậm là
+  do may rủi — WebView2 Runtime 152 mở trang sớm hơn nên máy nào cập nhật lên bản đó là
+  dính chắc. Giờ cửa sổ chỉ được tạo sau khi backend đã sẵn sàng; và nếu vẫn hỏng vì lý
+  do khác, app tự hỏi lại vài lần rồi hiện hẳn lỗi kèm nút "Thử lại" thay vì đứng im.
+- **Không còn xoá mất ảnh đang có trong clipboard.** Trước khi lấy chữ bôi đen, app dọn
+  clipboard để khỏi đọc nhầm nội dung cũ. Nhưng nếu bạn vừa copy một tấm ảnh hay một
+  file, thứ đó bị xoá luôn và không lấy lại được. Giờ app chỉ dọn khi trong clipboard
+  đang là chữ — ảnh và file được để nguyên.
+
+### An ninh
+
+- Văn bản bôi đen được gửi tới nhà cung cấp AI và đọc mà bạn chọn ở tab "Đọc to" —
+  không gửi đi đâu khác, không lưu lại lịch sử các lần đọc.
+
+### English
+
+- **Read selected text aloud.** Highlight text anywhere, press `⌘⇧/` (macOS) or
+  `Control+Shift+R` (Windows/Linux), and the app reads it back to you. Off by default —
+  turn it on from the new "Read aloud" tab in Settings.
+- **Reads the clipboard when the selection can't be grabbed.** Some apps — terminals
+  most of all — refuse to hand over a highlighted passage, so the player came up with
+  nothing to read. It now offers to read whatever is already on the clipboard instead:
+  copy by hand, press the shortcut, take the offer.
+- Four read modes: verbatim, summary, plain-language explanation, translate to
+  Vietnamese. Each can have its own hotkey.
+- **Spoken instructions:** highlight text, press `⌘⇧.`, say what you want ("summarize
+  this and read it to me"), press again — the AI follows the instruction and reads the
+  result back, no need to open Settings first. Uses the API key you already saved.
+- Four text-to-speech providers: Soniox (default, cheapest), Gemini, OpenAI, and
+  ElevenLabs (best voice quality, needs its own key). Switch anytime from the "Read
+  aloud" tab, with a "Try it" preview button.
+- A small floating control bar appears while reading — pause, stop, drag it anywhere,
+  it remembers where you left it.
+- A new step at the end of first-run setup introduces the feature — skippable with one
+  click.
+
+### Fixed
+
+- **Windows: the app hung on "Loading" forever.** The main window opened black with
+  nothing but "Loading" on it and never got any further, even though the hotkeys still
+  worked and the microphone was still heard. Tauri creates the window *before* the
+  backend has finished standing up its settings store, so the page's very first question
+  — "what are my settings?" — could be answered with an error, and the UI swallowed that
+  error and waited forever for a reply that was never coming. Whether you lost the race
+  was luck; WebView2 Runtime 152 starts the page sooner, so machines that updated to it
+  lost it every time. The windows are now created only once the backend is ready, and if
+  the call fails for some other reason the app retries and then shows the actual error
+  with a "Try again" button instead of sitting there.
+- **No longer destroys an image sitting on your clipboard.** Before grabbing the
+  selection the app clears the clipboard, so a copy that never lands can't be mistaken
+  for one that did. If you had just copied an image or a file, that was wiped out with
+  no way to get it back. The clear now happens only when the clipboard holds text.
+
+### Security
+
+- Highlighted text is sent to the AI and text-to-speech providers selected in the
+  "Read aloud" tab — nowhere else, and no read-aloud history is kept.
+
 ## [0.4.0] - 2026-08-08
 
 ### Đã bỏ

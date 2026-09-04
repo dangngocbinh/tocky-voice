@@ -276,7 +276,27 @@ pub fn default_hotkeys() -> HotkeySettings {
         toggle: Some("Command+Slash".into()),
         cancel: Some("Control+Alt+X".into()),
         next_mode: Some("Control+Alt+M".into()),
+        // Registered by `hotkeys::apply` only while `tts.enabled` is true, so a fresh
+        // install with the feature off never actually claims these combinations.
+        read: default_read_hotkey(),
+        read_with_voice: default_read_with_voice_hotkey(),
     }
+}
+
+/// Standalone default for `HotkeySettings::read`'s `#[serde(default = ...)]`.
+///
+/// A plain `#[serde(default)]` on an `Option<String>` resolves to `None`, not to this
+/// value — that bug shipped once already (see git history) and silently left every
+/// settings file written before this feature existed with *no* read hotkey at all,
+/// even though `default_hotkeys()` above looks like it sets one for a fresh install.
+#[cfg(target_os = "macos")]
+pub fn default_read_hotkey() -> Option<String> {
+    Some("Command+Shift+Slash".into())
+}
+
+#[cfg(target_os = "macos")]
+pub fn default_read_with_voice_hotkey() -> Option<String> {
+    Some("Command+Shift+Period".into())
 }
 
 /// Factory hotkeys for Windows and Linux.
@@ -290,8 +310,86 @@ pub fn default_hotkeys() -> HotkeySettings {
         toggle: Some("Control+Alt+D".into()),
         cancel: Some("Control+Shift+X".into()),
         next_mode: Some("Control+Shift+M".into()),
+        read: default_read_hotkey(),
+        read_with_voice: default_read_with_voice_hotkey(),
     }
 }
+
+#[cfg(not(target_os = "macos"))]
+pub fn default_read_hotkey() -> Option<String> {
+    Some("Control+Shift+R".into())
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn default_read_with_voice_hotkey() -> Option<String> {
+    Some("Control+Shift+K".into())
+}
+
+/// The read-mode catalogue a fresh install ships with. Public so tests and the "read
+/// aloud" flow-C prompt builder can exercise the exact wording users get.
+pub fn default_read_modes() -> Vec<ReadMode> {
+    vec![
+        ReadMode {
+            id: "verbatim".into(),
+            name: "Nguyên văn".into(),
+            hotkey: None,
+            ai: false,
+            prompt: String::new(),
+            llm_override: None,
+        },
+        ReadMode {
+            id: "summary".into(),
+            name: "Tóm tắt".into(),
+            hotkey: None,
+            ai: true,
+            prompt: READ_SUMMARY_PROMPT.into(),
+            llm_override: None,
+        },
+        ReadMode {
+            id: "explain".into(),
+            name: "Giải thích dễ hiểu".into(),
+            hotkey: None,
+            ai: true,
+            prompt: READ_EXPLAIN_PROMPT.into(),
+            llm_override: None,
+        },
+        ReadMode {
+            id: "translate_vi".into(),
+            name: "Dịch sang tiếng Việt".into(),
+            hotkey: None,
+            ai: true,
+            prompt: READ_TRANSLATE_PROMPT.into(),
+            llm_override: None,
+        },
+    ]
+}
+
+/// Off by default, Soniox as the provider — the same key already saved for speech
+/// recognition, so turning this on needs no new signup. See `tts/soniox.rs`.
+pub fn default_tts() -> TtsSettings {
+    TtsSettings {
+        enabled: false,
+        provider: TtsProviderKind::Soniox,
+        voice: String::new(),
+        model: "tts-rt-v1".into(),
+        speed: 1.0,
+        max_chars: 10_000,
+        player_drag_position: None,
+        vbee_app_id: String::new(),
+    }
+}
+
+// Prompts written for a voice, not a page: no markdown, no bullet points, no headers —
+// anything that reads as a symbol rather than a word sounds wrong out loud, which is
+// the one thing that matters for a mode whose only output is speech.
+const READ_SUMMARY_PROMPT: &str = "Tóm tắt ngắn gọn để nghe: câu ngắn, không gạch đầu dòng, \
+không markdown, không mở đầu kiểu \"Đoạn văn này nói về\". Vào thẳng nội dung.";
+
+const READ_EXPLAIN_PROMPT: &str = "Giải thích lại cho người không rành chuyên môn, bằng lời \
+nói tự nhiên. Giữ thuật ngữ tiếng Anh nguyên bản. Không markdown.";
+
+const READ_TRANSLATE_PROMPT: &str = "Dịch sang tiếng Việt tự nhiên. Giữ nguyên thuật ngữ kỹ \
+thuật tiếng Anh. Chỉ trả bản dịch.";
 
 pub fn default_settings() -> AppSettings {
     AppSettings {
@@ -337,5 +435,8 @@ pub fn default_settings() -> AppSettings {
         // prompt for the login password on every read; see `secrets` for the reasoning.
         use_os_keychain: false,
         auto_check_updates: true,
+        tts: default_tts(),
+        read_modes: default_read_modes(),
+        active_read_mode_id: "verbatim".into(),
     }
 }

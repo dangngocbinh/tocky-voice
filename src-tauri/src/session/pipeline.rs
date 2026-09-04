@@ -40,6 +40,14 @@ fn show_error(app: &AppHandle, payload: ErrorPayload) {
     });
 }
 
+/// System prompt for flow C: the spoken words are an instruction about the selected
+/// text, not content to type up. Told explicitly that the result is heard, not read —
+/// the same "no markdown, no bullet points" rule the read-mode prompts in
+/// `settings/defaults.rs` follow, for the same reason.
+const FLOW_C_SYSTEM_PROMPT: &str = "Làm theo yêu cầu của người dùng với đoạn văn bản cho sẵn. \
+Kết quả sẽ được ĐỌC LÊN — viết thành lời nói tự nhiên, không markdown, không gạch đầu dòng, \
+không mở đầu kiểu \"Đây là bản tóm tắt\". Chỉ trả nội dung.";
+
 pub async fn finish(
     app: &AppHandle,
     mode_id: &str,
@@ -47,7 +55,13 @@ pub async fn finish(
     pcm: Vec<i16>,
     target_app: crate::focus::TargetApp,
     heard_audio: bool,
+    intent: super::Intent,
 ) {
+    if let super::Intent::ReadInstruction { selection } = intent {
+        finish_read_instruction(app, mode_id, transcript, target_app, selection).await;
+        return;
+    }
+
     let settings = state::settings_snapshot(app);
     let mode = match settings.mode(mode_id) {
         Some(m) => m.clone(),
@@ -122,6 +136,62 @@ pub async fn finish(
 
     record_history(app, &settings, &mode, &transcript, &final_text, &pcm);
     state::emit_status(app, Phase::Idle, mode_id);
+}
+
+/// Flow C: the spoken words (`instruction`) are a request about `selection`, captured
+/// before the take started. The overlay closes like any other take — the result goes
+/// to the read-aloud player, never to a paste.
+async fn finish_read_instruction(
+    app: &AppHandle,
+    mode_id: &str,
+    instruction: String,
+    target_app: crate::focus::TargetApp,
+    selection: String,
+) {
+    overlay::hide(app);
+    state::emit_status(app, Phase::Idle, mode_id);
+
+    // Pressed the key, said nothing, pressed it again: treated as "just read the
+    // selection", not an error — see plan.md's flow-C spec.
+    if instruction.trim().is_empty() {
+        crate::read::speak_from_flow_c(app, selection, target_app);
+        return;
+    }
+
+    let settings = state::settings_snapshot(app);
+    let llm = settings.llm.clone();
+    let api_key = defaults::preset(&llm.preset)
+        .filter(|p| p.needs_key)
+        .and_then(|p| secrets::get_key(p.secret_key));
+
+    if defaults::preset(&llm.preset).map(|p| p.needs_key).unwrap_or(true) && api_key.is_none() {
+        crate::read::fail(
+            app,
+            target_app,
+            ErrorPayload::with_detail(ErrorKind::NoLlmKey, llm.preset.clone()),
+        );
+        return;
+    }
+
+    let request = RefineRequest {
+        system_prompt: FLOW_C_SYSTEM_PROMPT.into(),
+        transcript: build_flow_c_prompt(&instruction, &selection),
+        llm,
+        api_key,
+    };
+
+    // Unlike dictation's cleanup pass, a failure here stops instead of falling back —
+    // reading the whole 10-minute selection verbatim when the user asked for a summary
+    // is worse than a clear error. See plan.md phase-07 §"Điểm mấu chốt".
+    match refine::refine(request).await {
+        Ok(text) if !text.trim().is_empty() => crate::read::speak_from_flow_c(app, text, target_app),
+        Ok(_) => crate::read::fail(app, target_app, ErrorPayload::new(ErrorKind::CleanupFailed)),
+        Err(e) => crate::read::fail(
+            app,
+            target_app,
+            ErrorPayload::with_detail(ErrorKind::CleanupFailed, format!("{e:#}")),
+        ),
+    }
 }
 
 /// Runs the AI pass, falling back to the raw transcript on any failure. A cleanup
@@ -220,4 +290,26 @@ pub fn fail(app: &AppHandle, mode_id: &str, payload: ErrorPayload) {
     state::emit_status(app, Phase::Idle, mode_id);
     show_error(app, payload);
     feedback::play(feedback::Cue::Error, settings.audio.feedback_volume);
+}
+
+/// Builds flow C's user message: the spoken instruction plus the text it applies to,
+/// pulled out as a pure function so getting this wrong (and the LLM answering the
+/// wrong question with no one noticing) is caught by a test rather than by ear.
+fn build_flow_c_prompt(instruction: &str, selection: &str) -> String {
+    format!("YÊU CẦU: {instruction}\n---\nVĂN BẢN: {selection}")
+}
+
+#[cfg(test)]
+mod flow_c_tests {
+    use super::build_flow_c_prompt;
+
+    #[test]
+    fn puts_the_instruction_before_the_source_text_with_clear_labels() {
+        let prompt = build_flow_c_prompt("tóm tắt rồi đọc cho tôi nghe", "nội dung dài ở đây");
+        assert!(prompt.starts_with("YÊU CẦU: tóm tắt rồi đọc cho tôi nghe"));
+        assert!(prompt.contains("VĂN BẢN: nội dung dài ở đây"));
+        // The instruction has to come first, or "VĂN BẢN" could itself contain the
+        // literal string "YÊU CẦU:" and be mistaken for the start of one.
+        assert!(prompt.find("YÊU CẦU").unwrap() < prompt.find("VĂN BẢN").unwrap());
+    }
 }

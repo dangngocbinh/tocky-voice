@@ -34,6 +34,8 @@ pub mod events {
     pub const HISTORY_CHANGED: &str = "fvt://history-changed";
     pub const SETTINGS_CHANGED: &str = "fvt://settings-changed";
     pub const ERROR: &str = "fvt://error";
+    /// Read-aloud session state, consumed by the mini player window.
+    pub const READ_STATUS: &str = "fvt://read-status";
 }
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
@@ -67,6 +69,48 @@ pub fn emit_status(app: &AppHandle, phase: Phase, mode_id: &str) {
             mode_name,
         },
     );
+}
+
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ReadPhase {
+    /// Selection captured, first chunk still synthesizing — no audio yet.
+    Preparing,
+    Speaking,
+    Paused,
+    Done,
+    Failed,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ReadStatusPayload {
+    pub phase: ReadPhase,
+    pub mode_name: String,
+    pub provider: String,
+    pub speed: f32,
+    /// The active provider's accepted speed range, so the player's slider cannot offer
+    /// a value the vendor would reject (Soniox 0.7–1.3, Vbee up to 1.9).
+    pub speed_min: f32,
+    pub speed_max: f32,
+    pub played_ms: u64,
+    pub total_ms: u64,
+    /// Set only on `ReadPhase::Failed`, translated client-side like every other error.
+    pub error: Option<crate::errors::ErrorPayload>,
+    /// The opening of the clipboard text the player is offering to read in place of a
+    /// selection it could not capture — `Some` exactly when that offer is standing.
+    /// Some apps, terminals above all, never service a synthesized copy, and this is
+    /// the one route out of that dead end: the user copies by hand, presses the read
+    /// key, and takes the offer.
+    ///
+    /// A preview rather than a bare flag because the clipboard is where passwords and
+    /// private messages live, and this text is about to be sent to a speech vendor and
+    /// said out loud. Seeing the first line of it is what makes the button an informed
+    /// yes instead of a blind one.
+    pub clipboard_preview: Option<String>,
+}
+
+pub fn emit_read_status(app: &AppHandle, payload: ReadStatusPayload) {
+    let _ = app.emit(events::READ_STATUS, payload);
 }
 
 /// Sends a failure to the UI as a kind the frontend can translate.

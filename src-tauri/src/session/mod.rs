@@ -19,6 +19,20 @@ use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::{mpsc, oneshot};
 
+/// What a take's transcript is *for*. Every take before read-aloud existed was a
+/// dictation, and that remains the default and the only variant most of this file
+/// ever sees — `ReadInstruction` is read by exactly one place, `pipeline::finish`.
+#[derive(Clone)]
+pub enum Intent {
+    /// Paste the (optionally AI-cleaned) transcript into the focused app — unchanged
+    /// behaviour from before read-aloud existed.
+    Dictate,
+    /// Flow C: the spoken words are an instruction about `selection`, not content to
+    /// paste. `pipeline::finish` hands both to the LLM and reads the result aloud
+    /// instead of pasting anything.
+    ReadInstruction { selection: String },
+}
+
 /// A recording in flight.
 struct ActiveTake {
     capture: capture::CaptureHandle,
@@ -33,6 +47,7 @@ struct ActiveTake {
     heard_audio: Arc<AtomicBool>,
     pcm: Arc<Mutex<Vec<i16>>>,
     mode_id: String,
+    intent: Intent,
     /// The app that was frontmost when recording began — the one the text belongs in,
     /// even if the user clicks the overlay before stopping.
     target_app: focus::TargetApp,
@@ -81,10 +96,23 @@ pub fn toggle(app: &AppHandle) {
 /// Begins recording. `mode_id` switches mode first; `None` keeps the active one.
 /// A no-op if a take is already running, so a repeated key press is harmless.
 pub fn start(app: &AppHandle, mode_id: Option<String>) {
+    start_with_intent(app, mode_id, Intent::Dictate);
+}
+
+/// Begins recording for a given [`Intent`]. Flow C (`crate::read::start_voice_command`)
+/// is the only caller that passes anything but [`Intent::Dictate`].
+pub fn start_with_intent(app: &AppHandle, mode_id: Option<String>, intent: Intent) {
     let recorder = app.state::<Recorder>();
     if recorder.is_recording() {
         return;
     }
+
+    // Mic and speaker must never run at once — the mic would pick up whatever the
+    // player is speaking. This is the one direction that matters: read-aloud already
+    // stops itself before opening a take that starts a read session (see
+    // `read::start`), but a *dictation* key pressed while reading is in progress has
+    // to cut the audio off here, unconditionally, before the capture device opens.
+    crate::read::stop(app);
 
     // The setup wizard's level meter holds the device open. Some Windows drivers give
     // exclusive access, so a preview left running would make the real take fail to open
@@ -157,6 +185,7 @@ pub fn start(app: &AppHandle, mode_id: Option<String>) {
             heard_audio,
             pcm,
             mode_id: mode_id.clone(),
+            intent,
             target_app,
             stt_task,
         });
@@ -306,6 +335,7 @@ pub fn stop(app: &AppHandle) {
             pcm,
             take.target_app,
             take.heard_audio.load(Ordering::Relaxed),
+            take.intent,
         )
         .await;
     });

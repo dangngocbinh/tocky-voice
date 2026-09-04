@@ -1,6 +1,6 @@
 [package]
 name = "tockyvoice"
-version = "0.4.0"
+version = "0.5.0"
 description = "Tocky Voice — realtime STT + AI cleanup, pasted anywhere"
 authors = ["Dang Ngoc Binh (ME Code) <hello@mecode.pro>"]
 license = "MIT"
@@ -26,6 +26,8 @@ tauri-plugin-process = "2"
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Gemini's text-to-speech response embeds PCM audio as base64 in JSON.
+base64 = "0.22"
 
 # async runtime + networking
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
@@ -67,6 +69,12 @@ objc2 = "0.5"
 objc2-app-kit = { version = "0.2", features = [
     "NSWorkspace",
     "NSRunningApplication",
+    # `NSEvent` exposes the live modifier-key state, which `selection.rs` waits on
+    # before synthesizing a copy — see `wait_for_modifier_release`.
+    "NSEvent",
+    # `NSPasteboard`'s changeCount is what tells "the target app copied something" from
+    # "the copy never landed" — see `selection::capture`.
+    "NSPasteboard",
     "libc",
 ] }
 

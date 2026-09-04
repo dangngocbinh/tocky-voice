@@ -40,3 +40,6 @@ src-tauri/target/
 
 # Internal planning notes and agent reports: working material, not the product
 plans/
+
+# Local agent working state, not part of the product
+.claude/

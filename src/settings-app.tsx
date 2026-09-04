@@ -25,6 +25,7 @@ import { DictationPanel } from "./components/dictation-panel";
 import { HistoryList } from "./components/history-list";
 import { ModesEditor } from "./components/modes-editor";
 import { ProvidersEditor } from "./components/providers-editor";
+import { ReadPanel } from "./components/read-panel";
 import { AboutPanel } from "./components/about-panel";
 import { UpdateBanner } from "./components/update-banner";
 import {
@@ -34,24 +35,33 @@ import {
   MicIcon,
   ModesIcon,
   PlugIcon,
+  SpeakerIcon,
   WaveMark,
 } from "./components/icons";
 
 const SECTIONS = [
-  { id: "dictate", key: "dictate", Icon: MicIcon },
-  { id: "modes", key: "modes", Icon: ModesIcon },
-  { id: "providers", key: "providers", Icon: PlugIcon },
-  { id: "behaviour", key: "hotkeys", Icon: KeyIcon },
-  { id: "history", key: "history", Icon: LogIcon },
-  { id: "about", key: "about", Icon: InfoIcon },
+  { id: "dictate", key: "dictate", Icon: MicIcon, dividerBefore: false },
+  { id: "modes", key: "modes", Icon: ModesIcon, dividerBefore: false },
+  { id: "providers", key: "providers", Icon: PlugIcon, dividerBefore: false },
+  { id: "behaviour", key: "hotkeys", Icon: KeyIcon, dividerBefore: false },
+  { id: "history", key: "history", Icon: LogIcon, dividerBefore: false },
+  // Everything from here down is a second group — dictation is the app's main job,
+  // this is the "by the way" row. See ui-spec §1.
+  { id: "read", key: "read", Icon: SpeakerIcon, dividerBefore: true },
+  { id: "about", key: "about", Icon: InfoIcon, dividerBefore: true },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
 
 const SAVE_DEBOUNCE_MS = 400;
 
+/** Backoff for the settings load: 200ms, 400ms, 800ms, 1.6s, 3.2s, then give up and say so. */
+const LOAD_RETRIES = 5;
+const LOAD_RETRY_MS = 200;
+
 export function SettingsApp() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [section, setSection] = useState<SectionId>("dictate");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [presets, setPresets] = useState<LlmPreset[]>([]);
@@ -70,6 +80,26 @@ export function SettingsApp() {
   // by hotkey), so an inbound update is not echoed straight back.
   const dirty = useRef(false);
 
+  // This one call gates the entire window — every other tab is behind `settings` being
+  // non-null. Swallowing its rejection therefore cost the whole session: the app sat on
+  // "Loading" forever and said nothing about why. Retry a few times (the failures worth
+  // recovering from are transient), then show the error and offer the retry by hand.
+  const loadSettings = useCallback(async () => {
+    setLoadError(null);
+    for (let attempt = 0; ; attempt++) {
+      try {
+        setSettings(await api.getSettings());
+        return;
+      } catch (e) {
+        if (attempt >= LOAD_RETRIES) {
+          setLoadError(String(e));
+          return;
+        }
+        await new Promise((r) => window.setTimeout(r, LOAD_RETRY_MS << attempt));
+      }
+    }
+  }, []);
+
   useEffect(() => {
     getVersion().then((v) => {
       setVersion(v);
@@ -77,7 +107,7 @@ export function SettingsApp() {
       // spot people actually glance at, so it carries the version too.
       getCurrentWindow().setTitle(`Tocky Voice v${v}`).catch(() => undefined);
     }).catch(() => undefined);
-    api.getSettings().then(setSettings).catch(() => undefined);
+    void loadSettings();
     api.listLlmPresets().then(setPresets).catch(() => undefined);
     const off = listen(api.EVENTS.settingsChanged, () => {
       if (dirty.current) return;
@@ -86,7 +116,7 @@ export function SettingsApp() {
     return () => {
       off.then((fn) => fn()).catch(() => undefined);
     };
-  }, []);
+  }, [loadSettings]);
 
   const update = useCallback((next: AppSettings) => {
     dirty.current = true;
@@ -103,7 +133,23 @@ export function SettingsApp() {
     }, SAVE_DEBOUNCE_MS);
   }, []);
 
-  if (!settings) return <div className="loading">{t.nav.loading}</div>;
+  if (!settings) {
+    return (
+      <div className="loading">
+        {loadError === null ? (
+          t.nav.loading
+        ) : (
+          <div className="loading__failure">
+            <p className="loading__headline">{t.nav.loadFailed}</p>
+            <pre className="loading__detail">{loadError}</pre>
+            <button className="btn-primary" type="button" onClick={() => void loadSettings()}>
+              {t.nav.retry}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // Shown over everything: on a fresh install none of the tabs behind it can do
   // anything useful until the walkthrough's steps are done anyway.
@@ -131,15 +177,17 @@ export function SettingsApp() {
           </div>
         </div>
 
-        {SECTIONS.map(({ id, key, Icon }) => (
-          <button
-            key={id}
-            className={`rail__item ${section === id ? "rail__item--on" : ""}`}
-            onClick={() => setSection(id)}
-          >
-            <Icon className="rail__icon" />
-            {t.nav[key]}
-          </button>
+        {SECTIONS.map(({ id, key, Icon, dividerBefore }) => (
+          <div key={id}>
+            {dividerBefore && <hr className="rail__divider" />}
+            <button
+              className={`rail__item ${section === id ? "rail__item--on" : ""}`}
+              onClick={() => setSection(id)}
+            >
+              <Icon className="rail__icon" />
+              {t.nav[key]}
+            </button>
+          </div>
         ))}
 
         <div className="rail__spacer" />
@@ -174,6 +222,9 @@ export function SettingsApp() {
             <BehaviourEditor settings={settings} onSettingsChange={update} />
           )}
           {section === "history" && <HistoryList />}
+          {section === "read" && (
+            <ReadPanel settings={settings} onSettingsChange={update} />
+          )}
           {section === "about" && (
             <AboutPanel presets={presets} version={version} update={updateCheck} />
           )}

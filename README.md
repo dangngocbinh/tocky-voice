@@ -170,6 +170,39 @@ Nếu thấy chậm, kiểm tra xem model có phải loại *reasoning* không: 
 
 ---
 
+## Đọc văn bản bôi đen
+
+Chiều ngược lại: thay vì nói ra chữ, bôi đen chữ để nghe. Mặc định **tắt** — bật ở tab
+**Đọc to** trong Cài đặt; chưa bật thì không có phím tắt nào bị chiếm, không cửa sổ nào
+được tạo.
+
+| Việc | macOS | Windows / Linux |
+| --- | --- | --- |
+| Đọc đoạn bôi đen | `⌘⇧/` | `Control+Shift+R` |
+| Ra lệnh bằng giọng nói | `⌘⇧.` | `Control+Shift+K` |
+
+Bốn chế độ đọc sẵn có — **nguyên văn**, **tóm tắt**, **giải thích dễ hiểu**, **dịch sang
+tiếng Việt** — mỗi chế độ gán được phím tắt riêng, y hệt cách chế độ gõ hoạt động.
+**Ra lệnh bằng giọng nói** thì khác: bôi đen, bấm `⌘⇧.`, nói yêu cầu bằng lời của bạn
+("tóm tắt rồi đọc cho tôi nghe"), bấm lại — AI làm theo đúng yêu cầu đó và đọc kết quả lên.
+
+| Nhà cung cấp | Giá / bài 2000 chữ | Cần key mới? |
+| --- | --- | --- |
+| **Soniox** (mặc định) | ~$0.017 | Không — dùng chung key nhận dạng giọng nói |
+| Google Gemini | ~$0.02–0.04 | Không — dùng chung key AI viết lại |
+| OpenAI | ~$0.03 | Không — dùng chung key AI viết lại |
+| ElevenLabs | ~$0.30–0.60 (giọng đẹp nhất) | Có |
+
+Đang đọc thì hiện một thanh nhỏ nổi trên màn hình — tạm dừng, dừng, kéo đi chỗ khác được,
+nhớ vị trí cho lần sau. Bấm phím gõ chính tả trong lúc đang đọc sẽ **dừng đọc trước rồi
+mới thu âm** — hai việc không bao giờ chạy song song.
+
+**Dữ liệu đi đâu:** văn bản bôi đen được gửi tới nhà cung cấp AI (nếu chọn chế độ có xử
+lý trước) và nhà cung cấp đọc mà bạn chọn ở trên — không gửi đi đâu khác. Không lưu lịch
+sử các lần đọc.
+
+---
+
 ## Giao diện
 
 | | |
