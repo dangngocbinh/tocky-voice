@@ -9,29 +9,7 @@ notes are read by users, not by the people who wrote the code. English goes in a
 `### English` subsection at the end of the same release, as the secondary version.
 Entries before 0.4.0 predate this and are English only.
 
-## [0.5.0] - 2026-09-09
-
-### Mới
-
-- **Đọc văn bản bôi đen.** Bôi đen chữ ở bất kỳ đâu, bấm `⌘⇧/` (macOS) hay
-  `Control+Shift+R` (Windows/Linux), app đọc cho bạn nghe. Mặc định **tắt** — bật ở tab
-  "Đọc to" mới trong Cài đặt.
-- Bốn chế độ đọc: nguyên văn, tóm tắt, giải thích dễ hiểu, dịch sang tiếng Việt. Mỗi chế
-  độ gán được phím tắt riêng.
-- **Ra lệnh bằng giọng nói:** bôi đen rồi bấm `⌘⇧.`, nói yêu cầu ("tóm tắt rồi đọc cho
-  tôi nghe"), bấm lại — AI làm theo và đọc kết quả lên, không cần vào Cài đặt chọn chế độ.
-  Dùng chung API key bạn đã lưu, không phải đăng ký thêm gì.
-- Bốn nhà cung cấp giọng đọc: Soniox (mặc định, rẻ nhất), Gemini, OpenAI, ElevenLabs
-  (giọng đẹp nhất, cần key riêng). Đổi được ngay trong tab "Đọc to", có nút "Nghe thử".
-- Thanh điều khiển nhỏ nổi trên màn hình lúc đang đọc — tạm dừng, dừng, kéo đi chỗ khác
-  được, nhớ vị trí cho lần sau.
-- Thêm một màn ở cuối phần cài đặt lần đầu để giới thiệu tính năng này — bỏ qua được
-  bằng một cú bấm.
-- **Đọc từ clipboard khi không lấy được chữ bôi đen.** Một số app (rõ nhất là Terminal,
-  iTerm) không cho app khác copy hộ, nên bấm phím tắt xong thanh điều khiển hiện lên mà
-  không có gì để đọc. Giờ nếu trong clipboard đang có sẵn nội dung, app sẽ hỏi "đọc nội
-  dung đang có trong clipboard nhé?" — bạn tự `⌘C`/`Ctrl+C` trước rồi bấm phím tắt, mất
-  thêm một thao tác nhưng nghe được ở mọi chỗ.
+## [0.5.1] - 2026-09-09
 
 ### Sửa lỗi
 
@@ -57,6 +35,61 @@ Entries before 0.4.0 predate this and are English only.
   `--mode=<tên>` — và chuyển thẳng vào bản đang chạy. Bạn vào phần cài đặt bàn phím của
   môi trường desktop, thêm phím tắt trỏ tới lệnh đó; đường này do chính compositor bắt
   phím nên chạy được trên Wayland.
+
+### English
+
+### Fixed
+
+- **Linux: the app installed fine and then would not start.** The `.deb` and `.rpm`
+  packages installed without complaint, then died on launch with
+  `libxdo.so.3: cannot open shared object file`. The packages never declared two
+  libraries the app needs at runtime — `libxdo`, which synthesizes the keystrokes that
+  paste your text, and ALSA, which records it — so the package manager had no reason to
+  pull them in. Machines that happened to have them already worked; clean ones did not.
+  Both are now declared as dependencies.
+- **Speech recognition would not connect on a network with broken IPv6.** Testing the
+  key reported that the provider did not answer within 10 seconds, while a browser on
+  the same machine reached the internet perfectly well — so it looked like a bad key or
+  a dead service. The provider resolves to both IPv6 and IPv4 addresses, and the app
+  tried them strictly in order. Where a network blackholes IPv6 — packets dropped, no
+  error ever sent back — the app spent its entire budget waiting on the first address
+  and never reached the working IPv4 one. Addresses are now raced the way browsers race
+  them: each gets a 250 ms head start before the next joins in, and the first to answer
+  wins. A dead address family now costs 250 ms instead of the whole session.
+- **Linux/Wayland: none of the hotkeys worked.** The app claimed its global hotkeys the
+  X11 way, and Wayland does not deliver keys to that kind of claim. Worse, the claim
+  still reported success, so the logs looked entirely healthy while not one hotkey ever
+  fired. Wayland is now the default on most Linux desktops. The app now accepts the
+  actions on its command line — `tockyvoice --toggle`, `--cancel`, `--next-mode`,
+  `--read`, `--read-voice`, `--mode=<id>` — and relays them to the running instance.
+  Bind a combination to one of those in your desktop's own keyboard settings: there the
+  compositor itself catches the key, which is the part that works on Wayland.
+
+## [0.5.0] - 2026-09-04
+
+### Mới
+
+- **Đọc văn bản bôi đen.** Bôi đen chữ ở bất kỳ đâu, bấm `⌘⇧/` (macOS) hay
+  `Control+Shift+R` (Windows/Linux), app đọc cho bạn nghe. Mặc định **tắt** — bật ở tab
+  "Đọc to" mới trong Cài đặt.
+- Bốn chế độ đọc: nguyên văn, tóm tắt, giải thích dễ hiểu, dịch sang tiếng Việt. Mỗi chế
+  độ gán được phím tắt riêng.
+- **Ra lệnh bằng giọng nói:** bôi đen rồi bấm `⌘⇧.`, nói yêu cầu ("tóm tắt rồi đọc cho
+  tôi nghe"), bấm lại — AI làm theo và đọc kết quả lên, không cần vào Cài đặt chọn chế độ.
+  Dùng chung API key bạn đã lưu, không phải đăng ký thêm gì.
+- Bốn nhà cung cấp giọng đọc: Soniox (mặc định, rẻ nhất), Gemini, OpenAI, ElevenLabs
+  (giọng đẹp nhất, cần key riêng). Đổi được ngay trong tab "Đọc to", có nút "Nghe thử".
+- Thanh điều khiển nhỏ nổi trên màn hình lúc đang đọc — tạm dừng, dừng, kéo đi chỗ khác
+  được, nhớ vị trí cho lần sau.
+- Thêm một màn ở cuối phần cài đặt lần đầu để giới thiệu tính năng này — bỏ qua được
+  bằng một cú bấm.
+- **Đọc từ clipboard khi không lấy được chữ bôi đen.** Một số app (rõ nhất là Terminal,
+  iTerm) không cho app khác copy hộ, nên bấm phím tắt xong thanh điều khiển hiện lên mà
+  không có gì để đọc. Giờ nếu trong clipboard đang có sẵn nội dung, app sẽ hỏi "đọc nội
+  dung đang có trong clipboard nhé?" — bạn tự `⌘C`/`Ctrl+C` trước rồi bấm phím tắt, mất
+  thêm một thao tác nhưng nghe được ở mọi chỗ.
+
+### Sửa lỗi
 
 - **Windows: app kẹt vĩnh viễn ở màn hình "Loading".** Cửa sổ chính mở ra đen thui, chỉ
   có chữ "Loading", không bao giờ vào được giao diện — trong khi phím tắt vẫn chạy và
@@ -99,31 +132,6 @@ Entries before 0.4.0 predate this and are English only.
   click.
 
 ### Fixed
-
-- **Linux: the app installed fine and then would not start.** The `.deb` and `.rpm`
-  packages installed without complaint, then died on launch with
-  `libxdo.so.3: cannot open shared object file`. The packages never declared two
-  libraries the app needs at runtime — `libxdo`, which synthesizes the keystrokes that
-  paste your text, and ALSA, which records it — so the package manager had no reason to
-  pull them in. Machines that happened to have them already worked; clean ones did not.
-  Both are now declared as dependencies.
-- **Speech recognition would not connect on a network with broken IPv6.** Testing the
-  key reported that the provider did not answer within 10 seconds, while a browser on
-  the same machine reached the internet perfectly well — so it looked like a bad key or
-  a dead service. The provider resolves to both IPv6 and IPv4 addresses, and the app
-  tried them strictly in order. Where a network blackholes IPv6 — packets dropped, no
-  error ever sent back — the app spent its entire budget waiting on the first address
-  and never reached the working IPv4 one. Addresses are now raced the way browsers race
-  them: each gets a 250 ms head start before the next joins in, and the first to answer
-  wins. A dead address family now costs 250 ms instead of the whole session.
-- **Linux/Wayland: none of the hotkeys worked.** The app claimed its global hotkeys the
-  X11 way, and Wayland does not deliver keys to that kind of claim. Worse, the claim
-  still reported success, so the logs looked entirely healthy while not one hotkey ever
-  fired. Wayland is now the default on most Linux desktops. The app now accepts the
-  actions on its command line — `tockyvoice --toggle`, `--cancel`, `--next-mode`,
-  `--read`, `--read-voice`, `--mode=<id>` — and relays them to the running instance.
-  Bind a combination to one of those in your desktop's own keyboard settings: there the
-  compositor itself catches the key, which is the part that works on Wayland.
 
 - **Windows: the app hung on "Loading" forever.** The main window opened black with
   nothing but "Loading" on it and never got any further, even though the hotkeys still
