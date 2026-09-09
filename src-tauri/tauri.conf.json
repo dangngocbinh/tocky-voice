@@ -74,6 +74,14 @@
     ],
     "macOS": {
       "minimumSystemVersion": "11.0"
+    },
+    "linux": {
+      "deb": {
+        "depends": ["libxdo3", "libasound2"]
+      },
+      "rpm": {
+        "depends": ["libxdo.so.3()(64bit)", "libasound.so.2()(64bit)"]
+      }
     }
   },
   "plugins": {

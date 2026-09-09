@@ -124,24 +124,122 @@ pub fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
         return;
     };
     log::debug!("hotkey {action:?} {state:?}");
-    match (action, state) {
+    match state {
         // Every binding fires once, on key-down. Key-up is what a held key sends on
         // release, and acting on it too would run the action twice per press.
-        (_, ShortcutState::Released) => {}
-        (HotkeyAction::Toggle, _) => session::toggle(app),
-        (HotkeyAction::Cancel, _) => session::cancel(app),
-        (HotkeyAction::NextMode, _) => session::next_mode(app),
-        (HotkeyAction::SelectMode(mode_id), _) => session::start(app, Some(mode_id)),
-        (HotkeyAction::Read, _) => read::toggle(app, None),
-        (HotkeyAction::ReadWithVoice, _) => read::start_voice_command(app),
-        (HotkeyAction::SelectReadMode(mode_id), _) => read::start(app, Some(mode_id)),
+        ShortcutState::Released => {}
+        ShortcutState::Pressed => dispatch(app, action),
     }
+}
+
+/// Runs one action, whichever way it was asked for: an in-process global shortcut, or
+/// `tockyvoice --toggle` relayed here by the single-instance plugin.
+pub fn dispatch(app: &AppHandle, action: HotkeyAction) {
+    match action {
+        HotkeyAction::Toggle => session::toggle(app),
+        HotkeyAction::Cancel => session::cancel(app),
+        HotkeyAction::NextMode => session::next_mode(app),
+        HotkeyAction::SelectMode(mode_id) => session::start(app, Some(mode_id)),
+        HotkeyAction::Read => read::toggle(app, None),
+        HotkeyAction::ReadWithVoice => read::start_voice_command(app),
+        HotkeyAction::SelectReadMode(mode_id) => read::start(app, Some(mode_id)),
+    }
+}
+
+/// The action a command line asks for, if it asks for one.
+///
+/// Wayland compositors do not honour X11-style global grabs, so on GNOME — and on
+/// every other Wayland session, which is now the default everywhere — the bindings
+/// [`apply`] registers succeed and then never fire: the compositor simply never sends
+/// us the keys. The way out is the desktop's own keyboard settings, which do work
+/// there: the user binds the combination to `tockyvoice --toggle`, the second launch
+/// is relayed to the running instance, and this turns the argument back into an action.
+///
+/// One action per invocation, first flag wins. Anything unrecognised is ignored rather
+/// than rejected, so a stray argument raises the window instead of failing silently.
+pub fn action_from_args<I>(args: I) -> Option<HotkeyAction>
+where
+    I: IntoIterator<Item = String>,
+{
+    // Skipped: argv[0] is the binary's own path, and on Windows it can be a bare
+    // `--toggle`-looking thing only if someone renames the exe, which we needn't cover.
+    for arg in args.into_iter().skip(1) {
+        let (flag, value) = match arg.split_once('=') {
+            Some((flag, value)) => (flag.to_owned(), Some(value.to_owned())),
+            None => (arg, None),
+        };
+        return Some(match (flag.as_str(), value) {
+            ("--toggle", _) => HotkeyAction::Toggle,
+            ("--cancel", _) => HotkeyAction::Cancel,
+            ("--next-mode", _) => HotkeyAction::NextMode,
+            ("--read", _) => HotkeyAction::Read,
+            ("--read-voice", _) => HotkeyAction::ReadWithVoice,
+            ("--mode", Some(id)) => HotkeyAction::SelectMode(id),
+            ("--read-mode", Some(id)) => HotkeyAction::SelectReadMode(id),
+            _ => continue,
+        });
+    }
+    None
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::settings::defaults;
+
+    fn args(list: &[&str]) -> Vec<String> {
+        list.iter().map(|a| (*a).to_owned()).collect()
+    }
+
+    #[test]
+    fn each_flag_maps_to_its_action() {
+        for (flag, expected) in [
+            ("--toggle", HotkeyAction::Toggle),
+            ("--cancel", HotkeyAction::Cancel),
+            ("--next-mode", HotkeyAction::NextMode),
+            ("--read", HotkeyAction::Read),
+            ("--read-voice", HotkeyAction::ReadWithVoice),
+        ] {
+            let parsed = action_from_args(args(&["/usr/bin/tockyvoice", flag]));
+            assert_eq!(parsed, Some(expected), "{flag}");
+        }
+    }
+
+    #[test]
+    fn mode_flags_carry_their_mode_id() {
+        assert_eq!(
+            action_from_args(args(&["tockyvoice", "--mode=raw"])),
+            Some(HotkeyAction::SelectMode("raw".into()))
+        );
+        assert_eq!(
+            action_from_args(args(&["tockyvoice", "--read-mode=summary"])),
+            Some(HotkeyAction::SelectReadMode("summary".into()))
+        );
+    }
+
+    /// The binary's own path is argv[0] on every launch, so treating it as a flag would
+    /// make an ordinary double-click fire whatever action its name happened to match.
+    #[test]
+    fn the_program_path_is_never_read_as_a_flag() {
+        assert_eq!(action_from_args(args(&["/usr/bin/tockyvoice"])), None);
+        assert_eq!(action_from_args(args(&["--toggle"])), None);
+    }
+
+    /// A desktop launcher can pass its own arguments; an unknown one must leave the
+    /// second launch meaning "show the window", not silently do nothing at all.
+    #[test]
+    fn unknown_arguments_ask_for_no_action() {
+        assert_eq!(action_from_args(args(&["tockyvoice", "--wat", "-x"])), None);
+        assert_eq!(action_from_args(args(&["tockyvoice", "--mode"])), None);
+    }
+
+    #[test]
+    fn the_first_recognised_flag_wins() {
+        assert_eq!(
+            action_from_args(args(&["tockyvoice", "--cancel", "--toggle"])),
+            Some(HotkeyAction::Cancel)
+        );
+    }
 
     /// Every factory binding has to survive `Shortcut::from_str`, or `apply` skips it
     /// with a log line nobody reads and the app ships with a hotkey that never fires.

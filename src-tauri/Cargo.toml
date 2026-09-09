@@ -23,6 +23,9 @@ tauri-plugin-clipboard-manager = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+# Relays `tockyvoice --toggle` from the desktop's own keybinding into the running
+# instance — the only global-hotkey path that works on Wayland. See hotkeys::action_from_args.
+tauri-plugin-single-instance = "2"
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -30,7 +33,7 @@ serde_json = "1"
 base64 = "0.22"
 
 # async runtime + networking
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync", "time"] }
 tokio-tungstenite = { version = "0.24", features = ["rustls-tls-native-roots"] }
 futures-util = "0.3"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

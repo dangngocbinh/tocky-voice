@@ -34,6 +34,20 @@ pub fn run() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     tauri::Builder::default()
+        // First, as the plugin requires: it has to claim the single-instance lock
+        // before anything else in the builder can run.
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            // A second launch is how a desktop keybinding reaches us on Wayland.
+            match hotkeys::action_from_args(argv) {
+                Some(action) => {
+                    log::debug!("relayed from a second launch: {action:?}");
+                    hotkeys::dispatch(app, action);
+                }
+                // Someone opened the app again while it was already running, which on a
+                // tray app reads as "show me the window".
+                None => commands::show_main_window(app.clone()),
+            }
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_autostart::init(

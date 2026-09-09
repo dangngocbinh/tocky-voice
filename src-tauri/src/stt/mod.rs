@@ -13,20 +13,30 @@ use crate::audio::capture::TARGET_SAMPLE_RATE;
 use crate::settings::{SttProviderKind, SttSettings};
 use anyhow::{anyhow, Context, Result};
 use futures_util::{SinkExt, StreamExt};
+use std::net::SocketAddr;
+use tokio::net::TcpStream;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::http::Request;
 use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 /// How long to keep reading after we tell the provider we're done talking.
 const DRAIN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(8);
 
 /// How long to wait for the socket to open.
 ///
-/// A blackholed route eventually errors at the OS level, but a stalled TLS handshake,
-/// a hung proxy, or a captive portal never does — and an unbounded connect means the
-/// take records with no partials and only reveals itself as a hang at stop time.
+/// A stalled TLS handshake, a hung proxy or a captive portal never errors on its own,
+/// and an unbounded connect means the take records with no partials and only reveals
+/// itself as a hang at stop time. This is the budget for the whole of [`connect`], the
+/// address attempts included.
 const CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+
+/// Head start one address gets before the next one is raced alongside it, per RFC 8305.
+///
+/// Long enough that a healthy link wins outright and only one connection is ever opened,
+/// short enough that a dead family costs a quarter second rather than the whole budget.
+const ATTEMPT_DELAY: std::time::Duration = std::time::Duration::from_millis(250);
 
 /// How long any single write to the socket may take.
 ///
@@ -78,6 +88,156 @@ pub fn build_protocol(settings: &SttSettings, api_key: String) -> Box<dyn WsProt
     }
 }
 
+/// Opens the WebSocket, racing the endpoint's addresses instead of walking them in order.
+///
+/// `connect_async` hands the whole resolved list to `TcpStream::connect`, which tries one
+/// address at a time and only moves on once the kernel gives up on the current one. On a
+/// host whose IPv6 route is blackholed — packets dropped, no ICMP back — that first
+/// attempt hangs for minutes, so [`CONNECT_TIMEOUT`] fires long before the working IPv4
+/// address is ever reached and every provider looks unreachable while `curl` on the same
+/// machine is fine. Browsers and `reqwest` avoid this with Happy Eyeballs (RFC 8305);
+/// nothing does it for us on the WebSocket path, so it happens here.
+async fn connect(request: Request<()>) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>> {
+    let uri = request.uri();
+    let host = uri.host().context("stt endpoint has no host")?.to_string();
+    let port = uri.port_u16().unwrap_or(match uri.scheme_str() {
+        Some("ws") | Some("http") => 80,
+        _ => 443,
+    });
+
+    let stream = connect_tcp(&host, port).await?;
+    let (ws, _) = tokio_tungstenite::client_async_tls_with_config(request, stream, None, None)
+        .await
+        .context("websocket handshake")?;
+    Ok(ws)
+}
+
+/// Connects to the first address that answers, giving each one an [`ATTEMPT_DELAY`] head start
+/// before the next joins the race. An address that fails outright pulls the next one in
+/// immediately rather than waiting out its delay.
+async fn connect_tcp(host: &str, port: u16) -> Result<TcpStream> {
+    let mut addrs: Vec<SocketAddr> = tokio::net::lookup_host((host, port))
+        .await
+        .with_context(|| format!("resolving {host}"))?
+        .collect();
+    if addrs.is_empty() {
+        return Err(anyhow!("{host} resolved to no addresses"));
+    }
+    interleave_families(&mut addrs);
+
+    let mut remaining = addrs.into_iter().peekable();
+    let mut in_flight = futures_util::stream::FuturesUnordered::new();
+    let mut last_err: Option<std::io::Error> = None;
+
+    loop {
+        if let Some(addr) = remaining.next() {
+            in_flight.push(async move { (addr, TcpStream::connect(addr).await) });
+        }
+        if in_flight.is_empty() {
+            break;
+        }
+
+        if remaining.peek().is_some() {
+            match tokio::time::timeout(ATTEMPT_DELAY, in_flight.next()).await {
+                Ok(Some((_, Ok(stream)))) => return Ok(stream),
+                Ok(Some((addr, Err(e)))) => {
+                    log::debug!("stt connect to {addr} failed: {e}");
+                    last_err = Some(e);
+                }
+                Ok(None) => break,
+                // Head start spent without an answer — go round and start the next one.
+                Err(_) => {}
+            }
+        } else {
+            // Everything has been started; nothing left to do but wait them out.
+            while let Some((addr, result)) = in_flight.next().await {
+                match result {
+                    Ok(stream) => return Ok(stream),
+                    Err(e) => {
+                        log::debug!("stt connect to {addr} failed: {e}");
+                        last_err = Some(e);
+                    }
+                }
+            }
+            break;
+        }
+    }
+
+    Err(match last_err {
+        Some(e) => anyhow::Error::new(e).context(format!("connecting to {host}:{port}")),
+        None => anyhow!("could not connect to {host}:{port}"),
+    })
+}
+
+/// Reorders addresses so the two families alternate, keeping the resolver's own order
+/// within each and leading with whichever family it put first.
+///
+/// Leading with the resolver's choice keeps the system's preference intact; alternating
+/// is what caps a dead family's cost at one head start instead of one per address.
+fn interleave_families(addrs: &mut Vec<SocketAddr>) {
+    let lead_is_v6 = addrs.first().is_some_and(SocketAddr::is_ipv6);
+    let (lead, rest): (Vec<SocketAddr>, Vec<SocketAddr>) = addrs
+        .iter()
+        .copied()
+        .partition(|addr| addr.is_ipv6() == lead_is_v6);
+
+    let mut lead = lead.into_iter();
+    let mut rest = rest.into_iter();
+    addrs.clear();
+    loop {
+        let (a, b) = (lead.next(), rest.next());
+        if a.is_none() && b.is_none() {
+            break;
+        }
+        addrs.extend(a);
+        addrs.extend(b);
+    }
+}
+
+#[cfg(test)]
+mod connect_tests {
+    use super::*;
+
+    fn addrs(list: &[&str]) -> Vec<SocketAddr> {
+        list.iter().map(|a| a.parse().expect("addr")).collect()
+    }
+
+    /// The shape that broke Soniox on a host with no working IPv6: the resolver returns
+    /// both AAAA records first, so unsorted the second dead address is tried before the
+    /// first live one.
+    #[test]
+    fn alternates_families_keeping_resolver_order() {
+        let mut list = addrs(&["[::1]:443", "[::2]:443", "1.1.1.1:443", "1.0.0.1:443"]);
+        interleave_families(&mut list);
+        assert_eq!(
+            list,
+            addrs(&["[::1]:443", "1.1.1.1:443", "[::2]:443", "1.0.0.1:443"])
+        );
+    }
+
+    #[test]
+    fn leads_with_whichever_family_the_resolver_put_first() {
+        let mut list = addrs(&["1.1.1.1:443", "[::1]:443"]);
+        interleave_families(&mut list);
+        assert_eq!(list, addrs(&["1.1.1.1:443", "[::1]:443"]));
+    }
+
+    /// A single-family answer must come back untouched, not reordered or dropped.
+    #[test]
+    fn leaves_a_single_family_alone() {
+        let mut list = addrs(&["1.1.1.1:443", "1.0.0.1:443", "8.8.8.8:443"]);
+        interleave_families(&mut list);
+        assert_eq!(list, addrs(&["1.1.1.1:443", "1.0.0.1:443", "8.8.8.8:443"]));
+    }
+
+    #[test]
+    fn handles_an_empty_list() {
+        let mut list: Vec<SocketAddr> = Vec::new();
+        interleave_families(&mut list);
+        assert!(list.is_empty());
+    }
+}
+
 /// Streams `audio_rx` to the provider until the sender is dropped, forwarding
 /// interim results to `events`. Resolves with the complete final transcript.
 pub async fn run_stream(
@@ -86,7 +246,7 @@ pub async fn run_stream(
     events: UnboundedSender<SttEvent>,
 ) -> Result<String> {
     let request = protocol.request()?;
-    let (ws, _) = tokio::time::timeout(CONNECT_TIMEOUT, tokio_tungstenite::connect_async(request))
+    let ws = tokio::time::timeout(CONNECT_TIMEOUT, connect(request))
         .await
         .map_err(|_| {
             anyhow!(

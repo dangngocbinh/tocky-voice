@@ -9,7 +9,7 @@ notes are read by users, not by the people who wrote the code. English goes in a
 `### English` subsection at the end of the same release, as the secondary version.
 Entries before 0.4.0 predate this and are English only.
 
-## [0.5.0] - 2026-09-04
+## [0.5.0] - 2026-09-09
 
 ### Mới
 
@@ -34,6 +34,29 @@ Entries before 0.4.0 predate this and are English only.
   thêm một thao tác nhưng nghe được ở mọi chỗ.
 
 ### Sửa lỗi
+
+- **Linux: cài xong app không mở lên được.** Gói `.deb` và `.rpm` cài trót lọt, nhưng
+  chạy lên là tắt ngay với dòng `libxdo.so.3: cannot open shared object file`. Gói không
+  khai báo hai thư viện app cần lúc chạy — `libxdo` (thứ bơm phím để dán chữ ra) và ALSA
+  (thu âm) — nên trình quản lý gói không biết đường cài kèm. Máy nào tình cờ đã có sẵn thì
+  chạy được, máy sạch thì chết. Giờ cả hai nằm trong danh sách phụ thuộc của gói.
+- **Không kết nối được nhận diện giọng nói khi mạng có IPv6 hỏng.** Bấm Test key thì báo
+  nhà cung cấp không trả lời sau 10 giây, trong khi trình duyệt trên cùng máy đó vẫn vào
+  mạng bình thường — nên trông như key sai hoặc dịch vụ chết. Máy chủ trả về cả địa chỉ
+  IPv6 lẫn IPv4; app thử lần lượt từ trên xuống, mà nếu đường IPv6 của mạng bị chặn kiểu
+  im lặng — gói tin bị nuốt, không hề báo lỗi về — thì app ngồi đợi hết giờ ngay ở địa chỉ
+  đầu tiên và không bao giờ chạm tới địa chỉ IPv4 vẫn đang tốt. Giờ app chạy đua các địa
+  chỉ đúng cách trình duyệt vẫn làm: mỗi địa chỉ được 250 mili-giây trước khi địa chỉ kế
+  tiếp vào đua cùng, ai trả lời trước thì dùng. Một họ địa chỉ chết chỉ còn tốn đúng 250
+  mili-giây thay vì cả phiên làm việc.
+- **Linux/Wayland: không phím tắt nào hoạt động.** App đăng ký phím tắt toàn cục theo
+  kiểu X11, mà Wayland thì không giao phím cho kiểu đăng ký đó. Tệ hơn, lệnh đăng ký vẫn
+  báo thành công, nên trong log mọi thứ trông hoàn toàn bình thường trong khi không phím
+  nào bao giờ nổ. Hầu hết máy Linux giờ chạy Wayland mặc định. Giờ app nhận lệnh từ dòng
+  lệnh — `tockyvoice --toggle`, `--cancel`, `--next-mode`, `--read`, `--read-voice`,
+  `--mode=<tên>` — và chuyển thẳng vào bản đang chạy. Bạn vào phần cài đặt bàn phím của
+  môi trường desktop, thêm phím tắt trỏ tới lệnh đó; đường này do chính compositor bắt
+  phím nên chạy được trên Wayland.
 
 - **Windows: app kẹt vĩnh viễn ở màn hình "Loading".** Cửa sổ chính mở ra đen thui, chỉ
   có chữ "Loading", không bao giờ vào được giao diện — trong khi phím tắt vẫn chạy và
@@ -76,6 +99,31 @@ Entries before 0.4.0 predate this and are English only.
   click.
 
 ### Fixed
+
+- **Linux: the app installed fine and then would not start.** The `.deb` and `.rpm`
+  packages installed without complaint, then died on launch with
+  `libxdo.so.3: cannot open shared object file`. The packages never declared two
+  libraries the app needs at runtime — `libxdo`, which synthesizes the keystrokes that
+  paste your text, and ALSA, which records it — so the package manager had no reason to
+  pull them in. Machines that happened to have them already worked; clean ones did not.
+  Both are now declared as dependencies.
+- **Speech recognition would not connect on a network with broken IPv6.** Testing the
+  key reported that the provider did not answer within 10 seconds, while a browser on
+  the same machine reached the internet perfectly well — so it looked like a bad key or
+  a dead service. The provider resolves to both IPv6 and IPv4 addresses, and the app
+  tried them strictly in order. Where a network blackholes IPv6 — packets dropped, no
+  error ever sent back — the app spent its entire budget waiting on the first address
+  and never reached the working IPv4 one. Addresses are now raced the way browsers race
+  them: each gets a 250 ms head start before the next joins in, and the first to answer
+  wins. A dead address family now costs 250 ms instead of the whole session.
+- **Linux/Wayland: none of the hotkeys worked.** The app claimed its global hotkeys the
+  X11 way, and Wayland does not deliver keys to that kind of claim. Worse, the claim
+  still reported success, so the logs looked entirely healthy while not one hotkey ever
+  fired. Wayland is now the default on most Linux desktops. The app now accepts the
+  actions on its command line — `tockyvoice --toggle`, `--cancel`, `--next-mode`,
+  `--read`, `--read-voice`, `--mode=<id>` — and relays them to the running instance.
+  Bind a combination to one of those in your desktop's own keyboard settings: there the
+  compositor itself catches the key, which is the part that works on Wayland.
 
 - **Windows: the app hung on "Loading" forever.** The main window opened black with
   nothing but "Loading" on it and never got any further, even though the hotkeys still
