@@ -6,7 +6,7 @@
 //! stays frontmost, so the paste keystroke lands there and not here.
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use tauri::{AppHandle, Manager, PhysicalPosition, WebviewWindow};
+use tauri::{AppHandle, Manager, Monitor, PhysicalPosition, PhysicalSize, WebviewWindow};
 
 pub const LABEL: &str = "overlay";
 
@@ -52,10 +52,11 @@ pub fn hide(app: &AppHandle) {
     }
 }
 
-/// Places the overlay near the bottom of whichever monitor currently holds it,
-/// so it stays out of the way of the text field being dictated into.
+/// Places the overlay near the bottom of the monitor containing the pointer on
+/// Windows and macOS. Other platforms keep the existing current-monitor behavior.
 fn position_bottom_center(window: &WebviewWindow) {
-    let Ok(Some(monitor)) = window.current_monitor() else {
+    let monitor = monitor_for_pointer(window).or_else(|| window.current_monitor().ok().flatten());
+    let Some(monitor) = monitor else {
         return;
     };
     let Ok(size) = window.outer_size() else {
@@ -63,15 +64,77 @@ fn position_bottom_center(window: &WebviewWindow) {
     };
 
     let scale = monitor.scale_factor();
+    let current_scale = window.scale_factor().unwrap_or(scale);
+    let size = size_on_monitor(&size, current_scale, scale);
     let area = monitor.size();
     let origin = monitor.position();
 
     let x = origin.x + ((area.width as i32 - size.width as i32) / 2);
-    let y = origin.y + area.height as i32
-        - size.height as i32
-        - (BOTTOM_MARGIN_LOGICAL * scale) as i32;
+    let y =
+        origin.y + area.height as i32 - size.height as i32 - (BOTTOM_MARGIN_LOGICAL * scale) as i32;
 
     if let Err(e) = window.set_position(PhysicalPosition::new(x, y)) {
         log::debug!("could not position the overlay: {e}");
+    }
+}
+
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+fn monitor_for_pointer(window: &WebviewWindow) -> Option<Monitor> {
+    window.cursor_position().ok().and_then(|cursor| {
+        window.available_monitors().ok().and_then(|monitors| {
+            monitors
+                .into_iter()
+                .find(|monitor| monitor_contains_point(monitor.position(), monitor.size(), &cursor))
+        })
+    })
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+fn monitor_for_pointer(_window: &WebviewWindow) -> Option<Monitor> {
+    None
+}
+
+fn size_on_monitor(
+    size: &PhysicalSize<u32>,
+    current_scale: f64,
+    target_scale: f64,
+) -> PhysicalSize<u32> {
+    size.to_logical::<f64>(current_scale)
+        .to_physical::<u32>(target_scale)
+}
+
+fn monitor_contains_point(
+    origin: &PhysicalPosition<i32>,
+    size: &PhysicalSize<u32>,
+    point: &PhysicalPosition<f64>,
+) -> bool {
+    point.x >= origin.x as f64
+        && point.x < origin.x as f64 + size.width as f64
+        && point.y >= origin.y as f64
+        && point.y < origin.y as f64 + size.height as f64
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn finds_the_monitor_above_the_primary_display() {
+        let primary = PhysicalPosition::new(0, 0);
+        let upper = PhysicalPosition::new(0, -1620);
+        let primary_size = PhysicalSize::new(2560, 1600);
+        let upper_size = PhysicalSize::new(2880, 1620);
+        let pointer = PhysicalPosition::new(1554.0, -342.0);
+
+        assert!(!monitor_contains_point(&primary, &primary_size, &pointer));
+        assert!(monitor_contains_point(&upper, &upper_size, &pointer));
+    }
+
+    #[test]
+    fn preserves_logical_size_across_monitor_scales() {
+        let size = PhysicalSize::new(480, 212);
+        let target_size = size_on_monitor(&size, 1.0, 2.0);
+
+        assert_eq!(target_size, PhysicalSize::new(960, 424));
     }
 }
