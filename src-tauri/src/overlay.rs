@@ -14,6 +14,11 @@ pub const LABEL: &str = "overlay";
 /// at 1x — scaled by the monitor's DPI factor below.
 const BOTTOM_MARGIN_LOGICAL: f64 = 90.0;
 
+/// Configured overlay dimensions in logical pixels. Reapply these before every show:
+/// Windows can retain a DPI-scaled physical size after displays are connected or moved.
+const WIDTH_LOGICAL: f64 = 480.0;
+const HEIGHT_LOGICAL: f64 = 212.0;
+
 /// Set while onboarding's "try it" step is on screen. That step drives a real take
 /// from our own window on purpose, to show recognized text without sending anyone
 /// to another app — and it already renders its own level meter and transcript from
@@ -59,13 +64,8 @@ fn position_bottom_center(window: &WebviewWindow) {
     let Some(monitor) = monitor else {
         return;
     };
-    let Ok(size) = window.outer_size() else {
-        return;
-    };
-
     let scale = monitor.scale_factor();
-    let current_scale = window.scale_factor().unwrap_or(scale);
-    let size = size_on_monitor(&size, current_scale, scale);
+    let size = overlay_size_on_monitor(scale);
     let area = monitor.size();
     let origin = monitor.position();
 
@@ -73,8 +73,17 @@ fn position_bottom_center(window: &WebviewWindow) {
     let y =
         origin.y + area.height as i32 - size.height as i32 - (BOTTOM_MARGIN_LOGICAL * scale) as i32;
 
-    if let Err(e) = window.set_position(PhysicalPosition::new(x, y)) {
+    let position = PhysicalPosition::new(x, y);
+    if let Err(e) = window.set_position(position) {
         log::debug!("could not position the overlay: {e}");
+    }
+    if let Err(e) = window.set_size(size) {
+        log::warn!("could not restore the overlay size: {e}");
+    }
+    // Setting the size can alter the suggested window rectangle during a DPI change.
+    // Reapply the target position so the final geometry stays bottom-centered.
+    if let Err(e) = window.set_position(position) {
+        log::debug!("could not reposition the resized overlay: {e}");
     }
 }
 
@@ -94,13 +103,8 @@ fn monitor_for_pointer(_window: &WebviewWindow) -> Option<Monitor> {
     None
 }
 
-fn size_on_monitor(
-    size: &PhysicalSize<u32>,
-    current_scale: f64,
-    target_scale: f64,
-) -> PhysicalSize<u32> {
-    size.to_logical::<f64>(current_scale)
-        .to_physical::<u32>(target_scale)
+fn overlay_size_on_monitor(scale: f64) -> PhysicalSize<u32> {
+    tauri::LogicalSize::new(WIDTH_LOGICAL, HEIGHT_LOGICAL).to_physical(scale)
 }
 
 fn monitor_contains_point(
@@ -131,10 +135,7 @@ mod tests {
     }
 
     #[test]
-    fn preserves_logical_size_across_monitor_scales() {
-        let size = PhysicalSize::new(480, 212);
-        let target_size = size_on_monitor(&size, 1.0, 2.0);
-
-        assert_eq!(target_size, PhysicalSize::new(960, 424));
+    fn restores_configured_size_at_target_scale() {
+        assert_eq!(overlay_size_on_monitor(1.5), PhysicalSize::new(720, 318));
     }
 }
