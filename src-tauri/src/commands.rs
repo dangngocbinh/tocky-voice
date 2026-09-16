@@ -37,6 +37,7 @@ pub fn save_settings(
     }
 
     settings::save(&app, &settings).map_err(to_err)?;
+    crate::proxy::configure(&settings.proxy);
     apply_autostart(&app, settings.autostart);
     *state.settings.lock().expect("settings lock") = settings.clone();
     hotkeys::apply(&app, &settings);
@@ -49,6 +50,7 @@ pub fn save_settings(
 pub fn reset_settings(app: AppHandle, state: tauri::State<AppState>) -> Result<AppSettings, String> {
     let fresh = defaults::default_settings();
     settings::save(&app, &fresh).map_err(to_err)?;
+    crate::proxy::configure(&fresh.proxy);
     *state.settings.lock().expect("settings lock") = fresh.clone();
     hotkeys::apply(&app, &fresh);
     let _ = app.emit(events::SETTINGS_CHANGED, ());

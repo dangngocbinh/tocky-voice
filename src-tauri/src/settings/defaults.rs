@@ -439,5 +439,8 @@ pub fn default_settings() -> AppSettings {
         tts: default_tts(),
         read_modes: default_read_modes(),
         active_read_mode_id: "verbatim".into(),
+        // Off: the direct route is right for most people, and a proxy nobody
+        // configured must never sit between them and their words.
+        proxy: ProxySettings::default(),
     }
 }
