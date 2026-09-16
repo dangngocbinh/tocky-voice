@@ -139,9 +139,13 @@ export function AboutPanel({ presets, version, update }: Props) {
       <section className="section">
         <h2 className="section__title">{t.about.beforeSection}</h2>
         <div className="row row--stack">
-          <span className="row__hint">
-{t.about.privacy}
-          </span>
+          <ul className="facts">
+            {t.about.privacy.map((fact) => (
+              <li key={fact.lead}>
+                <strong>{fact.lead}</strong> {fact.body}
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
     </>

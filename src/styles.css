@@ -547,6 +547,28 @@ body {
   border-top: 1px solid var(--line);
 }
 
+/* Short statements of fact — the privacy notes in About. A list rather than a
+   paragraph because they are four unrelated things, and nobody reads a wall of text at
+   the moment they are deciding whether to trust an app with their voice. */
+.facts {
+  margin: 0;
+  padding-left: 17px;
+  display: grid;
+  gap: 9px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--paper-2);
+}
+
+.facts li::marker {
+  color: var(--accent);
+}
+
+.facts strong {
+  color: var(--paper);
+  font-weight: 600;
+}
+
 /* ============================ controls ============================ */
 
 input,
