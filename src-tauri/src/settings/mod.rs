@@ -178,6 +178,21 @@ pub struct HistorySettings {
     pub audio_retention_days: i64,
 }
 
+/// Outbound HTTP proxy for the speech-recognition websocket.
+///
+/// Off by default. Turn it on when the direct route to the speech provider is lossy
+/// enough that the transcript arrives after `stt::DRAIN_TIMEOUT` has given up on it —
+/// see `crate::proxy` for why that loses the end of the sentence rather than merely
+/// being slow.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ProxySettings {
+    pub enabled: bool,
+    /// `host:port`. An `http://` prefix is accepted and ignored. Credentials never
+    /// live here: the `username:password` pair goes to the vault under `"proxy"`, so
+    /// the settings file stays safe to inspect, diff or back up like the rest of it.
+    pub url: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {
     pub stt: SttSettings,
@@ -224,6 +239,10 @@ pub struct AppSettings {
     pub read_modes: Vec<ReadMode>,
     #[serde(default = "default_active_read_mode_id")]
     pub active_read_mode_id: String,
+    /// Route the speech websocket through an HTTP proxy. `serde(default)` so settings
+    /// files written before this existed still load, landing on off.
+    #[serde(default)]
+    pub proxy: ProxySettings,
 }
 
 fn default_ui_language() -> String {
@@ -244,7 +263,14 @@ fn default_active_read_mode_id() -> String {
 
 /// Every credential name the app can store, for backend migration.
 pub fn all_secret_accounts() -> Vec<&'static str> {
-    let mut accounts = vec!["soniox", "deepgram", "assemblyai", "elevenlabs", "vbee"];
+    let mut accounts = vec![
+        "soniox",
+        "deepgram",
+        "assemblyai",
+        "elevenlabs",
+        "vbee",
+        crate::proxy::SECRET_ACCOUNT,
+    ];
     accounts.extend(defaults::llm_presets().iter().map(|p| p.secret_key));
     accounts
 }

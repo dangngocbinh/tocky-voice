@@ -112,6 +112,15 @@ export interface AppSettings {
   tts: TtsSettings;
   read_modes: ReadMode[];
   active_read_mode_id: string;
+  proxy: ProxySettings;
+}
+
+/** Outbound HTTP proxy for the speech websocket. The username/password pair is not
+ *  here — it goes to the credential store under `proxy`, like every API key. */
+export interface ProxySettings {
+  enabled: boolean;
+  /** `host:port`; an `http://` prefix is accepted and ignored. */
+  url: string;
 }
 
 export interface LlmPreset {

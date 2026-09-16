@@ -105,7 +105,22 @@ async fn connect(request: Request<()>) -> Result<WebSocketStream<MaybeTlsStream<
         _ => 443,
     });
 
-    let stream = connect_tcp(&host, port).await?;
+    // With a proxy configured the dialling above targets the proxy instead, and the
+    // CONNECT tunnel turns that socket into a pipe to the provider before TLS runs over
+    // the top of it. No fallback to the direct route on failure, deliberately: the
+    // proxy is here because the direct route was measured to be the broken one, and
+    // silently going back to it would hide a typo'd address behind the exact symptom
+    // the proxy was turned on to cure.
+    let stream = match crate::proxy::current() {
+        Some(proxy) => {
+            let mut stream = connect_tcp(&proxy.host, proxy.port)
+                .await
+                .with_context(|| format!("connecting to the proxy at {}:{}", proxy.host, proxy.port))?;
+            crate::proxy::tunnel(&mut stream, &host, port).await?;
+            stream
+        }
+        None => connect_tcp(&host, port).await?,
+    };
     let (ws, _) = tokio_tungstenite::client_async_tls_with_config(request, stream, None, None)
         .await
         .context("websocket handshake")?;

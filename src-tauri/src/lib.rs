@@ -20,6 +20,7 @@ mod macos_accessibility;
 mod overlay;
 mod player_window;
 mod private_file;
+pub mod proxy;
 mod read;
 mod selection;
 mod session;
@@ -84,6 +85,7 @@ pub fn run() {
             let settings = settings::load(&handle);
             if let Ok(dir) = handle.path().app_data_dir() {
                 settings::secrets::configure(dir, settings.use_os_keychain);
+                proxy::configure(&settings.proxy);
             }
             log::info!(
                 "starting: stt={:?} llm={}/{} mode={} accessibility={}",

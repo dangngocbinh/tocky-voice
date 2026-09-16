@@ -211,6 +211,69 @@ export function ProvidersEditor({ settings, onSettingsChange }: Props) {
         </div>
       </section>
 
+      {/* Sits with speech rather than in its own tab: it is a property of the speech
+          connection, and the symptom that sends people looking for it — dictation that
+          lags or loses the end of a sentence — is felt right here. */}
+      <section className="section">
+        <h2 className="section__title">{t.providers.proxySection}</h2>
+
+        <div className="row">
+          <div>
+            <div className="row__label">{t.providers.proxyEnable}</div>
+            <span className="row__hint">{t.providers.proxyHint}</span>
+          </div>
+          <div className="row__control">
+            <Switch
+              checked={settings.proxy.enabled}
+              onChange={(enabled) =>
+                onSettingsChange({ ...settings, proxy: { ...settings.proxy, enabled } })
+              }
+            />
+          </div>
+        </div>
+
+        {settings.proxy.enabled && (
+          <>
+            <div className="row">
+              <div>
+                <div className="row__label">{t.providers.proxyAddress}</div>
+                <span className="row__hint">{t.providers.proxyAddressHint}</span>
+              </div>
+              <div className="row__control">
+                <input
+                  type="text"
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="10.0.0.1:3128"
+                  value={settings.proxy.url}
+                  onChange={(e) =>
+                    onSettingsChange({
+                      ...settings,
+                      proxy: { ...settings.proxy, url: e.target.value },
+                    })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="row row--stack">
+              <div className="row__label">
+                {t.providers.proxyCredentials}
+                <span className="row__hint">{t.providers.proxyCredentialsHint}</span>
+              </div>
+              <KeyField
+                account="proxy"
+                configured={keys.proxy}
+                onSaved={refreshKeys}
+                placeholder={t.providers.proxyCredentialsPlaceholder}
+              />
+            </div>
+
+            <p className="row__hint">{t.providers.proxyTestHint}</p>
+          </>
+        )}
+      </section>
+
       <section className="section">
         <h2 className="section__title">{t.providers.aiSection}</h2>
 
@@ -427,10 +490,13 @@ export function KeyField({
   account,
   configured,
   onSaved,
+  placeholder,
 }: {
   account: string;
   configured?: boolean;
   onSaved: () => void;
+  /** Overrides the "Paste API key" prompt for secrets that are not API keys. */
+  placeholder?: string;
 }) {
   const t = useT();
   const [value, setValue] = useState("");
@@ -452,7 +518,9 @@ export function KeyField({
       <input
         type="password"
         autoComplete="off"
-        placeholder={configured ? t.providers.keySaved : t.providers.keyPlaceholder}
+        placeholder={
+          configured ? t.providers.keySaved : (placeholder ?? t.providers.keyPlaceholder)
+        }
         value={value}
         onChange={(e) => setValue(e.target.value)}
       />
