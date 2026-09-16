@@ -80,6 +80,19 @@ pub fn parse_address(raw: &str) -> Result<(String, u16)> {
     if address.is_empty() {
         bail!("no proxy address set");
     }
+    // Reject `user:pass@host:port` rather than letting it through. `rsplit_once(':')`
+    // below splits on the *last* colon, so the userinfo would silently become part of
+    // the hostname: the address could never connect, and the password would be handed
+    // to `lookup_host` as a DNS label and printed into the "connecting to the proxy at
+    // …" error the overlay shows on screen. Checked before the split so a portless
+    // paste (`user:pass@host`) cannot reach the message below either — and the message
+    // deliberately does not echo what was typed.
+    if address.contains('@') {
+        bail!(
+            "put the proxy address on its own here (host:port) — \
+             the username and password go in the credentials field below"
+        );
+    }
     let (host, port) = address
         .rsplit_once(':')
         .context("a proxy address needs a port, for example 10.0.0.1:3128")?;
@@ -215,6 +228,27 @@ mod tests {
     fn rejects_addresses_that_would_silently_go_nowhere() {
         for bad in ["", "   ", "proxy.local", "proxy.local:", "proxy.local:0", ":3128"] {
             assert!(parse_address(bad).is_err(), "{bad:?} should not parse");
+        }
+    }
+
+    /// Regression: `rsplit_once(':')` splits on the *last* colon, so a pasted
+    /// `user:pass@host:port` used to parse as the hostname `"user:pass@host"`. That
+    /// could never connect, and it put the password into a DNS lookup and into the
+    /// "connecting to the proxy at …" error the overlay paints over whatever the user
+    /// is looking at. Rejected outright now, and the refusal must not repeat it back.
+    #[test]
+    fn refuses_a_url_with_credentials_in_it_without_echoing_them() {
+        for pasted in [
+            "http://squid:hunter2@192.0.2.10:3128",
+            "squid:hunter2@192.0.2.10:3128",
+            "http://squid:hunter2@192.0.2.10",
+            "squid@192.0.2.10:3128",
+        ] {
+            let message = parse_address(pasted).expect_err(&format!("{pasted:?} must be refused")).to_string();
+            assert!(
+                !message.contains("hunter2") && !message.contains("squid"),
+                "the refusal for {pasted:?} repeated the credentials back: {message}"
+            );
         }
     }
 
