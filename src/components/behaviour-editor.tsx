@@ -56,6 +56,28 @@ export function BehaviourEditor({ settings, onSettingsChange }: Props) {
 
         <div className="row">
           <div>
+            <div className="row__label">{t.behaviour.theme}</div>
+            <span className="row__hint">{t.behaviour.themeHint}</span>
+          </div>
+          <div className="row__control">
+            <select
+              value={settings.theme}
+              onChange={(e) =>
+                onSettingsChange({
+                  ...settings,
+                  theme: e.target.value as AppSettings["theme"],
+                })
+              }
+            >
+              <option value="system">{t.behaviour.followSystem}</option>
+              <option value="light">{t.behaviour.themeLight}</option>
+              <option value="dark">{t.behaviour.themeDark}</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="row">
+          <div>
             <div className="row__label">{t.onboarding.rerunTitle}</div>
             <span className="row__hint">{t.onboarding.rerunBody}</span>
           </div>

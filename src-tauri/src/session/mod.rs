@@ -46,12 +46,20 @@ struct ActiveTake {
     /// or the selected input never produced a sound in the first place.
     heard_audio: Arc<AtomicBool>,
     pcm: Arc<Mutex<Vec<i16>>>,
+    /// Every final segment the provider committed, kept here as it arrives.
+    ///
+    /// The stream task owns the authoritative transcript and hands it back when it
+    /// finishes — but a task that is aborted or that returns an error hands back
+    /// nothing, and that used to erase words the user had already watched appear on
+    /// the overlay. This copy outlives the task, so a dead connection or a provider
+    /// that stops answering costs the tail of a sentence rather than the whole take.
+    salvage: Arc<Mutex<String>>,
     mode_id: String,
     intent: Intent,
     /// The app that was frontmost when recording began — the one the text belongs in,
     /// even if the user clicks the overlay before stopping.
     target_app: focus::TargetApp,
-    stt_task: tauri::async_runtime::JoinHandle<anyhow::Result<String>>,
+    stt_task: tauri::async_runtime::JoinHandle<anyhow::Result<stt::StreamOutcome>>,
 }
 
 /// Peak amplitude (0..1) a chunk has to reach to count as "the microphone is live".
@@ -157,9 +165,13 @@ pub fn start_with_intent(app: &AppHandle, mode_id: Option<String>, intent: Inten
     let pump_heard = heard_audio.clone();
     let pump_audio_tx = audio_tx.clone();
 
-    // Live transcript preview.
+    let salvage = Arc::new(Mutex::new(String::new()));
+
+    // Live transcript preview, and the safety net behind it: what the overlay shows is
+    // exactly what `salvage` holds, so anything the user saw can still be recovered.
     {
         let app = app.clone();
+        let salvage = salvage.clone();
         tauri::async_runtime::spawn(async move {
             while let Some(event) = event_rx.recv().await {
                 match event {
@@ -167,6 +179,9 @@ pub fn start_with_intent(app: &AppHandle, mode_id: Option<String>, intent: Inten
                         let _ = app.emit(events::PARTIAL, text);
                     }
                     stt::SttEvent::Final(text) => {
+                        if let Ok(mut kept) = salvage.lock() {
+                            stt::append_segment(&mut kept, &text);
+                        }
                         let _ = app.emit(events::TRANSCRIPT, text);
                     }
                 }
@@ -184,6 +199,7 @@ pub fn start_with_intent(app: &AppHandle, mode_id: Option<String>, intent: Inten
             cancelled: Arc::new(AtomicBool::new(false)),
             heard_audio,
             pcm,
+            salvage,
             mode_id: mode_id.clone(),
             intent,
             target_app,
@@ -283,38 +299,73 @@ pub fn stop(app: &AppHandle) {
             result = tokio::time::timeout(FINALIZE_TIMEOUT, &mut take.stt_task) => result,
         };
 
-        let transcript = match streamed {
-            Ok(Ok(Ok(text))) => text,
-            Ok(Ok(Err(e))) => {
-                pipeline::fail(
-                    &app,
-                    &take.mode_id,
-                    ErrorPayload::with_detail(ErrorKind::TranscriptionFailed, format!("{e:#}")),
-                );
-                return;
-            }
-            Ok(Err(e)) => {
-                pipeline::fail(
-                    &app,
-                    &take.mode_id,
-                    ErrorPayload::with_detail(ErrorKind::TranscriptionFailed, format!("{e}")),
-                );
-                return;
-            }
+        // Three ways this can go wrong, and one rule for all of them: if any words were
+        // recognised, they get delivered and written to history, with the failure shown
+        // afterwards as a warning rather than instead of the text.
+        let (transcript, notice) = match streamed {
+            Ok(Ok(Ok(outcome))) => (
+                outcome.transcript,
+                outcome.incomplete.map(|reason| {
+                    ErrorPayload::with_detail(ErrorKind::TranscriptionIncomplete, reason)
+                }),
+            ),
+            Ok(Ok(Err(e))) => match salvaged(&take) {
+                Some(text) => (
+                    text,
+                    Some(ErrorPayload::with_detail(
+                        ErrorKind::TranscriptionIncomplete,
+                        format!("{e:#}"),
+                    )),
+                ),
+                None => {
+                    pipeline::fail(
+                        &app,
+                        &take.mode_id,
+                        ErrorPayload::with_detail(ErrorKind::TranscriptionFailed, format!("{e:#}")),
+                    );
+                    return;
+                }
+            },
+            Ok(Err(e)) => match salvaged(&take) {
+                Some(text) => (
+                    text,
+                    Some(ErrorPayload::with_detail(
+                        ErrorKind::TranscriptionIncomplete,
+                        format!("{e}"),
+                    )),
+                ),
+                None => {
+                    pipeline::fail(
+                        &app,
+                        &take.mode_id,
+                        ErrorPayload::with_detail(ErrorKind::TranscriptionFailed, format!("{e}")),
+                    );
+                    return;
+                }
+            },
             Err(_elapsed) => {
                 take.stt_task.abort();
-                pipeline::fail(
-                    &app,
-                    &take.mode_id,
-                    ErrorPayload::with_detail(
-                        ErrorKind::TranscriptionFailed,
-                        format!(
-                            "the speech provider stopped responding after {}s",
-                            FINALIZE_TIMEOUT.as_secs()
-                        ),
-                    ),
+                let stalled = format!(
+                    "the speech provider stopped responding after {}s",
+                    FINALIZE_TIMEOUT.as_secs()
                 );
-                return;
+                match salvaged(&take) {
+                    Some(text) => (
+                        text,
+                        Some(ErrorPayload::with_detail(
+                            ErrorKind::TranscriptionIncomplete,
+                            stalled,
+                        )),
+                    ),
+                    None => {
+                        pipeline::fail(
+                            &app,
+                            &take.mode_id,
+                            ErrorPayload::with_detail(ErrorKind::TranscriptionFailed, stalled),
+                        );
+                        return;
+                    }
+                }
             }
         };
 
@@ -336,9 +387,20 @@ pub fn stop(app: &AppHandle) {
             take.target_app,
             take.heard_audio.load(Ordering::Relaxed),
             take.intent,
+            notice,
         )
         .await;
     });
+}
+
+/// The words a failed take still owes the user, or `None` if it never produced any.
+fn salvaged(take: &ActiveTake) -> Option<String> {
+    let text = take
+        .salvage
+        .lock()
+        .map(|kept| kept.trim().to_string())
+        .unwrap_or_default();
+    (!text.is_empty()).then_some(text)
 }
 
 /// Aborts the take in flight and discards its audio.

@@ -10,9 +10,15 @@ use tauri::{AppHandle, Manager, PhysicalPosition, WebviewWindow};
 
 pub const LABEL: &str = "overlay";
 
-/// Gap between the overlay and the bottom edge of the screen, in physical pixels
-/// at 1x — scaled by the monitor's DPI factor below.
-const BOTTOM_MARGIN_LOGICAL: f64 = 90.0;
+/// Gap between the visible *panel* and the bottom edge of the screen, in logical
+/// pixels — scaled by the monitor's DPI factor below.
+const PANEL_BOTTOM_GAP_LOGICAL: f64 = 97.0;
+
+/// Transparent margin the window carries below the panel so the panel's shadow has
+/// somewhere to fade out instead of being sliced off at the window edge. Mirrors
+/// `--panel-gutter-bottom` in `styles.css`; subtracted from the gap above so growing
+/// the window for the shadow's sake does not move the panel up the screen.
+const SHADOW_GUTTER_BOTTOM_LOGICAL: f64 = 36.0;
 
 /// Set while onboarding's "try it" step is on screen. That step drives a real take
 /// from our own window on purpose, to show recognized text without sending anyone
@@ -67,9 +73,8 @@ fn position_bottom_center(window: &WebviewWindow) {
     let origin = monitor.position();
 
     let x = origin.x + ((area.width as i32 - size.width as i32) / 2);
-    let y = origin.y + area.height as i32
-        - size.height as i32
-        - (BOTTOM_MARGIN_LOGICAL * scale) as i32;
+    let window_margin = PANEL_BOTTOM_GAP_LOGICAL - SHADOW_GUTTER_BOTTOM_LOGICAL;
+    let y = origin.y + area.height as i32 - size.height as i32 - (window_margin * scale) as i32;
 
     if let Err(e) = window.set_position(PhysicalPosition::new(x, y)) {
         log::debug!("could not position the overlay: {e}");

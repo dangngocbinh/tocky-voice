@@ -78,13 +78,27 @@ pub fn build_protocol(settings: &SttSettings, api_key: String) -> Box<dyn WsProt
     }
 }
 
+/// What a finished stream hands back: the words, plus why it ended early if it did.
+///
+/// The transcript outranks the failure. A connection that dies mid-take — sleeping
+/// laptop, dropped wifi, a provider that closes on us — used to be reported as a bare
+/// error, and every word already committed went with it, including the ones the user
+/// had just watched appear on the overlay. Those words are returned either way now;
+/// `incomplete` is what says the take was cut short.
+pub struct StreamOutcome {
+    pub transcript: String,
+    /// `None` when the stream ended because the user stopped talking.
+    pub incomplete: Option<String>,
+}
+
 /// Streams `audio_rx` to the provider until the sender is dropped, forwarding
-/// interim results to `events`. Resolves with the complete final transcript.
+/// interim results to `events`. Resolves with whatever was transcribed — `Err` only
+/// when the stream broke with nothing to show for it.
 pub async fn run_stream(
     mut protocol: Box<dyn WsProtocol>,
     mut audio_rx: UnboundedReceiver<Vec<u8>>,
     events: UnboundedSender<SttEvent>,
-) -> Result<String> {
+) -> Result<StreamOutcome> {
     let request = protocol.request()?;
     let (ws, _) = tokio::time::timeout(CONNECT_TIMEOUT, tokio_tungstenite::connect_async(request))
         .await
@@ -139,14 +153,24 @@ pub async fn run_stream(
 
             // Result side.
             msg = reader.next() => match msg {
-                Some(Ok(Message::Text(text))) => {
-                    for event in protocol.parse(&text)? {
-                        if let SttEvent::Final(ref t) = event {
-                            append_segment(&mut transcript, t);
+                Some(Ok(Message::Text(text))) => match protocol.parse(&text) {
+                    Ok(parsed) => {
+                        for event in parsed {
+                            if let SttEvent::Final(ref t) = event {
+                                append_segment(&mut transcript, t);
+                            }
+                            let _ = events.send(event);
                         }
-                        let _ = events.send(event);
                     }
-                }
+                    // The provider ending the session on us mid-take: a rejected key,
+                    // an exhausted quota. Whatever it committed before saying so is
+                    // still the user's, so this stops the loop instead of unwinding
+                    // out of the function with the transcript still in hand.
+                    Err(e) => {
+                        broke_early.get_or_insert_with(|| format!("{e}"));
+                        break;
+                    }
+                },
                 // A close before the user has finished speaking is the provider ending
                 // the session on us, and its reason is the only clue about why.
                 Some(Ok(Message::Close(frame))) => {
@@ -163,34 +187,82 @@ pub async fn run_stream(
                     break;
                 }
                 Some(Ok(_)) => {}
-                Some(Err(e)) => return Err(anyhow!("speech provider stream error: {e}")),
+                Some(Err(e)) => {
+                    broke_early.get_or_insert_with(|| format!("speech provider stream error: {e}"));
+                    break;
+                }
             },
         }
 
         // Once audio has stopped, give the provider a bounded window to flush.
+        //
+        // `tail` is owned out here rather than returned by `drain`, so a drain that
+        // errors or runs out of time still leaves behind the segments it did read —
+        // as a return value they went in the bin along with the last sentence spoken.
         if audio_done {
-            match tokio::time::timeout(DRAIN_TIMEOUT, drain(&mut reader, &mut protocol, &events)).await
+            let mut tail = Vec::new();
+            match tokio::time::timeout(
+                DRAIN_TIMEOUT,
+                drain(&mut reader, &mut protocol, &events, &mut tail),
+            )
+            .await
             {
-                Ok(Ok(tail)) => {
-                    for segment in tail {
-                        append_segment(&mut transcript, &segment);
-                    }
-                }
+                Ok(Ok(())) => {}
                 Ok(Err(e)) => {
                     log::warn!("stt drain error: {e}");
                     broke_early.get_or_insert_with(|| format!("{e}"));
                 }
                 Err(_) => log::warn!("stt drain timed out; using transcript so far"),
             }
+            for segment in &tail {
+                append_segment(&mut transcript, segment);
+            }
             break;
         }
     }
 
     let _ = tokio::time::timeout(SEND_TIMEOUT, writer.close()).await;
+    outcome(transcript, broke_early)
+}
+
+/// The rule every ending of a take obeys, pulled out so it is a test rather than a
+/// promise: words beat failures. A stream that broke after recognising something
+/// reports both; only a stream that broke with nothing to show is an error.
+fn outcome(transcript: String, broke_early: Option<String>) -> Result<StreamOutcome> {
     let transcript = transcript.trim().to_string();
     match broke_early {
         Some(reason) if transcript.is_empty() => Err(anyhow!("{reason}")),
-        _ => Ok(transcript),
+        incomplete => Ok(StreamOutcome {
+            transcript,
+            incomplete,
+        }),
+    }
+}
+
+#[cfg(test)]
+mod outcome_tests {
+    use super::outcome;
+
+    /// Regression: a connection that died mid-take used to be reported as a bare
+    /// error, taking with it every word the user had just watched appear on screen.
+    #[test]
+    fn a_stream_that_broke_after_recognising_words_still_hands_them_over() {
+        let result = outcome("xin chào mọi người".into(), Some("connection dropped".into()))
+            .expect("words already recognised are never thrown away");
+        assert_eq!(result.transcript, "xin chào mọi người");
+        assert!(result.incomplete.is_some(), "and the take is marked as cut short");
+    }
+
+    #[test]
+    fn a_stream_that_broke_with_nothing_to_show_is_an_error() {
+        assert!(outcome("   ".into(), Some("invalid api key".into())).is_err());
+    }
+
+    #[test]
+    fn a_clean_take_is_not_marked_as_cut_short() {
+        let result = outcome(" xin chào ".into(), None).expect("a clean take");
+        assert_eq!(result.transcript, "xin chào");
+        assert!(result.incomplete.is_none());
     }
 }
 
@@ -298,13 +370,15 @@ type WsReader = futures_util::stream::SplitStream<
     tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>,
 >;
 
-/// Reads until the provider closes the socket, collecting any remaining final text.
+/// Reads until the provider closes the socket, appending any remaining final text to
+/// `tail`. Writes as it goes rather than returning a batch, so an error or a timeout
+/// halfway through costs only the frames that never arrived.
 async fn drain(
     reader: &mut WsReader,
     protocol: &mut Box<dyn WsProtocol>,
     events: &UnboundedSender<SttEvent>,
-) -> Result<Vec<String>> {
-    let mut tail = Vec::new();
+    tail: &mut Vec<String>,
+) -> Result<()> {
     while let Some(msg) = reader.next().await {
         match msg {
             Ok(Message::Text(text)) => {
@@ -320,7 +394,7 @@ async fn drain(
             Err(e) => return Err(anyhow!("{e}")),
         }
     }
-    Ok(tail)
+    Ok(())
 }
 
 /// Joins transcript segments with exactly one space between words.
@@ -328,7 +402,7 @@ async fn drain(
 /// Vendors are inconsistent about whether a segment carries its own leading space —
 /// Soniox usually does, Deepgram never does — so the segment is normalised and the
 /// separator decided here rather than trusting either convention.
-fn append_segment(transcript: &mut String, segment: &str) {
+pub(crate) fn append_segment(transcript: &mut String, segment: &str) {
     let segment = segment.trim();
     if segment.is_empty() {
         return;
