@@ -193,6 +193,11 @@ pub struct AppSettings {
     /// `serde(default)` keeps older settings files loading.
     #[serde(default = "default_ui_language")]
     pub ui_language: String,
+    /// Interface theme: `system`, `light` or `dark`. `system` follows the OS setting,
+    /// resolved in the frontend where `prefers-color-scheme` is available.
+    /// `serde(default)` keeps older settings files loading.
+    #[serde(default = "default_theme")]
+    pub theme: String,
     /// Whether the first-run walkthrough has been finished. Defaults to false so an
     /// existing install that predates onboarding still gets shown it once.
     #[serde(default)]
@@ -222,6 +227,10 @@ pub struct AppSettings {
 }
 
 fn default_ui_language() -> String {
+    "system".to_string()
+}
+
+fn default_theme() -> String {
     "system".to_string()
 }
 

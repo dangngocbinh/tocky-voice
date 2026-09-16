@@ -8,6 +8,7 @@ pub mod refine;
 pub mod settings;
 pub mod stt;
 
+mod code_signature;
 mod commands;
 mod errors;
 mod focus;
@@ -179,6 +180,7 @@ pub fn run() {
             commands::clear_history,
             commands::copy_text,
             commands::permission_status,
+            commands::can_self_install,
             commands::open_accessibility_settings,
             commands::open_url,
             commands::test_llm,

@@ -158,6 +158,10 @@ const en = {
     generalSection: "General",
     uiLanguage: "Interface language",
     uiLanguageHint: "Follows your system language unless you pick one.",
+    theme: "Appearance",
+    themeHint: "Dark for night work, light for a bright desk.",
+    themeLight: "Light",
+    themeDark: "Dark",
     followSystem: "Follow system",
     shortcutsSection: "Shortcuts",
     toggle: "Start / stop",
@@ -274,8 +278,27 @@ const en = {
     coursesBody: "ME Code teaches AI automation, VibeCode and AI agents, in Vietnamese.",
     coursesLink: "See the courses",
     beforeSection: "Before you hand this to someone",
-    privacy:
-      "Your voice is streamed to the speech provider, and the transcript is then sent to the AI provider — both under the account whose key you entered. Anything you dictate reaches those two companies. Keys are stored in a file only your user account can read, or in the OS keychain if you switch that on in Providers. Credit amounts above are what the vendors advertise and can change without notice — check the signup page. The app also checks GitHub for a newer version once per launch, which sends your current app version and IP address; turn this off in Settings if you'd rather not.",
+    // Four separate facts, so they are four separate lines. As one paragraph this was
+    // a wall of text at the exact moment someone is deciding whether to trust the app
+    // with their voice — which is the moment it has to be readable.
+    privacy: [
+      {
+        lead: "Your voice leaves this machine.",
+        body: "It is streamed to the speech provider you picked. If the mode uses AI cleanup, the text goes on to the AI provider; if you use read-aloud, the highlighted text goes to the voice provider. All of it runs on the accounts whose keys you entered.",
+      },
+      {
+        lead: "Keys stay on this machine.",
+        body: "In a file only your user account can read — or in the system keychain, if you switch that on under Providers.",
+      },
+      {
+        lead: "One call to GitHub each time the app starts,",
+        body: "to see whether a new version is out. It sends the app version and your IP address. Turn it off in Settings.",
+      },
+      {
+        lead: "The free credit shown above is the vendor's own figure",
+        body: "and can change at any time — check their signup page.",
+      },
+    ],
   },
 
   update: {
@@ -288,6 +311,8 @@ const en = {
     newVersionAvailable: "A new version is available:",
     notesTitle: "What's new",
     installButton: "Update and restart",
+    updateNow: "Update now",
+    badgeNew: "NEW",
     downloadButton: "Download the update ↗",
     macOnlyReason:
       "This build isn't code-signed, so macOS can't safely replace it in place — download and install it by hand instead.",
@@ -327,6 +352,7 @@ const en = {
     languageTitle: "Welcome to Tocky Voice",
     languageBody:
       "Press one key anywhere on your computer, talk, press it again, and what you said is typed into whatever app you are in. A few short steps and you are ready. First, which language should this app be in?",
+    themePrompt: "And how should it look? This changes as you pick, so try both.",
 
     micTitle: "Check your microphone",
     micBody:
@@ -398,6 +424,12 @@ const en = {
     no_audio_captured:
       "The microphone opened but stayed completely silent, so there was nothing to transcribe. Pick the right input under Dictate → Microphone and check it is not muted.",
     transcription_failed: "Transcription failed.",
+    // Deliberately does not say where the words ended up. Paste restores the previous
+    // clipboard, history can be switched off, and the output mode decides the rest — so
+    // naming three places was wrong on the most ordinary path of all. What is always
+    // true is that they were delivered and are still on this panel.
+    transcription_incomplete:
+      "The connection to the speech service broke mid-take. What had been recognised by then was kept and delivered — the last few seconds may be missing. The words are still on this panel: press Copy if you need them again.",
     nothing_selected:
       "Nothing is highlighted. Select some text anywhere, then try again.",
     selection_too_long:
@@ -419,9 +451,20 @@ const en = {
   },
 } as const;
 
-type Dictionary = {
-  -readonly [S in keyof typeof en]: { -readonly [K in keyof (typeof en)[S]]: string };
-};
+/**
+ * The shape of `en`, with every string leaf widened to `string`.
+ *
+ * Recursive rather than two levels deep, so an entry can be a list or a nested object
+ * when the content calls for it — the About tab's privacy notes are four
+ * `{ lead, body }` pairs — while a missing or misspelled key stays a compile error.
+ * Widening only the leaves is the point: `vi` has to match `en`'s structure exactly
+ * without being forced to repeat its English wording as a literal type.
+ */
+type Translated<T> = T extends string
+  ? string
+  : { -readonly [K in keyof T]: Translated<T[K]> };
+
+type Dictionary = { -readonly [S in keyof typeof en]: Translated<(typeof en)[S]> };
 
 const vi: Dictionary = {
   nav: {
@@ -468,7 +511,7 @@ const vi: Dictionary = {
       "Bấm phím nói ở bất kỳ ứng dụng nào rồi nói; bấm lần nữa là lời nói được chuyển thành chữ, có thể được AI viết lại theo chế độ đang chọn, rồi dán vào đúng chỗ con trỏ.",
     accessibilityTitle: "Cần quyền Accessibility.",
     accessibilityBody:
-      "Thiếu quyền này macOS sẽ chặn thao tác dán, nên chữ chỉ vào clipboard chứ không vào được ứng dụng anh đang gõ.",
+      "Thiếu quyền này macOS sẽ chặn thao tác dán, nên chữ chỉ vào clipboard chứ không vào được ứng dụng bạn đang gõ.",
     start: "Bắt đầu đọc",
     stop: "Dừng & dán",
     working: "Đang xử lý…",
@@ -511,7 +554,7 @@ const vi: Dictionary = {
   providers: {
     title: "Nhà cung cấp",
     lede:
-      "Nhận dạng giọng nói chạy qua kết nối streaming; phần AI tinh chỉnh là một lượt gọi sau đó. Cả hai đều dùng tài khoản của anh.",
+      "Nhận dạng giọng nói chạy qua kết nối streaming; phần AI tinh chỉnh là một lượt gọi sau đó. Cả hai đều dùng tài khoản của bạn.",
     speechSection: "Nhận dạng giọng nói",
     keySet: "đã có key",
     noKey: "chưa có key",
@@ -544,7 +587,7 @@ const vi: Dictionary = {
     storageSection: "Nơi lưu khoá",
     useKeychain: "Dùng keychain hệ thống",
     useKeychainHint:
-      "Mặc định tắt: key nằm trong file chỉ tài khoản của anh đọc được. Keychain an toàn hơn, nhưng bản chưa ký sẽ khiến macOS hỏi mật khẩu đăng nhập mỗi lần đọc — chỉ nên bật khi app đã được ký. Key hiện có sẽ tự chuyển sang.",
+      "Mặc định tắt: key nằm trong file chỉ tài khoản của bạn đọc được. Keychain an toàn hơn, nhưng bản chưa ký sẽ khiến macOS hỏi mật khẩu đăng nhập mỗi lần đọc — chỉ nên bật khi app đã được ký. Key hiện có sẽ tự chuyển sang.",
   },
 
   behaviour: {
@@ -553,7 +596,11 @@ const vi: Dictionary = {
       "Ngôn ngữ, phím tắt, âm thanh, lịch sử và khởi động cùng máy. Phím tắt là toàn cục — dùng được từ bất kỳ ứng dụng nào.",
     generalSection: "Chung",
     uiLanguage: "Ngôn ngữ giao diện",
-    uiLanguageHint: "Theo ngôn ngữ hệ thống, trừ khi anh tự chọn.",
+    uiLanguageHint: "Theo ngôn ngữ hệ thống, trừ khi bạn tự chọn.",
+    theme: "Giao diện",
+    themeHint: "Tối cho lúc làm đêm, sáng cho bàn làm việc nhiều ánh sáng.",
+    themeLight: "Sáng",
+    themeDark: "Tối",
     followSystem: "Theo hệ thống",
     shortcutsSection: "Phím tắt",
     toggle: "Bắt đầu / dừng",
@@ -564,11 +611,11 @@ const vi: Dictionary = {
     feedbackSection: "Phản hồi",
     sounds: "Âm báo",
     soundsHint:
-      "Tiếng bíp ngắn khi bắt đầu, dừng, xong và huỷ — để anh đọc mà không cần nhìn màn hình.",
+      "Tiếng bíp ngắn khi bắt đầu, dừng, xong và huỷ — để bạn đọc mà không cần nhìn màn hình.",
     volume: "Âm lượng",
     historySection: "Lịch sử",
     keepHistory: "Lưu lịch sử",
-    keepHistoryHint: "Lưu trong file chỉ tài khoản của anh đọc được.",
+    keepHistoryHint: "Lưu trong file chỉ tài khoản của bạn đọc được.",
     keepAudio: "Lưu file ghi âm",
     keepAudioHint: "Nghe lại được khi nhận dạng ra sai.",
     maxEntries: "Số bản ghi giữ lại",
@@ -581,9 +628,9 @@ const vi: Dictionary = {
   history: {
     title: "Lịch sử",
     lede:
-      "Mọi thứ anh đã đọc, mới nhất trước — để lỡ dán hụt hay dán sai thì lấy lại được thay vì phải đọc lại.",
+      "Mọi thứ bạn đã đọc, mới nhất trước — để lỡ dán hụt hay dán sai thì lấy lại được thay vì phải đọc lại.",
     empty: "Chưa có gì ở đây.",
-    emptyHint: "Những lần đọc của anh sẽ được lưu lại để chép lại sau.",
+    emptyHint: "Những lần đọc của bạn sẽ được lưu lại để chép lại sau.",
     entry: "bản ghi",
     entries: "bản ghi",
     readFull: "Đọc toàn văn",
@@ -636,7 +683,7 @@ const vi: Dictionary = {
     maxChars: "Chặn khi bôi đen quá",
     maxCharsHint: "Chặn trường hợp lỡ bôi đen cả trang trước khi gọi API tốn tiền.",
     privacy:
-      "Văn bản bôi đen được gửi tới nhà cung cấp AI và đọc mà anh chọn ở trên — không lưu lại, không giữ lịch sử các lần đọc. Khi app nào đó không cho lấy chữ bôi đen, thanh điều khiển sẽ hỏi có đọc nội dung trong clipboard không; chỉ khi anh bấm nút thì nội dung đó mới được gửi đi.",
+      "Văn bản bôi đen được gửi tới nhà cung cấp AI và đọc mà bạn chọn ở trên — không lưu lại, không giữ lịch sử các lần đọc. Khi app nào đó không cho lấy chữ bôi đen, thanh điều khiển sẽ hỏi có đọc nội dung trong clipboard không; chỉ khi bạn bấm nút thì nội dung đó mới được gửi đi.",
   },
 
   player: {
@@ -654,7 +701,7 @@ const vi: Dictionary = {
   about: {
     title: "Giới thiệu",
     lede:
-      "Tocky Voice là mã nguồn mở. App dùng tài khoản nhà cung cấp của chính anh, nên không ai đứng giữa thu tiền và không có âm thanh nào đi vòng qua bên thứ ba.",
+      "Tocky Voice là mã nguồn mở. App dùng tài khoản nhà cung cấp của chính bạn, nên không ai đứng giữa thu tiền và không có âm thanh nào đi vòng qua bên thứ ba.",
     madeBy: "Thực hiện bởi",
     sttSection: "Nhận dạng giọng nói — chọn một",
     sttHint: "Bắt buộc. Đây là thứ biến giọng nói thành chữ.",
@@ -670,8 +717,24 @@ const vi: Dictionary = {
     coursesBody: "ME Code dạy AI Automation, VibeCode và AI Agent, bằng tiếng Việt.",
     coursesLink: "Xem các khoá học",
     beforeSection: "Trước khi đưa app này cho người khác",
-    privacy:
-      "Giọng nói của anh được truyền tới nhà cung cấp nhận dạng, rồi văn bản được gửi tiếp tới nhà cung cấp AI — cả hai đều chạy trên tài khoản mà anh nhập key. Mọi thứ anh đọc đều tới tay hai công ty đó. Key lưu trong file chỉ tài khoản của anh đọc được, hoặc trong keychain hệ thống nếu anh bật ở tab Nhà cung cấp. Các con số credit ở trên là do hãng quảng cáo và có thể đổi bất cứ lúc nào — hãy kiểm tra lại ở trang đăng ký. App cũng tự kiểm tra bản mới trên GitHub mỗi lần mở, việc này gửi đi phiên bản app hiện tại và địa chỉ IP; tắt được ở mục Cài đặt nếu anh không muốn.",
+    privacy: [
+      {
+        lead: "Giọng nói của bạn đi ra khỏi máy.",
+        body: "Nó được truyền thẳng tới dịch vụ nhận dạng bạn chọn. Nếu chế độ có AI viết lại thì phần chữ đi tiếp tới nhà cung cấp AI; nếu bạn dùng đọc to thì đoạn bôi đen đi tới dịch vụ giọng đọc. Tất cả đều chạy bằng key của chính bạn.",
+      },
+      {
+        lead: "Key nằm lại trên máy.",
+        body: "Trong một file chỉ tài khoản của bạn đọc được — hoặc trong keychain hệ thống, nếu bạn bật ở tab Nhà cung cấp.",
+      },
+      {
+        lead: "Mỗi lần mở app có một lần gọi tới GitHub",
+        body: "để xem có bản mới không. Nó gửi đi phiên bản app và địa chỉ IP. Tắt được ở Cài đặt.",
+      },
+      {
+        lead: "Con số credit miễn phí ở trên là hãng tự công bố,",
+        body: "có thể đổi bất cứ lúc nào — kiểm tra lại ở trang đăng ký của họ.",
+      },
+    ],
   },
 
   update: {
@@ -684,6 +747,8 @@ const vi: Dictionary = {
     newVersionAvailable: "Có bản mới:",
     notesTitle: "Có gì mới",
     installButton: "Cập nhật và khởi động lại",
+    updateNow: "Cập nhật ngay",
+    badgeNew: "MỚI",
     downloadButton: "Tải bản mới ↗",
     macOnlyReason:
       "Bản này chưa được ký số nên macOS không tự thay thế an toàn được — hãy tải về và cài tay.",
@@ -719,6 +784,7 @@ const vi: Dictionary = {
     languageTitle: "Chào mừng đến Tocky Voice",
     languageBody:
       "Bấm một phím ở bất kỳ đâu trên máy, nói, bấm lại, và chữ được gõ thẳng vào ứng dụng bạn đang mở. Vài bước ngắn là xong. Trước tiên, bạn muốn app hiển thị bằng ngôn ngữ nào?",
+    themePrompt: "Còn nhìn thế nào cho dễ chịu? Chọn cái nào là đổi ngay, thử cả hai đi.",
 
     micTitle: "Kiểm tra micro",
     micBody:
@@ -790,6 +856,8 @@ const vi: Dictionary = {
     no_audio_captured:
       "Micro có mở nhưng im hoàn toàn, nên không có gì để nhận dạng. Chọn đúng micro ở tab Đọc → Micro và kiểm tra xem nó có bị tắt tiếng không.",
     transcription_failed: "Nhận dạng giọng nói thất bại.",
+    transcription_incomplete:
+      "Kết nối tới dịch vụ nhận dạng bị đứt giữa chừng. Phần chữ đã nghe được vẫn được giữ và đã giao đi — có thể thiếu vài giây cuối. Chữ vẫn còn trên bảng này: bấm Chép nếu cần lấy lại.",
     nothing_selected: "Chưa bôi đen chữ nào. Bôi đen một đoạn bất kỳ rồi thử lại.",
     selection_too_long:
       "Đoạn bôi đen dài hơn ngưỡng cho phép. Bôi đen ít hơn, hoặc nâng ngưỡng ở tab Đọc.",

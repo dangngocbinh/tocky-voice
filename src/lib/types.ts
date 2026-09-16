@@ -1,5 +1,7 @@
 /** Mirrors the serde representation of the Rust settings types. */
 
+import type { UiTheme } from "./theme";
+
 export type SttProviderKind = "soniox" | "deepgram" | "assembly_ai";
 
 export interface SttSettings {
@@ -103,6 +105,7 @@ export interface AppSettings {
   history: HistorySettings;
   autostart: boolean;
   ui_language: "system" | "en" | "vi";
+  theme: UiTheme;
   onboarding_completed: boolean;
   use_os_keychain: boolean;
   auto_check_updates: boolean;
@@ -210,6 +213,7 @@ export type ErrorKind =
   | "mic_unavailable"
   | "no_audio_captured"
   | "transcription_failed"
+  | "transcription_incomplete"
   | "nothing_selected"
   | "selection_too_long"
   | "tts_failed"

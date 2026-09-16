@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      Signing turns on the hardened runtime (Tauri's default), and under it the
+      microphone is not merely permission-gated but entitlement-gated: without this
+      key TCC denies the device outright and never shows the prompt, so a signed,
+      notarised build would open a microphone that is silent forever while
+      NSMicrophoneUsageDescription sits in Info.plist looking correct.
+
+      This is a hardened-runtime resource entitlement, not an App Sandbox one — the
+      app is not sandboxed, and adding it does not sandbox it.
+    -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+</dict>
+</plist>

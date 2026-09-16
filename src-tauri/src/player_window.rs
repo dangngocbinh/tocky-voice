@@ -9,7 +9,14 @@ use tauri::{AppHandle, Manager, PhysicalPosition, WebviewWindow};
 
 pub const LABEL: &str = "player";
 
+/// Gap between the visible *panel* and the top/right edges of the screen, logical px.
 const MARGIN: f64 = 24.0;
+
+/// Transparent margins the window carries around the panel so its shadow can fade out
+/// rather than end at the window edge. Mirror `--panel-gutter-x` / `--panel-gutter-top`
+/// in `styles.css`, and are subtracted from [`MARGIN`] so the panel keeps its place.
+const SHADOW_GUTTER_X: f64 = 26.0;
+const SHADOW_GUTTER_TOP: f64 = 16.0;
 
 /// Height to leave clear at the top of the screen. Covers the macOS menu bar (and the
 /// notch on the machines that have one) with room to spare; harmless elsewhere, where
@@ -92,13 +99,14 @@ fn default_position(window: &WebviewWindow) -> Option<(f64, f64)> {
     let scale = monitor.scale_factor();
     let area = monitor.size();
     let origin = monitor.position();
-    let margin = (MARGIN * scale) as i32;
-
-    let x = origin.x + area.width as i32 - size.width as i32 - margin;
+    let x = origin.x + area.width as i32
+        - size.width as i32
+        - ((MARGIN - SHADOW_GUTTER_X) * scale) as i32;
     // `monitor.size()` is the whole panel including the menu bar, so the top margin has
     // to clear it as well — otherwise the bar lands underneath and only its lower half
     // is clickable.
-    let y = origin.y + margin + (MENU_BAR_ALLOWANCE * scale) as i32;
+    let y = origin.y
+        + ((MARGIN - SHADOW_GUTTER_TOP + MENU_BAR_ALLOWANCE) * scale) as i32;
     Some((x as f64, y as f64))
 }
 

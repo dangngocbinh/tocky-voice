@@ -12,30 +12,96 @@
 
 @import "./assets/fonts/fonts.css";
 
+/*
+ * Two themes, one set of names.
+ *
+ * Every colour in this sheet is a token, and nothing below this block names a colour
+ * directly — that is what makes a second theme a list of values rather than a second
+ * stylesheet. `[data-theme="light"]` restates the same names; `app-root.tsx` puts the
+ * attribute on <html>, resolving "system" against the OS.
+ */
 :root {
-  /* Warm near-black rather than #000: pure black on an OLED panel makes the overlay
-     edge disappear, and the warm tilt keeps Vietnamese diacritics from looking icy. */
-  --ink-900: #0c0b0a;
-  --ink-800: #131211;
-  --ink-700: #1a1917;
-  --ink-600: #211f1d;
-  --ink-500: #2a2724;
+  /* Warm charcoal rather than near-black. Pure black was accurate to the "instrument"
+     idea and tiring to sit in front of: on a bright desk the panels read as holes in
+     the screen and the eye works to find edges. Lifting the base a few steps keeps the
+     hierarchy — rail above app, surfaces above rail — while the warm tilt keeps
+     Vietnamese diacritics from looking icy. */
+  --ink-900: #191714;
+  --ink-800: #201d1a;
+  --ink-700: #272420;
+  --ink-600: #302c27;
+  --ink-500: #3b3730;
 
-  --line: #262320;
-  --line-strong: #37332e;
+  --line: #332f2a;
+  --line-strong: #47423a;
+  --line-hover: #575148;
 
-  --paper: #ece8e2;
-  --paper-2: #a9a29a;
-  --paper-3: #7d766e;
+  --paper: #f1ece5;
+  --paper-2: #b6aea4;
+  --paper-3: #8e867b;
 
   /* One accent, used only for things you can act on. */
   --accent: #e0a03c;
   --accent-ink: #1a1206;
+  --accent-hot: #edad48;
   --accent-wash: rgba(224, 160, 60, 0.13);
+  --accent-wash-strong: rgba(224, 160, 60, 0.18);
+  --accent-line: rgba(224, 160, 60, 0.32);
+  --accent-line-strong: rgba(224, 160, 60, 0.45);
 
   /* Reserved exclusively for "the microphone is live". */
   --live: #e2564b;
+  --live-wash: rgba(226, 86, 75, 0.1);
+  --live-line: rgba(226, 86, 75, 0.3);
+  --live-glow: rgba(226, 86, 75, 0.16);
+
   --ok: #86b06a;
+  --ok-wash: rgba(134, 176, 106, 0.08);
+  --ok-line: rgba(134, 176, 106, 0.3);
+
+  --scrim: rgba(6, 6, 5, 0.66);
+  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.6);
+
+  /* The floating panels (overlay, player) are their own material: smoked glass over
+     whatever the user is working in, so they are tinted rather than filled. */
+  --glass: linear-gradient(180deg, rgba(40, 37, 33, 0.94), rgba(23, 21, 19, 0.96));
+  --glass-line: rgba(255, 255, 255, 0.1);
+  --glass-highlight: rgba(255, 255, 255, 0.07);
+  --glass-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  --glass-shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.45);
+
+  /* Tints for controls sitting on glass, where a solid fill would break the material. */
+  --fill-soft: rgba(255, 255, 255, 0.08);
+  --fill: rgba(255, 255, 255, 0.14);
+  --fill-line-soft: rgba(255, 255, 255, 0.08);
+  --fill-line: rgba(255, 255, 255, 0.14);
+  --fill-line-strong: rgba(255, 255, 255, 0.22);
+
+  /*
+   * Empty margin kept between a floating panel and the edge of its own window, so the
+   * shadow has somewhere to fade out.
+   *
+   * A transparent window clips at its bounds like any other, and the shadow was drawn
+   * into a 7px margin while spreading five times that — so it ended at a dead straight
+   * line all the way round the panel and read as a dark border rather than as a
+   * shadow.
+   *
+   * How much room a shadow needs is not half its blur radius, which is the intuitive
+   * answer and leaves a visible step: a CSS shadow is a Gaussian with sigma = blur/2,
+   * and it only falls below one part in 255 at roughly 2.1 sigma — so the gutter has
+   * to be about **1.05 x the blur radius**, plus the vertical offset below and minus
+   * it above. With the 24px blur used here that is 25.2px, which is what the numbers
+   * below are sized from (measured, not assumed: the edge pixels of a screenshot over
+   * a flat backdrop are within 1/255 of it).
+   *
+   * These are tied to the window sizes in `tauri.conf.json` and to the placement
+   * margins in `overlay.rs` / `player_window.rs` — the window is the panel plus these
+   * gutters, and the placement subtracts them so the panel still sits where it did.
+   * Change one, change all four.
+   */
+  --panel-gutter-x: 26px;
+  --panel-gutter-top: 16px;
+  --panel-gutter-bottom: 36px;
 
   --r-sm: 6px;
   --r-md: 9px;
@@ -50,6 +116,66 @@
   color: var(--paper);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/*
+ * Light: warm paper, not white. The same warmth as the dark theme, seen from the other
+ * side — a plain white shell under an amber accent reads as a web page, which is the
+ * one thing this interface is not.
+ *
+ * The accent darkens here: #e0a03c is a light colour, and white type on it (the primary
+ * button) would be unreadable against paper. Same for the red and the green.
+ */
+[data-theme="light"] {
+  --ink-900: #faf7f2;
+  --ink-800: #f2eee6;
+  --ink-700: #ffffff;
+  --ink-600: #f0ebe2;
+  --ink-500: #d8d2c6;
+
+  --line: #e7e1d6;
+  --line-strong: #d3ccbe;
+  --line-hover: #b6ae9e;
+
+  --paper: #24211c;
+  --paper-2: #5d564c;
+  --paper-3: #857d71;
+
+  --accent: #b5720d;
+  --accent-ink: #fffaf2;
+  --accent-hot: #9d6209;
+  --accent-wash: rgba(181, 114, 13, 0.12);
+  --accent-wash-strong: rgba(181, 114, 13, 0.18);
+  --accent-line: rgba(181, 114, 13, 0.35);
+  --accent-line-strong: rgba(181, 114, 13, 0.5);
+
+  --live: #c03428;
+  --live-wash: rgba(192, 52, 40, 0.09);
+  --live-line: rgba(192, 52, 40, 0.32);
+  --live-glow: rgba(192, 52, 40, 0.16);
+
+  --ok: #4d7a36;
+  --ok-wash: rgba(77, 122, 54, 0.09);
+  --ok-line: rgba(77, 122, 54, 0.32);
+
+  --scrim: rgba(40, 35, 28, 0.34);
+  --shadow-modal: 0 24px 64px rgba(54, 45, 33, 0.22);
+
+  --glass: linear-gradient(180deg, rgba(255, 253, 249, 0.96), rgba(243, 239, 231, 0.97));
+  --glass-line: rgba(36, 33, 28, 0.14);
+  /* The inset top highlight is what keeps the panel from looking flat. On paper that
+     job falls to white, not to a lighter grey. */
+  --glass-highlight: rgba(255, 255, 255, 0.9);
+  --glass-shadow: 0 18px 44px rgba(54, 45, 33, 0.2);
+  --glass-shadow-sm: 0 14px 34px rgba(54, 45, 33, 0.16);
+
+  --fill-soft: rgba(36, 33, 28, 0.05);
+  --fill: rgba(36, 33, 28, 0.1);
+  --fill-line-soft: rgba(36, 33, 28, 0.08);
+  --fill-line: rgba(36, 33, 28, 0.14);
+  --fill-line-strong: rgba(36, 33, 28, 0.22);
+
+  color-scheme: light;
 }
 
 * {
@@ -120,6 +246,47 @@ body {
   height: 22px;
   flex: none;
   color: var(--accent);
+}
+
+/* The version line when an update is waiting: a button that does not look like one
+   until the pointer is on it, so an ordinary launch stays as quiet as before. */
+.rail__update {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 4px;
+  margin-left: -4px;
+  border: 1px solid transparent;
+  border-radius: 99px;
+  background: transparent;
+}
+
+.rail__update:hover:not(:disabled) {
+  background: var(--fill-soft);
+  border-color: var(--accent-line);
+}
+
+.rail__badge {
+  padding: 1px 5px;
+  border-radius: 99px;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--accent-ink);
+  background: var(--accent);
+  /* A quiet pulse: the badge has to be noticed once, not flash for the whole session. */
+  animation: badge-in 2.4s ease-out 1;
+}
+
+@keyframes badge-in {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  35% {
+    box-shadow: 0 0 0 4px var(--accent-wash);
+  }
 }
 
 .rail__name {
@@ -317,14 +484,89 @@ body {
   justify-content: flex-end;
 }
 
+/* Release notes. Rendered from Markdown by `release-notes.tsx`, so this styles real
+   headings and lists rather than one preformatted blob. */
 .notes {
-  white-space: pre-wrap;
   font-size: 12.5px;
   line-height: 1.6;
-  color: var(--paper-3);
-  max-height: 220px;
+  color: var(--paper-2);
+  max-height: 260px;
   overflow-y: auto;
+  /* Room for the scrollbar so it never sits on top of the last word of a line. */
+  padding-right: 10px;
   margin: 0;
+}
+
+.notes__heading {
+  margin: 14px 0 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--paper-3);
+}
+
+.notes > .notes__heading:first-child {
+  margin-top: 0;
+}
+
+.notes__paragraph {
+  margin: 0 0 8px;
+}
+
+.notes__list {
+  margin: 0 0 8px;
+  padding-left: 16px;
+  display: grid;
+  gap: 6px;
+}
+
+/* A dot in the accent, so a long list still reads as a list at a glance. */
+.notes__list li::marker {
+  color: var(--accent);
+}
+
+.notes strong {
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.notes code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--fill-soft);
+  color: var(--paper);
+}
+
+.notes__rule {
+  margin: 12px 0;
+  border: none;
+  border-top: 1px solid var(--line);
+}
+
+/* Short statements of fact — the privacy notes in About. A list rather than a
+   paragraph because they are four unrelated things, and nobody reads a wall of text at
+   the moment they are deciding whether to trust an app with their voice. */
+.facts {
+  margin: 0;
+  padding-left: 17px;
+  display: grid;
+  gap: 9px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--paper-2);
+}
+
+.facts li::marker {
+  color: var(--accent);
+}
+
+.facts strong {
+  color: var(--paper);
+  font-weight: 600;
 }
 
 /* ============================ controls ============================ */
@@ -347,7 +589,7 @@ textarea {
 input:hover,
 select:hover,
 textarea:hover {
-  border-color: #443f39;
+  border-color: var(--line-hover);
 }
 
 input:focus-visible,
@@ -465,7 +707,7 @@ button {
 
 button:hover:not(:disabled) {
   background: var(--ink-600);
-  border-color: #443f39;
+  border-color: var(--line-hover);
 }
 
 button:active:not(:disabled) {
@@ -485,8 +727,8 @@ button:disabled {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #edad48;
-  border-color: #edad48;
+  background: var(--accent-hot);
+  border-color: var(--accent-hot);
 }
 
 .btn-quiet {
@@ -507,8 +749,8 @@ button:disabled {
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: rgba(226, 86, 75, 0.1);
-  border-color: rgba(226, 86, 75, 0.3);
+  background: var(--live-wash);
+  border-color: var(--live-line);
 }
 
 /* ============================ small parts ============================ */
@@ -549,13 +791,13 @@ kbd {
 
 .chip--ok {
   color: var(--ok);
-  border-color: rgba(134, 176, 106, 0.28);
-  background: rgba(134, 176, 106, 0.08);
+  border-color: var(--ok-line);
+  background: var(--ok-wash);
 }
 
 .chip--todo {
   color: var(--accent);
-  border-color: rgba(224, 160, 60, 0.28);
+  border-color: var(--accent-line);
   background: var(--accent-wash);
 }
 
@@ -573,12 +815,12 @@ kbd {
 
 .notice--warn {
   background: var(--accent-wash);
-  border: 1px solid rgba(224, 160, 60, 0.26);
+  border: 1px solid var(--accent-line);
 }
 
 .notice--error {
-  background: rgba(226, 86, 75, 0.1);
-  border: 1px solid rgba(226, 86, 75, 0.28);
+  background: var(--live-wash);
+  border: 1px solid var(--live-line);
 }
 
 .loading {
@@ -812,7 +1054,7 @@ kbd {
 }
 
 .pick--on {
-  border-color: rgba(224, 160, 60, 0.42);
+  border-color: var(--accent-line-strong);
   background: var(--ink-700);
 }
 
@@ -946,7 +1188,7 @@ kbd {
   align-items: center;
   justify-content: center;
   padding: 36px 28px;
-  background: rgba(6, 6, 5, 0.66);
+  background: var(--scrim);
   backdrop-filter: blur(3px);
   animation: fade-in 130ms ease;
 }
@@ -968,7 +1210,7 @@ kbd {
   background: var(--ink-800);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-lg);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow-modal);
   animation: sheet-in 160ms cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 
@@ -1083,8 +1325,8 @@ kbd {
 }
 
 .tag-toggle--on:hover:not(:disabled) {
-  background: #edad48;
-  border-color: #edad48;
+  background: var(--accent-hot);
+  border-color: var(--accent-hot);
 }
 
 .tag-order {
@@ -1145,9 +1387,9 @@ kbd {
 .overlay {
   /* Inset rather than `height: 100dvh` + margin: that pair adds up to 14px taller
      than the viewport and puts a scrollbar down the side of a panel that should
-     never scroll. */
+     never scroll. The asymmetry is the shadow's room — see `--panel-gutter-*`. */
   position: fixed;
-  inset: 7px;
+  inset: var(--panel-gutter-top) var(--panel-gutter-x) var(--panel-gutter-bottom);
   padding: 13px 15px 12px;
   border-radius: 15px;
   display: flex;
@@ -1156,9 +1398,9 @@ kbd {
 
   /* Warm smoked glass. The 1px top highlight is what stops it reading as a flat
      rectangle pasted over the screen. */
-  background: linear-gradient(180deg, rgba(28, 26, 24, 0.93), rgba(14, 13, 12, 0.95));
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 18px 44px rgba(0, 0, 0, 0.55);
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--glass-shadow);
   backdrop-filter: blur(22px) saturate(1.3);
 
   /* Click-through everywhere except the action row. */
@@ -1190,7 +1432,7 @@ kbd {
 
 .overlay__dot--recording {
   background: var(--live);
-  box-shadow: 0 0 0 3px rgba(226, 86, 75, 0.16);
+  box-shadow: 0 0 0 3px var(--live-glow);
   animation: breathe 1.3s ease-in-out infinite;
 }
 
@@ -1209,6 +1451,8 @@ kbd {
   color: var(--paper-2);
 }
 
+/* Pushed right, and with it everything after it — the copy button rides along on
+   the same edge. */
 .overlay__timer {
   margin-left: auto;
   font-family: var(--mono);
@@ -1225,7 +1469,7 @@ kbd {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--paper-2);
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--fill-soft);
 }
 
 .overlay__text {
@@ -1241,13 +1485,73 @@ kbd {
   color: var(--paper-2);
 }
 
-.overlay__hint,
-.overlay__error {
+.overlay__hint {
   color: var(--paper-3);
 }
 
+/* A block above the transcript rather than a line inside it, so the notice stays put
+   while the words below it keep scrolling. Clamped: a vendor's raw complaint can run
+   long, and the words are what the panel is for. */
 .overlay__error {
+  flex: none;
   color: var(--live);
+  font-size: 11.5px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* The second region that opts back into the mouse — see `.overlay__buttons`. Copying
+   takes no keystroke, so it cannot land in the wrong app the way a paste can. */
+.overlay__copy {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: var(--fill-soft);
+  border-color: var(--fill-line);
+  color: var(--paper-2);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  /* Present but quiet until wanted: this sits beside a live transcript and should not
+     compete with it for attention. */
+  opacity: 0.6;
+  transition: opacity 120ms ease, background 120ms ease;
+}
+
+.overlay__copy:hover:not(:disabled) {
+  opacity: 1;
+  background: var(--fill);
+  border-color: var(--fill-line-strong);
+}
+
+.overlay__copy--done {
+  opacity: 1;
+  color: var(--accent);
+  border-color: var(--accent-line-strong);
+}
+
+/* Right-aligned on its own when a take has ended and the timer is gone, tucked
+   against the timer while one is ticking. */
+.overlay__copy {
+  margin-left: auto;
+}
+
+.overlay__timer + .overlay__copy {
+  margin-left: 0;
+}
+
+.overlay__copy svg {
+  width: 11px;
+  height: 11px;
 }
 
 .overlay__foot {
@@ -1282,8 +1586,8 @@ kbd {
   padding: 1px 4px;
   font-size: 9.5px;
   border-bottom-width: 1px;
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--fill-soft);
+  border-color: var(--fill-line);
 }
 
 .overlay__buttons {
@@ -1313,7 +1617,7 @@ kbd {
 a {
   color: var(--accent);
   text-decoration: none;
-  border-bottom: 1px solid rgba(224, 160, 60, 0.35);
+  border-bottom: 1px solid var(--accent-line);
 }
 
 a:hover {
@@ -1399,6 +1703,48 @@ a:hover {
 
 .onb__choices { display: grid; gap: 8px; }
 
+/* The appearance picker on the welcome screen: three one-word labels, so they sit
+   side by side instead of taking three more full-width rows. */
+.onb__choices--row {
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+}
+
+.onb__choices--row .onb__choice {
+  text-align: center;
+}
+
+.onb__choices--row .onb__choice-name {
+  justify-content: center;
+}
+
+/* The picker glyphs: a stroke icon takes the text colour, a flag keeps its own. Both
+   sit on the same 20px column so the labels line up down the list. */
+.onb__choice-icon {
+  width: 16px;
+  height: 16px;
+  margin: 0 2px;
+  flex: none;
+  color: var(--paper-2);
+}
+
+.onb__flag {
+  flex: none;
+  border-radius: 2px;
+  /* A hairline keeps a pale flag from bleeding into a light background. */
+  box-shadow: 0 0 0 1px var(--fill-line);
+}
+
+.onb__choice--on .onb__choice-icon {
+  color: var(--accent);
+}
+
+.onb__prompt {
+  margin: 22px 0 10px;
+  font-size: 13.5px;
+  color: var(--paper-2);
+}
+
 .onb__choice {
   display: block;
   width: 100%;
@@ -1425,6 +1771,8 @@ a:hover {
 .onb__choice-note {
   display: block;
   margin-top: 3px;
+  /* Indented past the glyph column so it reads as a caption of the label above it. */
+  padding-left: 28px;
   font-size: 12px;
   line-height: 1.5;
   color: var(--paper-3);
@@ -1466,8 +1814,8 @@ a:hover {
   flex: none;
 }
 
-.onb__status--ok { border-color: rgba(126, 184, 122, 0.4); }
-.onb__status--ok .onb__status-dot { background: #7eb87a; }
+.onb__status--ok { border-color: var(--ok-line); }
+.onb__status--ok .onb__status-dot { background: var(--ok); }
 
 .onb__row {
   display: flex;
@@ -1516,7 +1864,7 @@ a:hover {
 
 /* Verdicts on the microphone check. Colour carries the same meaning as the status
    dot above, so the two screens read the same way. */
-.onb__good { color: #7eb87a; }
+.onb__good { color: var(--ok); }
 .onb__bad { color: var(--live); }
 
 .onb__note {
@@ -1578,7 +1926,7 @@ a:hover {
    recommendation. */
 .chip--star {
   color: var(--accent);
-  border-color: rgba(224, 160, 60, 0.35);
+  border-color: var(--accent-line);
   background: var(--accent-wash);
   font-weight: 600;
 }
@@ -1695,16 +2043,16 @@ a:hover {
    against the window edge. */
 .player {
   position: fixed;
-  inset: 5px;
+  inset: var(--panel-gutter-top) var(--panel-gutter-x) var(--panel-gutter-bottom);
   border-radius: 14px;
   padding: 9px 12px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 9px;
-  background: linear-gradient(180deg, rgba(28, 26, 24, 0.94), rgba(14, 13, 12, 0.96));
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 14px 34px rgba(0, 0, 0, 0.5);
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--glass-shadow-sm);
   backdrop-filter: blur(22px) saturate(1.3);
   user-select: none;
   animation: overlay-in 180ms cubic-bezier(0.2, 0.9, 0.3, 1);
@@ -1724,8 +2072,8 @@ a:hover {
   display: grid;
   place-items: center;
   border-radius: 99px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--fill-line);
+  background: var(--fill-soft);
   color: var(--paper);
   font-size: 12px;
   line-height: 1;
@@ -1733,7 +2081,7 @@ a:hover {
 }
 
 .player__btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--fill);
 }
 
 .player__progress {
@@ -1751,7 +2099,7 @@ a:hover {
      stripe was easy to miss entirely on a bar that is only up for a second or two. */
   height: 6px;
   border-radius: 99px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--fill);
   overflow: hidden;
 }
 
@@ -1768,7 +2116,7 @@ a:hover {
    against, so the bar sweeps instead. Two layers: a dim wash over the whole track so
    the bar itself reads as active, and a brighter stripe travelling across it. */
 .player__bar--indeterminate {
-  background: rgba(224, 160, 60, 0.18);
+  background: var(--accent-wash-strong);
 }
 
 .player__bar--indeterminate::after {
@@ -1832,8 +2180,8 @@ a:hover {
   margin: 0;
   padding: 4px 8px;
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--fill-soft);
+  border: 1px solid var(--fill-line-soft);
   font-family: var(--mono);
   font-size: 11px;
   line-height: 1.3;
@@ -1852,7 +2200,7 @@ a:hover {
   height: 26px;
   padding: 0 12px;
   border-radius: 99px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid var(--fill-line);
   background: var(--accent);
   color: var(--accent-ink);
   font-size: 12px;
@@ -1881,7 +2229,7 @@ a:hover {
   align-items: flex-end;
   gap: 16px;
   padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 1px solid var(--fill-line-soft);
 }
 
 /* Each control stacks under its own caption. Labelling them costs a line of 9px type

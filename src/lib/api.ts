@@ -63,6 +63,8 @@ export const clearHistory = () => invoke<void>("clear_history");
 export const copyText = (text: string) => invoke<void>("copy_text", { text });
 export const permissionStatus = () =>
   invoke<{ accessibility: boolean }>("permission_status");
+/** Whether this build may update itself in place — see `code_signature.rs`. */
+export const canSelfInstall = () => invoke<boolean>("can_self_install");
 export const openAccessibilitySettings = () =>
   invoke<void>("open_accessibility_settings");
 /** Opens an https link in the default browser. */

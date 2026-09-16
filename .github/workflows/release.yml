@@ -46,6 +46,16 @@ jobs:
       # no matching section fails here rather than shipping a release with no notes.
       - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         id: make
+        env:
+          # The release notes tell people how to open the app, and that instruction is
+          # the opposite depending on how this build was signed. Derived from the
+          # secrets rather than written by hand, so the two can never drift apart.
+          #
+          # Notarisation, not signing, is what decides the wording: a signed but
+          # un-notarised app still needs right-click -> Open on a machine that
+          # downloaded it, so claiming otherwise would strand people at the first
+          # screen. Both are required before the notes promise a normal open.
+          MACOS_SIGNED: ${{ secrets.APPLE_SIGNING_IDENTITY != '' && secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
         with:
           script: |
             const fs = require('fs')
@@ -63,7 +73,18 @@ jobs:
 
             // Vietnamese first, same as the changelog entry above it — this footer is
             // read by the same people, at the moment they are trying to open the app.
-            const gatekeeperFooter = [
+            const signedFooter = [
+              '**macOS**: app đã được ký số và notarize bởi Apple — mở bình thường như mọi',
+              'app khác. Vẫn phải cấp quyền Accessibility một lần thì thao tác dán mới chạy.',
+              'Từ bản này trở đi app tự cập nhật được: bấm "Cập nhật ngay" trong app là xong,',
+              'không phải tải lại thủ công.',
+              '',
+              '_English_: signed and notarised — opens normally. Accessibility permission is',
+              'still needed once before pasting works, and updates install themselves from',
+              'inside the app.',
+            ].join('\n')
+
+            const unsignedFooter = [
               '**macOS**: app chưa được notarize, nên lần mở đầu tiên phải bấm chuột phải →',
               'Open, và phải cấp quyền Accessibility thì thao tác dán mới chạy.',
               '',
@@ -76,7 +97,9 @@ jobs:
               'says the app is damaged, run the `xattr -cr` command above.',
             ].join('\n')
 
-            const body = `${notes}\n\n---\n\n${gatekeeperFooter}`
+            const footer =
+              process.env.MACOS_SIGNED === 'true' ? signedFooter : unsignedFooter
+            const body = `${notes}\n\n---\n\n${footer}`
 
             const { data } = await github.rest.repos.createRelease({
               owner: context.repo.owner,
@@ -118,6 +141,15 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
     name: ${{ matrix.name }}
+
+    # Job level so the signature check below can branch on it: a step cannot read the
+    # `env` it declares itself, and `secrets` is not a context available to `if`.
+    env:
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      # Notarisation is configured separately from signing, and a repo can legitimately
+      # have one without the other — the check below has to branch on it rather than
+      # demand a stapled ticket from a build that was only ever signed.
+      APPLE_NOTARIZATION_CONFIGURED: ${{ secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -178,6 +210,16 @@ jobs:
           # Apple/Microsoft code signing — see src-tauri/tauri.conf.json's pubkey.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Apple Developer ID signing and notarisation. Unset on a fork or before the
+          # secrets are configured, and tauri-action then simply builds unsigned — which
+          # the app itself detects at runtime and falls back to manual downloads for
+          # (see src-tauri/src/code_signature.rs). Nothing here needs a flag day.
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           # Upload into the draft the first job made, rather than each matrix job
           # trying to create one of its own.
@@ -191,6 +233,38 @@ jobs:
           # Windows ships both NSIS and MSI installers; the updater only ever installs
           # from one, and NSIS supports the silent self-replace this app relies on.
           updaterJsonPreferNsis: true
+
+      # A mistyped or expired certificate secret does not fail the build — tauri-action
+      # falls back to an unsigned bundle and the release looks fine. That is the failure
+      # worth catching here: an unsigned build sent to people who were told updates are
+      # automatic would leave them stranded on this version, because macOS refuses to
+      # keep the Accessibility grant across an unsigned self-replace.
+      - name: Verify the macOS bundle is signed and notarised
+        if: matrix.platform == 'macos-latest' && env.APPLE_SIGNING_IDENTITY != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          # `-print -quit` rather than `| head -n 1`: under `pipefail` a `find` that
+          # keeps printing after head exits dies on SIGPIPE and fails this step after a
+          # complete four-platform build, for no reason anyone could read from the log.
+          app=$(find . -type d -name "Tocky Voice.app" -path "*/bundle/macos/*" -print -quit)
+          if [ -z "$app" ]; then
+            echo "::error::built .app not found — cannot verify the signature"
+            exit 1
+          fi
+          echo "checking $app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          if ! codesign -dv --verbose=2 "$app" 2>&1 | grep -q "^Authority=Developer ID Application"; then
+            echo "::error::$app is not signed with a Developer ID Application certificate"
+            exit 1
+          fi
+          # The stapled ticket is what lets the app open on a machine that has never
+          # been online; without it Gatekeeper still phones home and can refuse.
+          if [ "$APPLE_NOTARIZATION_CONFIGURED" = "true" ]; then
+            xcrun stapler validate "$app"
+          else
+            echo "::warning::signed but not notarised — add APPLE_ID and APPLE_PASSWORD to notarise. Users will still see a Gatekeeper warning on first open."
+          fi
 
   # tauri-action is expected to merge each matrix job's platform entry into one
   # latest.json on the draft release. That merge is not something this workflow can
