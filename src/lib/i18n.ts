@@ -158,6 +158,10 @@ const en = {
     generalSection: "General",
     uiLanguage: "Interface language",
     uiLanguageHint: "Follows your system language unless you pick one.",
+    theme: "Appearance",
+    themeHint: "Dark for night work, light for a bright desk.",
+    themeLight: "Light",
+    themeDark: "Dark",
     followSystem: "Follow system",
     shortcutsSection: "Shortcuts",
     toggle: "Start / stop",
@@ -288,6 +292,8 @@ const en = {
     newVersionAvailable: "A new version is available:",
     notesTitle: "What's new",
     installButton: "Update and restart",
+    updateNow: "Update now",
+    badgeNew: "NEW",
     downloadButton: "Download the update ↗",
     macOnlyReason:
       "This build isn't code-signed, so macOS can't safely replace it in place — download and install it by hand instead.",
@@ -327,6 +333,7 @@ const en = {
     languageTitle: "Welcome to Tocky Voice",
     languageBody:
       "Press one key anywhere on your computer, talk, press it again, and what you said is typed into whatever app you are in. A few short steps and you are ready. First, which language should this app be in?",
+    themePrompt: "And how should it look? This changes as you pick, so try both.",
 
     micTitle: "Check your microphone",
     micBody:
@@ -398,6 +405,8 @@ const en = {
     no_audio_captured:
       "The microphone opened but stayed completely silent, so there was nothing to transcribe. Pick the right input under Dictate → Microphone and check it is not muted.",
     transcription_failed: "Transcription failed.",
+    transcription_incomplete:
+      "The connection to the speech service broke mid-take. What had been recognised by then was kept — it is in your clipboard, in the app you were typing into, and in the History tab. The last few seconds may be missing.",
     nothing_selected:
       "Nothing is highlighted. Select some text anywhere, then try again.",
     selection_too_long:
@@ -554,6 +563,10 @@ const vi: Dictionary = {
     generalSection: "Chung",
     uiLanguage: "Ngôn ngữ giao diện",
     uiLanguageHint: "Theo ngôn ngữ hệ thống, trừ khi anh tự chọn.",
+    theme: "Giao diện",
+    themeHint: "Tối cho lúc làm đêm, sáng cho bàn làm việc nhiều ánh sáng.",
+    themeLight: "Sáng",
+    themeDark: "Tối",
     followSystem: "Theo hệ thống",
     shortcutsSection: "Phím tắt",
     toggle: "Bắt đầu / dừng",
@@ -684,6 +697,8 @@ const vi: Dictionary = {
     newVersionAvailable: "Có bản mới:",
     notesTitle: "Có gì mới",
     installButton: "Cập nhật và khởi động lại",
+    updateNow: "Cập nhật ngay",
+    badgeNew: "MỚI",
     downloadButton: "Tải bản mới ↗",
     macOnlyReason:
       "Bản này chưa được ký số nên macOS không tự thay thế an toàn được — hãy tải về và cài tay.",
@@ -719,6 +734,7 @@ const vi: Dictionary = {
     languageTitle: "Chào mừng đến Tocky Voice",
     languageBody:
       "Bấm một phím ở bất kỳ đâu trên máy, nói, bấm lại, và chữ được gõ thẳng vào ứng dụng bạn đang mở. Vài bước ngắn là xong. Trước tiên, bạn muốn app hiển thị bằng ngôn ngữ nào?",
+    themePrompt: "Còn nhìn thế nào cho dễ chịu? Chọn cái nào là đổi ngay, thử cả hai đi.",
 
     micTitle: "Kiểm tra micro",
     micBody:
@@ -790,6 +806,8 @@ const vi: Dictionary = {
     no_audio_captured:
       "Micro có mở nhưng im hoàn toàn, nên không có gì để nhận dạng. Chọn đúng micro ở tab Đọc → Micro và kiểm tra xem nó có bị tắt tiếng không.",
     transcription_failed: "Nhận dạng giọng nói thất bại.",
+    transcription_incomplete:
+      "Kết nối tới dịch vụ nhận dạng bị đứt giữa chừng. Phần chữ đã nghe được vẫn được giữ — đã nằm trong clipboard, đã dán vào chỗ bạn đang gõ, và đã lưu ở tab Lịch sử. Có thể thiếu vài giây cuối.",
     nothing_selected: "Chưa bôi đen chữ nào. Bôi đen một đoạn bất kỳ rồi thử lại.",
     selection_too_long:
       "Đoạn bôi đen dài hơn ngưỡng cho phép. Bôi đen ít hơn, hoặc nâng ngưỡng ở tab Đọc.",

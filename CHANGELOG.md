@@ -9,6 +9,79 @@ notes are read by users, not by the people who wrote the code. English goes in a
 `### English` subsection at the end of the same release, as the secondary version.
 Entries before 0.4.0 predate this and are English only.
 
+## [0.5.2] - 2026-09-16
+
+### Mới
+
+- **Giao diện sáng.** Chọn Sáng, Tối, hoặc theo hệ thống — ở màn hình chào mừng lúc cài
+  đặt lần đầu, hoặc bất cứ lúc nào trong Cài đặt → Giao diện. Đổi là thấy ngay, kể cả
+  bảng nổi lúc đang nói và thanh điều khiển lúc đang đọc.
+- **Giao diện tối đỡ tối hơn.** Nền đen gần như tuyệt đối được nâng lên thành than ấm,
+  chữ mờ sáng hơn một bậc — nhìn lâu đỡ mỏi mắt, các mảng vẫn phân biệt rõ.
+- **Icon app nhìn rõ trên Dock sáng.** Icon cũ trong suốt hoàn toàn, chỉ có nét vàng —
+  mà macOS 26 tự phủ nền trắng cho icon trong suốt, nên trên Dock màu sáng nó gần như
+  biến mất. Giờ icon có nền than ấm của chính app, nổi rõ trên cả Dock sáng lẫn tối.
+- **Nút chép trên bảng nổi.** Chữ đang hiện ra lúc bạn nói giờ chép được ngay, không cần
+  chờ dán xong hay mở tab Lịch sử.
+- **Tự cập nhật trong app (macOS).** Bản dựng đã được ký số bằng chứng chỉ Apple
+  Developer ID và notarize, nên app tự thay thế chính nó được mà không mất quyền
+  Accessibility. Thấy bản mới thì bấm **Cập nhật ngay** một lần — app tải, cài, khởi động
+  lại, hết. Không còn phải tải `.dmg` về kéo thả lại như trước.
+  - Bản dựng chưa ký (tự build ở máy) vẫn tự biết thân phận: app kiểm tra chữ ký lúc chạy,
+    nếu chưa ký thì vẫn đưa về trang tải thủ công thay vì tự thay thế và làm mất quyền.
+  - **Lần đầu cập nhật từ bản chưa ký lên bản đã ký, macOS sẽ hỏi lại quyền Accessibility
+    một lần** — vì hệ điều hành gắn quyền theo chữ ký, mà lần này chữ ký đổi. Chỉ một lần
+    duy nhất.
+- **Huy hiệu "MỚI" cạnh số phiên bản.** Có bản mới thì dòng `v0.5.0` ở góc trái biến thành
+  nút bấm được, bấm vào là tới thẳng chỗ cập nhật. Thanh thông báo trên đầu cũng có luôn
+  nút **Cập nhật ngay**, không phải đi tìm.
+- **Ghi chú phát hành đọc được.** Phần "Có gì mới" trước đây hiện nguyên ký hiệu Markdown
+  thô (`### Sửa lỗi`, `- **...**`); giờ được dựng thành tiêu đề, gạch đầu dòng, chữ đậm và
+  khối mã đàng hoàng.
+
+### Sửa lỗi
+
+- **Bảng nổi có một viền tối quanh mép thay vì bóng đổ mềm.** Bóng được vẽ trong một
+  khoảng chừa 7px trong khi nó loang rộng gấp năm lần chỗ đó, nên bị cửa sổ trong suốt
+  cắt phẳng thành một đường thẳng chạy quanh bảng — nhìn như viền chứ không như bóng.
+  Cửa sổ giờ chừa đủ chỗ cho bóng tắt hẳn (đo được: pixel ở mép lệch dưới 1/255 so với
+  nền phía sau, tức là mắt không thấy được). Áp dụng cho cả bảng nổi lúc nói lẫn thanh
+  điều khiển lúc đọc; kích thước và vị trí bảng trên màn hình không đổi.
+- **Mất trắng cả đoạn vừa nói khi kết nối tới dịch vụ nhận dạng bị đứt.** Chữ đã hiện
+  trên màn hình rồi mà vẫn mất sạch, không dán được, cũng không có trong Lịch sử. Giờ
+  phần chữ đã nhận được luôn được giữ: dán như bình thường, lưu vào Lịch sử, và bảng nổi
+  ở lại lâu hơn với nút chép cùng một dòng báo rằng có thể thiếu vài giây cuối. Áp dụng
+  cho cả ba kiểu hỏng — kết nối đứt giữa chừng, dịch vụ đóng phiên, và dịch vụ ngừng trả
+  lời sau khi bạn bấm dừng.
+
+### English
+
+- **Light theme.** Light, dark, or follow the system — on the welcome screen during
+  setup, or any time under Settings → Appearance. The floating overlay and the read-aloud
+  player follow it too.
+- **The dark theme is less black.** Near-black surfaces lifted to a warm charcoal and
+  muted text raised a step, for a panel that is easier to sit in front of.
+- **The app icon is visible on a light Dock.** It was fully transparent, and macOS 26
+  fills a transparent icon with its own light backing — so it disappeared into a light
+  Dock. It now carries the app's own warm charcoal tile.
+- **Copy button on the overlay**, so the words on screen can be taken before they are
+  delivered anywhere.
+- **In-app updates on macOS.** Builds are signed with an Apple Developer ID certificate
+  and notarised, so the app can replace itself without losing its Accessibility grant:
+  one click on **Update now** downloads, installs and restarts. Unsigned builds detect
+  their own signature at runtime and keep sending people to the download page instead.
+  Updating from an unsigned build to a signed one asks for Accessibility once more —
+  macOS keys that permission to the signature, and this is the release where it changes.
+- **A "NEW" badge beside the version**, and an **Update now** button on the banner.
+- **Release notes are rendered**, not printed as raw Markdown.
+- **Fixed: the floating panels had a dark border instead of a shadow.** The shadow was
+  drawn into a 7px margin while spreading five times that, so a transparent window
+  clipped it into a straight line all the way round. The windows now reserve enough room
+  for it to fade to nothing — measured at under 1/255 from the backdrop at the edge.
+- **Fixed: a dropped connection to the speech service lost the whole take.** Words that
+  had already appeared on the overlay vanished, with nothing pasted and no history entry.
+  Whatever was recognised is now kept — pasted, written to history, and left on screen
+  next to the copy button with a note that the last few seconds may be missing.
 ## [0.5.1] - 2026-09-09
 
 ### Sửa lỗi

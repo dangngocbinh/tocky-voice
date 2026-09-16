@@ -25,14 +25,25 @@ use tauri::{AppHandle, Emitter, Manager};
 /// gone before it can be read.
 const ERROR_VISIBLE: std::time::Duration = std::time::Duration::from_secs(6);
 
+/// How long a failure that left words on the panel stays on screen.
+///
+/// Long enough to read the notice and then reach for the copy button — the panel is
+/// the only place those words are visible, and once it goes the only way back to them
+/// is the History tab.
+const RECOVERED_VISIBLE: std::time::Duration = std::time::Duration::from_secs(15);
+
 /// Surfaces a failure where it can actually be read.
 fn show_error(app: &AppHandle, payload: ErrorPayload) {
+    let visible = match payload.kind {
+        ErrorKind::TranscriptionIncomplete => RECOVERED_VISIBLE,
+        _ => ERROR_VISIBLE,
+    };
     emit_error(app, payload);
     overlay::show(app);
 
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        tokio::time::sleep(ERROR_VISIBLE).await;
+        tokio::time::sleep(visible).await;
         // A new take may have started meanwhile — that overlay is not ours to hide.
         if !app.state::<super::Recorder>().is_recording() {
             overlay::hide(&app);
@@ -48,6 +59,11 @@ const FLOW_C_SYSTEM_PROMPT: &str = "Làm theo yêu cầu của người dùng v�
 Kết quả sẽ được ĐỌC LÊN — viết thành lời nói tự nhiên, không markdown, không gạch đầu dòng, \
 không mở đầu kiểu \"Đây là bản tóm tắt\". Chỉ trả nội dung.";
 
+/// Delivers a finished take.
+///
+/// `notice` is set when the transcript came back from a stream that broke — the words
+/// are still pasted and still written to history, and the warning is shown afterwards
+/// so the user knows the tail of what they said may be missing.
 pub async fn finish(
     app: &AppHandle,
     mode_id: &str,
@@ -56,6 +72,7 @@ pub async fn finish(
     target_app: crate::focus::TargetApp,
     heard_audio: bool,
     intent: super::Intent,
+    notice: Option<ErrorPayload>,
 ) {
     if let super::Intent::ReadInstruction { selection } = intent {
         finish_read_instruction(app, mode_id, transcript, target_app, selection).await;
@@ -114,6 +131,21 @@ pub async fn finish(
     } else {
         inject::copy(app, &final_text)
     };
+
+    // A broken stream outranks the delivery result: the text landed, but it is the
+    // "there may be more you said" warning the user needs to see — on a panel that
+    // still has the recovered words on it, next to the button that copies them.
+    if let Some(notice) = notice {
+        if let Err(e) = delivered {
+            log::warn!("could not deliver a recovered transcript: {e:#}");
+        }
+        record_history(app, &settings, &mode, &transcript, &final_text, &pcm);
+        // Idle before the notice, for the same reason `fail` does it in that order.
+        state::emit_status(app, Phase::Idle, mode_id);
+        show_error(app, notice);
+        feedback::play(feedback::Cue::Error, settings.audio.feedback_volume);
+        return;
+    }
 
     match delivered {
         Ok(()) if wants_paste && !can_paste => {
