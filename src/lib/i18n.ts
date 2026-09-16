@@ -424,8 +424,12 @@ const en = {
     no_audio_captured:
       "The microphone opened but stayed completely silent, so there was nothing to transcribe. Pick the right input under Dictate → Microphone and check it is not muted.",
     transcription_failed: "Transcription failed.",
+    // Deliberately does not say where the words ended up. Paste restores the previous
+    // clipboard, history can be switched off, and the output mode decides the rest — so
+    // naming three places was wrong on the most ordinary path of all. What is always
+    // true is that they were delivered and are still on this panel.
     transcription_incomplete:
-      "The connection to the speech service broke mid-take. What had been recognised by then was kept — it is in your clipboard, in the app you were typing into, and in the History tab. The last few seconds may be missing.",
+      "The connection to the speech service broke mid-take. What had been recognised by then was kept and delivered — the last few seconds may be missing. The words are still on this panel: press Copy if you need them again.",
     nothing_selected:
       "Nothing is highlighted. Select some text anywhere, then try again.",
     selection_too_long:
@@ -853,7 +857,7 @@ const vi: Dictionary = {
       "Micro có mở nhưng im hoàn toàn, nên không có gì để nhận dạng. Chọn đúng micro ở tab Đọc → Micro và kiểm tra xem nó có bị tắt tiếng không.",
     transcription_failed: "Nhận dạng giọng nói thất bại.",
     transcription_incomplete:
-      "Kết nối tới dịch vụ nhận dạng bị đứt giữa chừng. Phần chữ đã nghe được vẫn được giữ — đã nằm trong clipboard, đã dán vào chỗ bạn đang gõ, và đã lưu ở tab Lịch sử. Có thể thiếu vài giây cuối.",
+      "Kết nối tới dịch vụ nhận dạng bị đứt giữa chừng. Phần chữ đã nghe được vẫn được giữ và đã giao đi — có thể thiếu vài giây cuối. Chữ vẫn còn trên bảng này: bấm Chép nếu cần lấy lại.",
     nothing_selected: "Chưa bôi đen chữ nào. Bôi đen một đoạn bất kỳ rồi thử lại.",
     selection_too_long:
       "Đoạn bôi đen dài hơn ngưỡng cho phép. Bôi đen ít hơn, hoặc nâng ngưỡng ở tab Đọc.",

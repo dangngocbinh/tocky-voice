@@ -54,6 +54,10 @@ struct ActiveTake {
     /// the overlay. This copy outlives the task, so a dead connection or a provider
     /// that stops answering costs the tail of a sentence rather than the whole take.
     salvage: Arc<Mutex<String>>,
+    /// The task that copies stream events into `salvage`. Held so a take that gives up
+    /// on the provider can wait for it to finish draining before reading the result —
+    /// see [`drain_forwarder`].
+    forwarder: tauri::async_runtime::JoinHandle<()>,
     mode_id: String,
     intent: Intent,
     /// The app that was frontmost when recording began — the one the text belongs in,
@@ -169,7 +173,7 @@ pub fn start_with_intent(app: &AppHandle, mode_id: Option<String>, intent: Inten
 
     // Live transcript preview, and the safety net behind it: what the overlay shows is
     // exactly what `salvage` holds, so anything the user saw can still be recovered.
-    {
+    let forwarder = {
         let app = app.clone();
         let salvage = salvage.clone();
         tauri::async_runtime::spawn(async move {
@@ -186,8 +190,8 @@ pub fn start_with_intent(app: &AppHandle, mode_id: Option<String>, intent: Inten
                     }
                 }
             }
-        });
-    }
+        })
+    };
 
     let protocol = stt::build_protocol(&settings.stt, api_key);
     let stt_task = tauri::async_runtime::spawn(stt::run_stream(protocol, audio_rx, event_tx));
@@ -200,6 +204,7 @@ pub fn start_with_intent(app: &AppHandle, mode_id: Option<String>, intent: Inten
             heard_audio,
             pcm,
             salvage,
+            forwarder,
             mode_id: mode_id.clone(),
             intent,
             target_app,
@@ -309,7 +314,7 @@ pub fn stop(app: &AppHandle) {
                     ErrorPayload::with_detail(ErrorKind::TranscriptionIncomplete, reason)
                 }),
             ),
-            Ok(Ok(Err(e))) => match salvaged(&take) {
+            Ok(Ok(Err(e))) => match drain_then_salvage(&mut take).await {
                 Some(text) => (
                     text,
                     Some(ErrorPayload::with_detail(
@@ -326,7 +331,7 @@ pub fn stop(app: &AppHandle) {
                     return;
                 }
             },
-            Ok(Err(e)) => match salvaged(&take) {
+            Ok(Err(e)) => match drain_then_salvage(&mut take).await {
                 Some(text) => (
                     text,
                     Some(ErrorPayload::with_detail(
@@ -349,7 +354,7 @@ pub fn stop(app: &AppHandle) {
                     "the speech provider stopped responding after {}s",
                     FINALIZE_TIMEOUT.as_secs()
                 );
-                match salvaged(&take) {
+                match drain_then_salvage(&mut take).await {
                     Some(text) => (
                         text,
                         Some(ErrorPayload::with_detail(
@@ -386,11 +391,29 @@ pub fn stop(app: &AppHandle) {
             pcm,
             take.target_app,
             take.heard_audio.load(Ordering::Relaxed),
-            take.intent,
+            take.intent.clone(),
             notice,
         )
         .await;
     });
+}
+
+/// How long to let the event forwarder finish before giving up on it. It is draining a
+/// channel whose sender has already been dropped, so this is a guard against a hang,
+/// not a wait anyone should ever notice.
+const SALVAGE_DRAIN: Duration = Duration::from_millis(500);
+
+/// The words a failed take still owes the user, once everything the provider sent has
+/// actually been recorded.
+///
+/// `salvage` is written by the forwarder task, not by the stream task, so reading it the
+/// moment the stream ends can miss segments still sitting in the channel — precisely the
+/// last ones, which are the ones a cut-short take can least afford to lose. The stream
+/// task is gone by the time this is called, so its sender is dropped and the forwarder
+/// finishes on its own.
+async fn drain_then_salvage(take: &mut ActiveTake) -> Option<String> {
+    let _ = tokio::time::timeout(SALVAGE_DRAIN, &mut take.forwarder).await;
+    salvaged(take)
 }
 
 /// The words a failed take still owes the user, or `None` if it never produced any.

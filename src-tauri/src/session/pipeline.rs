@@ -14,7 +14,7 @@ use crate::errors::{ErrorKind, ErrorPayload};
 use crate::state::{self, emit_error, events, Phase};
 use crate::{audio, inject};
 use chrono::Utc;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 
 /// How long a failure stays on screen.
 ///
@@ -39,15 +39,16 @@ fn show_error(app: &AppHandle, payload: ErrorPayload) {
         _ => ERROR_VISIBLE,
     };
     emit_error(app, payload);
-    overlay::show(app);
+    let shown = overlay::show(app);
 
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(visible).await;
-        // A new take may have started meanwhile — that overlay is not ours to hide.
-        if !app.state::<super::Recorder>().is_recording() {
-            overlay::hide(&app);
-        }
+        // Only if the panel on screen is still this one. Checking `is_recording` was
+        // not enough: a take that has been stopped and is transcribing is not
+        // "recording", so a stale timer could blank a live panel mid-take — and the
+        // 15s window this now runs for is long enough to cover a whole retry.
+        overlay::hide_if_unchanged(&app, shown);
     });
 }
 
@@ -75,7 +76,7 @@ pub async fn finish(
     notice: Option<ErrorPayload>,
 ) {
     if let super::Intent::ReadInstruction { selection } = intent {
-        finish_read_instruction(app, mode_id, transcript, target_app, selection).await;
+        finish_read_instruction(app, mode_id, transcript, target_app, selection, notice).await;
         return;
     }
 
@@ -136,13 +137,19 @@ pub async fn finish(
     // "there may be more you said" warning the user needs to see — on a panel that
     // still has the recovered words on it, next to the button that copies them.
     if let Some(notice) = notice {
-        if let Err(e) = delivered {
-            log::warn!("could not deliver a recovered transcript: {e:#}");
-        }
         record_history(app, &settings, &mode, &transcript, &final_text, &pcm);
         // Idle before the notice, for the same reason `fail` does it in that order.
         state::emit_status(app, Phase::Idle, mode_id);
-        show_error(app, notice);
+        match delivered {
+            // Two things went wrong at once. Being told the take was cut short is no
+            // use to someone who did not receive any of it, so the delivery failure is
+            // the one that gets the screen.
+            Err(e) => show_error(
+                app,
+                ErrorPayload::with_detail(ErrorKind::DeliveryFailed, format!("{e:#}")),
+            ),
+            Ok(()) => show_error(app, notice),
+        }
         feedback::play(feedback::Cue::Error, settings.audio.feedback_volume);
         return;
     }
@@ -179,9 +186,20 @@ async fn finish_read_instruction(
     instruction: String,
     target_app: crate::focus::TargetApp,
     selection: String,
+    notice: Option<ErrorPayload>,
 ) {
     overlay::hide(app);
     state::emit_status(app, Phase::Idle, mode_id);
+
+    // A dictation that lost its tail can be pasted and fixed by hand. This cannot: the
+    // words are an instruction that is about to be carried out and read aloud, so half
+    // of "dịch sang tiếng Anh rồi tóm tắt lại" is a different request — one the user
+    // never made, answered confidently, out loud. Stop and say why, for the same reason
+    // the failed-cleanup path below stops instead of reading the whole selection.
+    if let Some(notice) = notice {
+        crate::read::fail(app, target_app, notice);
+        return;
+    }
 
     // Pressed the key, said nothing, pressed it again: treated as "just read the
     // selection", not an error — see plan.md's flow-C spec.

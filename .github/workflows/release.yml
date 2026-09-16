@@ -55,7 +55,7 @@ jobs:
           # un-notarised app still needs right-click -> Open on a machine that
           # downloaded it, so claiming otherwise would strand people at the first
           # screen. Both are required before the notes promise a normal open.
-          MACOS_SIGNED: ${{ secrets.APPLE_SIGNING_IDENTITY != '' && secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' }}
+          MACOS_SIGNED: ${{ secrets.APPLE_SIGNING_IDENTITY != '' && secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
         with:
           script: |
             const fs = require('fs')
@@ -149,7 +149,7 @@ jobs:
       # Notarisation is configured separately from signing, and a repo can legitimately
       # have one without the other — the check below has to branch on it rather than
       # demand a stapled ticket from a build that was only ever signed.
-      APPLE_NOTARIZATION_CONFIGURED: ${{ secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' }}
+      APPLE_NOTARIZATION_CONFIGURED: ${{ secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -244,7 +244,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          app=$(find . -type d -name "Tocky Voice.app" -path "*/bundle/macos/*" | head -n 1)
+          # `-print -quit` rather than `| head -n 1`: under `pipefail` a `find` that
+          # keeps printing after head exits dies on SIGPIPE and fails this step after a
+          # complete four-platform build, for no reason anyone could read from the log.
+          app=$(find . -type d -name "Tocky Voice.app" -path "*/bundle/macos/*" -print -quit)
           if [ -z "$app" ]; then
             echo "::error::built .app not found — cannot verify the signature"
             exit 1

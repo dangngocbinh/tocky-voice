@@ -208,8 +208,10 @@ pub fn permission_status() -> PermissionStatus {
 
 /// Whether the updater may replace this app in place, or has to send the user to the
 /// download page instead. See [`crate::code_signature`] for why macOS gets a say.
+/// `async` on purpose: this shells out to `codesign`, and a synchronous command runs on
+/// the main thread, where that spawn would stall the window it is being asked from.
 #[tauri::command]
-pub fn can_self_install() -> bool {
+pub async fn can_self_install() -> bool {
     crate::code_signature::can_self_install()
 }
 

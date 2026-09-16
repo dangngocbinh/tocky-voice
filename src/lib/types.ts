@@ -213,6 +213,7 @@ export type ErrorKind =
   | "mic_unavailable"
   | "no_audio_captured"
   | "transcription_failed"
+  | "transcription_incomplete"
   | "nothing_selected"
   | "selection_too_long"
   | "tts_failed"
