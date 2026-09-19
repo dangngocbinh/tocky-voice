@@ -5,10 +5,17 @@
  * as "∂", and the physical-key names are exactly what the accelerator parser accepts.
  * The app's own global shortcuts are released while recording, otherwise pressing the
  * combination you want to assign would trigger its action instead of being captured.
+ *
+ * A captured key is then checked against the rest of the machine before it is trusted.
+ * On a Wayland desktop a shortcut the desktop already owns is accepted, saved, listed —
+ * and never delivered, because the compositor consumes it first. That silence was the
+ * whole of the "I set a hotkey and nothing happens" report, so the answer is shown here,
+ * next to the key, along with combinations this machine still has free.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as api from "../lib/api";
+import type { HotkeyCheck } from "../lib/types";
 import { useT } from "../lib/i18n";
 import { formatAccelerator } from "../lib/format-accelerator";
 
@@ -47,6 +54,8 @@ function buildAccelerator(e: KeyboardEvent): string | null {
 export function HotkeyRecorder({ value, onChange, placeholder }: Props) {
   const [recording, setRecording] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
+  const [check, setCheck] = useState<HotkeyCheck | null>(null);
+  const [suggestions, setSuggestions] = useState<string[] | null>(null);
   const t = useT();
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -57,6 +66,7 @@ export function HotkeyRecorder({ value, onChange, placeholder }: Props) {
 
   const start = useCallback(() => {
     setHint(null);
+    setSuggestions(null);
     setRecording(true);
     api.suspendHotkeys().catch(() => undefined);
   }, []);
@@ -103,12 +113,63 @@ export function HotkeyRecorder({ value, onChange, placeholder }: Props) {
   // Safety net: never leave the app without its hotkeys because a tab was switched.
   useEffect(() => stop, [stop]);
 
+  // Verdict on whatever the field holds now. Runs on mount too: a shortcut saved months
+  // ago can be swallowed by a desktop shortcut added yesterday, and the user has no way
+  // of learning that except by pressing the key and getting nothing.
+  useEffect(() => {
+    if (!value) {
+      setCheck(null);
+      return;
+    }
+    let live = true;
+    api
+      // The field's own key is passed as `current`, which is what stops a saved
+      // shortcut from being reported as clashing with itself.
+      .hotkeyCheck(value, value)
+      .then((result) => {
+        if (live) setCheck(result);
+      })
+      .catch(() => {
+        if (live) setCheck(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [value]);
+
+  const problem = check && check.status !== "ok" ? check : null;
+  // A refused registration on Windows or X11 says only that the grab failed, never by
+  // whom — so an owner-less clash gets its own wording rather than a blank name.
+  const problemText = problem
+    ? (problem.status === "taken_by_desktop"
+        ? problem.owner
+          ? t.recorder.takenByDesktop
+          : t.recorder.takenByOther
+        : problem.status === "taken_by_app"
+          ? t.recorder.takenByApp
+          : t.recorder.unsupported
+      ).replace("{owner}", problem.owner ?? "")
+    : null;
+
+  const offerSuggestions = () => {
+    if (suggestions) {
+      setSuggestions(null);
+      return;
+    }
+    api
+      .hotkeySuggestions()
+      .then(setSuggestions)
+      .catch(() => setSuggestions([]));
+  };
+
   return (
     <div className="rec">
       <button
         ref={buttonRef}
         type="button"
-        className={`rec__btn ${recording ? "rec__btn--live" : ""}`}
+        className={`rec__btn ${recording ? "rec__btn--live" : ""} ${
+          problem ? "rec__btn--clash" : ""
+        }`}
         onClick={() => (recording ? stop() : start())}
       >
         {recording ? (
@@ -120,6 +181,12 @@ export function HotkeyRecorder({ value, onChange, placeholder }: Props) {
         )}
       </button>
 
+      {!recording && (
+        <button type="button" className="btn-quiet" onClick={offerSuggestions}>
+          {t.recorder.suggest}
+        </button>
+      )}
+
       {value && !recording && (
         <button type="button" className="btn-quiet btn-danger" onClick={() => onChange(null)}>
           {t.common.clear}
@@ -127,6 +194,30 @@ export function HotkeyRecorder({ value, onChange, placeholder }: Props) {
       )}
 
       {recording && <span className="rec__note">{hint ?? t.recorder.hint}</span>}
+
+      {!recording && problemText && <span className="rec__clash">{problemText}</span>}
+
+      {!recording && suggestions && (
+        <div className="rec__picks">
+          {suggestions.length === 0 ? (
+            <span className="rec__note">{t.recorder.suggestEmpty}</span>
+          ) : (
+            suggestions.map((accelerator) => (
+              <button
+                key={accelerator}
+                type="button"
+                className="rec__pick"
+                onClick={() => {
+                  onChange(accelerator);
+                  setSuggestions(null);
+                }}
+              >
+                <kbd>{formatAccelerator(accelerator)}</kbd>
+              </button>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }

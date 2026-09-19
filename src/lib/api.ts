@@ -4,6 +4,8 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   AppSettings,
   HistoryEntry,
+  HotkeyCheck,
+  HotkeyDelivery,
   LlmPreset,
   SttSettings,
   ReadStatusPayload,
@@ -21,6 +23,7 @@ export const EVENTS = {
   settingsChanged: "fvt://settings-changed",
   error: "fvt://error",
   readStatus: "fvt://read-status",
+  hotkeyFired: "fvt://hotkey-fired",
 } as const;
 
 export const getSettings = () => invoke<AppSettings>("get_settings");
@@ -81,6 +84,19 @@ export const listModels = () => invoke<string[]>("list_models");
  *  react to the very shortcut you are trying to assign. */
 export const suspendHotkeys = () => invoke<void>("suspend_hotkeys");
 export const resumeHotkeys = () => invoke<void>("resume_hotkeys");
+/** How shortcuts actually reach the app on this session — in-process, installed into
+ *  GNOME, or (any other Wayland compositor) commands the user has to bind by hand. */
+export const hotkeyDelivery = () => invoke<HotkeyDelivery>("hotkey_delivery");
+/** Whether a combination is free on this machine, and what holds it if not — asked the
+ *  moment the recorder captures a key, so a clash is reported before it is saved. */
+export const hotkeyCheck = (accelerator: string, current?: string | null) =>
+  invoke<HotkeyCheck>("hotkey_check", { accelerator, current: current ?? null });
+/** Combinations known to be unclaimed on this machine right now. */
+export const hotkeySuggestions = () => invoke<string[]>("hotkey_suggestions");
+/** "Press your shortcut and see whether it arrives": while a probe is on, a hotkey
+ *  announces itself through `EVENTS.hotkeyFired` and runs nothing. */
+export const startHotkeyProbe = () => invoke<void>("start_hotkey_probe");
+export const stopHotkeyProbe = () => invoke<void>("stop_hotkey_probe");
 
 // ---------------------------------------------------------------- read-aloud
 

@@ -165,6 +165,23 @@ const en = {
     cancel: "Cancel",
     cancelHint: "Throws the current take away.",
     nextMode: "Next mode",
+    deliveryGnome:
+      "Your desktop (GNOME) doesn't let apps grab keys directly on Wayland, so these shortcuts are installed into GNOME's own keyboard settings instead — they still work from anywhere.",
+    deliveryManual:
+      "Your desktop doesn't let apps grab global keys on Wayland, and this app only knows how to install shortcuts into GNOME. Bind these commands by hand in your desktop's keyboard settings:",
+    deliveryManualCopy: "Copy",
+    deliveryManualCopied: "Copied",
+    deliveryBinary: "Shortcuts run",
+    probeTitle: "Test a shortcut",
+    probeHint:
+      "Start the test, then press one of your shortcuts. The app only reports that the key arrived — nothing is recorded or read aloud.",
+    probeStart: "Start test",
+    probeStop: "Stop",
+    probeWaiting: "Listening — press your shortcut now.",
+    probeHit: "{action} arrived. That shortcut works.",
+    probeNothing:
+      "No key arrived. Check the warnings above, then try a combination nothing else uses.",
+    conflictsTitle: "These shortcuts won't fire",
     feedbackSection: "Feedback",
     sounds: "Sound cues",
     soundsHint:
@@ -313,6 +330,12 @@ const en = {
     clickToSet: "Click to set",
     hint: "esc cancel · ⌫ clear",
     needModifier: "Add a modifier (⌃ ⌥ ⇧ ⌘), or use a function key",
+    suggest: "Suggest",
+    suggestEmpty: "Every combination we know of is taken here",
+    takenByDesktop: "{owner} already uses this — your desktop wins, so this shortcut would never fire.",
+    takenByOther: "Another application already holds this key, so the app never receives it.",
+    takenByApp: "{owner} already uses this.",
+    unsupported: "This combination can't be bound on this desktop.",
   },
   onboarding: {
     next: "Continue",
@@ -561,6 +584,23 @@ const vi: Dictionary = {
     cancel: "Huỷ",
     cancelHint: "Bỏ luôn lần thu đang chạy.",
     nextMode: "Chế độ kế tiếp",
+    deliveryGnome:
+      "Trên Wayland, GNOME không cho app tự bắt phím tắt — nên các phím tắt này được ghi thẳng vào cài đặt bàn phím của GNOME. Vẫn dùng được từ mọi nơi.",
+    deliveryManual:
+      "Trên Wayland, hệ thống này không cho app tự bắt phím tắt, mà app cũng chỉ biết ghi thẳng vào GNOME. Anh tự vào cài đặt bàn phím của hệ thống và gán các lệnh sau:",
+    deliveryManualCopy: "Chép",
+    deliveryManualCopied: "Đã chép",
+    deliveryBinary: "Phím tắt sẽ chạy",
+    probeTitle: "Thử phím tắt",
+    probeHint:
+      "Bấm bắt đầu rồi bấm thử một phím tắt. App chỉ báo là phím có tới nơi thôi — không ghi âm, không đọc gì cả.",
+    probeStart: "Bắt đầu thử",
+    probeStop: "Dừng",
+    probeWaiting: "Đang nghe — bấm phím tắt của anh đi.",
+    probeHit: "{action} đã tới nơi. Phím tắt này chạy được.",
+    probeNothing:
+      "Không nhận được phím nào. Coi lại cảnh báo ở trên rồi đổi sang tổ hợp chưa ai dùng.",
+    conflictsTitle: "Mấy phím tắt này sẽ không chạy",
     feedbackSection: "Phản hồi",
     sounds: "Âm báo",
     soundsHint:
@@ -705,6 +745,12 @@ const vi: Dictionary = {
     clickToSet: "Bấm để đặt",
     hint: "esc huỷ · ⌫ xoá",
     needModifier: "Cần thêm phím bổ trợ (⌃ ⌥ ⇧ ⌘), hoặc dùng phím F",
+    suggest: "Gợi ý",
+    suggestEmpty: "Máy này không còn tổ hợp nào trong danh sách gợi ý",
+    takenByDesktop: "{owner} đang giữ phím này — hệ thống luôn ăn trước, nên phím tắt sẽ không chạy.",
+    takenByOther: "Một ứng dụng khác đang giữ phím này, app không nhận được.",
+    takenByApp: "{owner} đang dùng phím này rồi.",
+    unsupported: "Máy này không đặt được tổ hợp đó.",
   },
   onboarding: {
     next: "Tiếp tục",

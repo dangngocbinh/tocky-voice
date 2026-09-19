@@ -81,6 +81,17 @@ objc2-app-kit = { version = "0.2", features = [
     "libc",
 ] }
 
+# Pasting on Wayland goes through the desktop's Remote Desktop portal rather than XTEST.
+#
+# Since GNOME 45 Xwayland runs with `-enable-ei-portal`, so an X11 client synthesizing
+# input through XTEST — which is what `enigo` does here — makes Xwayland ask the portal
+# for permission on that client's behalf. Xwayland asks without `persist_mode`, so the
+# desktop has nothing it is allowed to remember and the "Allow Remote Interaction"
+# dialog comes back on every paste. Asking for ourselves lets us ask *once*: the portal
+# hands back a restore token, and a session resumed with that token never prompts again.
+[target.'cfg(target_os = "linux")'.dependencies]
+ashpd = { version = "0.11", default-features = false, features = ["tokio"] }
+
 # `test-util` lets the timeout tests advance the clock instead of sleeping through it.
 [dev-dependencies]
 tokio = { version = "1", features = ["test-util"] }

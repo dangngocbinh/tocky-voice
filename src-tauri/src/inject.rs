@@ -5,6 +5,9 @@
 //! so the previous clipboard contents are saved and restored afterwards to keep the
 //! user's own copy buffer intact.
 
+#[cfg(target_os = "linux")]
+mod portal;
+
 use anyhow::{Context, Result};
 use enigo::{Direction, Enigo, Key, Keyboard, Settings};
 use tauri::AppHandle;
@@ -74,6 +77,18 @@ const MAIN_THREAD_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(
 /// whole app dies rather than returning an error. Shared by paste (`v`) and, since
 /// `selection.rs`, copy (`c`).
 pub fn send_shortcut(app: &AppHandle, ch: char) -> Result<()> {
+    // Wayland first, and not on the main thread: the portal is a D-Bus round trip, and
+    // the HIToolbox reason for the main-thread hop below is a macOS one. Falling back to
+    // XTEST on failure keeps a declined dialog from swallowing the text entirely —
+    // XTEST still works, it just brings the prompt back.
+    #[cfg(target_os = "linux")]
+    if portal::should_use() {
+        match portal::send_shortcut(app, ch) {
+            Ok(()) => return Ok(()),
+            Err(e) => log::warn!("portal keystroke failed, falling back to XTEST: {e}"),
+        }
+    }
+
     let (tx, rx) = std::sync::mpsc::channel();
     app.run_on_main_thread(move || {
         let _ = tx.send(synthesize_shortcut(ch));

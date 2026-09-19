@@ -55,3 +55,42 @@ password are in the password manager (entry: "Tocky Voice — Tauri updater key"
 same two values are the `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
 repo secrets. Losing the private key means no existing install can ever be offered an
 update again — there is no recovery but telling every user to reinstall by hand.
+
+## macOS code signing (one-time setup, on a Mac enrolled in the Apple Developer Program)
+
+`release.yml` already forwards six secrets to `tauri-action`; it silently skips
+Apple signing on every platform until all of them exist. This is what makes each one:
+
+1. **Export the certificate.** In Xcode → Settings → Accounts → your team → Manage
+   Certificates, create a "Developer ID Application" certificate if there isn't one
+   already. Then in Keychain Access, find it under "My Certificates", right-click →
+   Export, save as `cert.p12` with a password you choose.
+2. **Base64-encode it** and put the result in the `APPLE_CERTIFICATE` secret:
+   ```sh
+   base64 -i cert.p12 | pbcopy
+   ```
+   The export password from step 1 goes in `APPLE_CERTIFICATE_PASSWORD`.
+3. **Signing identity** — the certificate's exact name, into `APPLE_SIGNING_IDENTITY`:
+   ```sh
+   security find-identity -v -p codesigning
+   ```
+   Copy the string in quotes, e.g. `Developer ID Application: Your Name (TEAMID1234)`.
+4. **Team ID** into `APPLE_TEAM_ID` — the parenthesised ID from the identity above, or
+   from [developer.apple.com/account](https://developer.apple.com/account) → Membership.
+5. **Notarization credentials** — `APPLE_ID` is the Apple ID email that holds the
+   membership; `APPLE_PASSWORD` is an **app-specific password** for it (not the Apple ID
+   password itself), generated at
+   [appleid.apple.com](https://appleid.apple.com) → Sign-In and Security →
+   App-Specific Passwords.
+
+Add all six as repo secrets (Settings → Secrets and variables → Actions), then tag a
+release as usual. Once a build comes back notarized (the draft's `.dmg` opens with a
+plain double-click, no right-click-Open needed), two things in the app itself go stale
+and should be updated in a follow-up PR:
+
+- `src/lib/update-policy.ts` — `canSelfInstall` hard-codes `!isMac` specifically because
+  an unsigned build can't safely replace itself in place; once builds are signed this
+  can become `true` unconditionally.
+- The Gatekeeper footer in this workflow's `create-release` step, and the equivalent
+  paragraphs in `README.md` / `README.en.md` / `site/index.html` — all three currently
+  tell people how to get past a warning that a notarized build no longer shows.

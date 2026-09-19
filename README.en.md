@@ -26,7 +26,9 @@ Built with Tauri v2 (Rust core + React UI). Interface in **English and Tiếng V
 
 ### Option 1 — Download and run (no tools needed)
 
-Grab the file for your system from the [**Releases page**](../../releases/latest):
+Go to the **[download page](https://dangngocbinh.github.io/tocky-voice/)** — it detects
+your OS and points straight at the right file. To pick between versions yourself, use
+the [Releases page](../../releases/latest):
 
 | System | File | Then |
 | --- | --- | --- |
@@ -246,15 +248,50 @@ them as beta and please report what breaks.
 | | macOS | Windows | Linux |
 | --- | --- | --- | --- |
 | Dictate → paste | ✅ | ✅ built, untested | ⚠️ runs; clipboard caveat below |
-| Global hotkeys | ✅ | ✅ built, untested | ✅ verified on GNOME Wayland |
+| Global hotkeys | ✅ | ✅ built, untested | ✅ on GNOME; see the Wayland note |
 | Return focus to the exact app you started from | ✅ | not implemented — hiding the overlay restores focus in practice | same |
 | Key file permissions | `0600` | inherits the per-user AppData ACL | `0600` |
 
-**Linux — actually run on Ubuntu 22.04 with GNOME Wayland:** the app starts, **all three
-global hotkeys register**, and settings and the key vault load. One measured limitation:
-the compositor does not implement the `wlr-data-control` clipboard protocol, so the app
-falls back to the X11 clipboard via XWayland — pasting most likely reaches X11/XWayland
-apps but not native Wayland ones. That part is not fully measured.
+**Linux — hotkeys on Wayland.** Wayland lets no application grab a global key, and the
+registration call succeeds anyway: it really does succeed, and the key never arrives. That
+is the trap — every log line says the hotkey is bound, and pressing it does nothing.
+
+So on **GNOME Wayland** the app stops grabbing keys and **writes its shortcuts into GNOME's
+own keyboard settings** (`Settings → Keyboard → Custom Shortcuts`) instead, each one calling
+this same binary with a flag (`tockyvoice --toggle`); that second launch is relayed to the
+running app. The app's own settings screen stays the only place you edit shortcuts — GNOME
+is merely where they are kept. On a Wayland desktop that is **not** GNOME (KDE, Sway…) the
+app does not know where to write them, so the settings screen prints the exact command line
+for each shortcut to bind by hand in your desktop's keyboard settings.
+
+Three things the settings screen now answers, because "the shortcut does nothing and says
+nothing" is the hardest failure to diagnose:
+
+- **Conflicts** — the app reads every shortcut GNOME currently holds. Press a combination
+  the desktop already uses and it says so, and names the owner, instead of letting you save
+  a key that would never once fire.
+- **A test button** — press "Test a shortcut", then press your combination: the app reports
+  whether the key reached it, and records or reads nothing while testing.
+- **Suggestions** — the "Suggest" button offers combinations verified to be free on this
+  very machine.
+
+**Linux — the "Allow Remote Interaction" dialog on every paste.** Since GNOME 45 Xwayland
+runs with `-enable-ei-portal`, so an X11 client synthesizing input through XTEST makes
+Xwayland request permission from the portal on its behalf. Xwayland requests **without
+`persist_mode`**, which leaves the desktop nothing it is allowed to remember — so the
+dialog comes back on every single paste.
+
+The app therefore stops pasting through XTEST. It opens its own **Remote Desktop portal**
+session with `persist_mode`, takes the *restore token* the portal hands back, and stores it
+at `<config dir>/portal-restore-token` with `0600` permissions. The dialog appears **once**
+after install — switch on "Allow Remote Interaction", press Share — and never again, across
+restarts included. If the portal fails or the request is declined, the app falls back to
+XTEST so the text still lands.
+
+`Ctrl+V` is sent as a **keysym** rather than a physical keycode, so a non-QWERTY layout
+pastes correctly. And without XTEST in the path, the paste reaches native Wayland windows
+too — XTEST only ever reached X11/XWayland ones. The clipboard itself still falls back to
+X11, because the compositor does not implement `wlr-data-control`.
 
 ---
 

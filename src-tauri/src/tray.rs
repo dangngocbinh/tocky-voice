@@ -88,14 +88,24 @@ fn build_menu(app: &tauri::AppHandle, settings: &AppSettings) -> tauri::Result<M
 pub fn build(app: &tauri::AppHandle, settings: &AppSettings) -> tauri::Result<()> {
     let menu = build_menu(app, settings)?;
 
-    // A dedicated monochrome glyph, not the app icon: `icon_as_template` tells macOS to
-    // recolour the image for the current menu bar, so a full-colour icon would collapse
-    // into a solid blob.
+    // A dedicated glyph, not the app icon, in one of two versions.
+    //
+    // macOS gets the black template: `icon_as_template` hands the image to the system to
+    // recolour for the current menu bar, and a full-colour icon would collapse into a
+    // solid blob. Nothing else honours that flag — on Linux the same black glyph is drawn
+    // literally, and Ubuntu's top bar is black, so the icon was invisible there. The
+    // coloured version carries the brand colour over a thin dark edge, which reads on a
+    // dark panel and on a light one.
+    #[cfg(target_os = "macos")]
     let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-template.png"))?;
+    #[cfg(not(target_os = "macos"))]
+    let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-colour.png"))?;
 
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(tray_icon)
-        .icon_as_template(true)
+        // Only ever true on macOS: elsewhere it is ignored, and the icon above is already
+        // the right one for the platform.
+        .icon_as_template(cfg!(target_os = "macos"))
         .tooltip("Tocky Voice")
         .menu(&menu)
         .show_menu_on_left_click(true)

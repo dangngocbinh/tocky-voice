@@ -882,6 +882,60 @@ kbd {
   color: var(--paper-3);
 }
 
+/* A shortcut nothing will ever deliver still looks bound, so the field itself carries
+   the warning — the row is where someone is looking when they pick a key. */
+.rec__btn--clash {
+  border-color: rgba(224, 160, 60, 0.45);
+  color: var(--accent);
+}
+
+.rec__clash {
+  flex-basis: 100%;
+  text-align: right;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--accent);
+}
+
+/* Suggestions: combinations this machine has confirmed are free, one click from being
+   saved, because "pick another key" is useless advice without candidates. */
+.rec__picks {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.rec__pick {
+  padding: 3px 8px;
+  min-height: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+/* ---------- hotkey diagnostics ---------- */
+
+.hk-conflicts {
+  display: block;
+  margin-top: 14px;
+}
+
+.hk-conflicts__list {
+  margin: 7px 0 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--paper-2);
+}
+
+.hk-conflicts__list kbd {
+  margin-right: 6px;
+}
+
 /* ============================ history ============================ */
 
 .log {

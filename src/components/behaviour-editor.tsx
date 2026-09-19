@@ -1,8 +1,12 @@
 /** Hotkeys, sound cues, history retention, and launch-at-login. */
 
-import type { AppSettings } from "../lib/types";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
+import * as api from "../lib/api";
+import type { AppSettings, BindingCheck, HotkeyDelivery, ProbeHit } from "../lib/types";
 import { useT } from "../lib/i18n";
 import { HotkeyRecorder } from "./hotkey-recorder";
+import { formatAccelerator } from "../lib/format-accelerator";
 import { Switch } from "./providers-editor";
 
 interface Props {
@@ -12,6 +16,14 @@ interface Props {
 
 export function BehaviourEditor({ settings, onSettingsChange }: Props) {
   const t = useT();
+  const [delivery, setDelivery] = useState<HotkeyDelivery | null>(null);
+
+  // Re-read after every save: recording a shortcut re-applies bindings on the Rust
+  // side, and on a manual Wayland desktop the command lines below embed the
+  // accelerator, so they'd otherwise go stale the moment one changed.
+  useEffect(() => {
+    api.hotkeyDelivery().then(setDelivery).catch(() => setDelivery(null));
+  }, [settings.hotkeys, settings.modes]);
 
   const patchHotkeys = (patch: Partial<AppSettings["hotkeys"]>) =>
     onSettingsChange({ ...settings, hotkeys: { ...settings.hotkeys, ...patch } });
@@ -122,6 +134,25 @@ export function BehaviourEditor({ settings, onSettingsChange }: Props) {
             />
           </div>
         </div>
+
+        {delivery?.mechanism === "gnome" && (
+          <p className="row__hint">{t.behaviour.deliveryGnome}</p>
+        )}
+        {delivery && <ConflictList checks={delivery.checks} />}
+        {delivery && <HotkeyProbe checks={delivery.checks} />}
+        {delivery && delivery.mechanism !== "in_process" && delivery.binary && (
+          <p className="row__hint mono">
+            {t.behaviour.deliveryBinary}: {delivery.binary}
+          </p>
+        )}
+        {delivery?.mechanism === "manual" && delivery.commands.length > 0 && (
+          <>
+            <p className="row__hint">{t.behaviour.deliveryManual}</p>
+            {delivery.commands.map((c) => (
+              <ManualCommandRow key={c.command} command={c} />
+            ))}
+          </>
+        )}
       </section>
 
       <section className="section">
@@ -232,5 +263,150 @@ export function BehaviourEditor({ settings, onSettingsChange }: Props) {
         </div>
       </section>
     </>
+  );
+}
+
+/** Strips the product prefix the desktop needs but a row inside the app does not. */
+function shortLabel(label: string): string {
+  return label.replace(/^.*?—\s*/, "");
+}
+
+/** Every configured shortcut that will not fire, and what is standing in its way.
+ *
+ *  The per-row warning in the recorder answers "is this key free?" while you are
+ *  choosing one. This answers the question the bug report actually asked — "why does
+ *  nothing happen when I press it?" — for shortcuts that were set long ago and have been
+ *  quietly dead ever since, because a desktop shortcut was added on top of them. */
+function ConflictList({ checks }: { checks: BindingCheck[] }) {
+  const t = useT();
+  const broken = checks.filter((c) => c.status !== "ok");
+  if (broken.length === 0) return null;
+
+  return (
+    <div className="notice notice--warn hk-conflicts">
+      <div>
+        <div className="row__label">{t.behaviour.conflictsTitle}</div>
+        <ul className="hk-conflicts__list">
+          {broken.map((c) => (
+            <li key={c.action}>
+              <kbd>{formatAccelerator(c.accelerator)}</kbd> {shortLabel(c.label)}
+              {c.owner
+                ? ` — ${c.owner}`
+                : c.status === "unsupported"
+                  ? ` — ${t.recorder.unsupported}`
+                  : ` — ${t.recorder.takenByOther}`}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+/** "Press it and see" — the one thing the settings screen could never answer.
+ *
+ *  While a probe is on, a hotkey that reaches the app announces which action it was
+ *  bound to and runs nothing at all: testing dictation does not start a recording, and
+ *  testing read-aloud does not start talking. Silence for the whole window is itself the
+ *  answer, and it is the answer that used to arrive as no feedback whatsoever. */
+function HotkeyProbe({ checks }: { checks: BindingCheck[] }) {
+  const t = useT();
+  const [running, setRunning] = useState(false);
+  const [hit, setHit] = useState<string | null>(null);
+  const [expired, setExpired] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+
+  const stop = useCallback(() => {
+    window.clearTimeout(timer.current);
+    setRunning(false);
+    api.stopHotkeyProbe().catch(() => undefined);
+  }, []);
+
+  // A probe left armed swallows every hotkey press, so leaving this screen — or the
+  // window being closed on it — has to disarm it. The Rust side expires it too, in case
+  // the frontend never gets the chance.
+  useEffect(() => stop, [stop]);
+
+  useEffect(() => {
+    if (!running) return;
+    const off = listen<ProbeHit>(api.EVENTS.hotkeyFired, ({ payload }) => {
+      const match = checks.find((c) => c.action === payload.action);
+      setHit(match ? shortLabel(match.label) : payload.action);
+      stop();
+    });
+    return () => {
+      off.then((fn) => fn()).catch(() => undefined);
+    };
+  }, [running, checks, stop]);
+
+  const start = () => {
+    setHit(null);
+    setExpired(false);
+    setRunning(true);
+    api.startHotkeyProbe().catch(() => undefined);
+    timer.current = window.setTimeout(() => {
+      setExpired(true);
+      stop();
+    }, 20_000);
+  };
+
+  return (
+    <div className="row">
+      <div>
+        <div className="row__label">{t.behaviour.probeTitle}</div>
+        <span className="row__hint">
+          {running
+            ? t.behaviour.probeWaiting
+            : hit
+              ? t.behaviour.probeHit.replace("{action}", hit)
+              : expired
+                ? t.behaviour.probeNothing
+                : t.behaviour.probeHint}
+        </span>
+      </div>
+      <div className="row__control">
+        <button
+          type="button"
+          className={running ? "rec__btn rec__btn--live" : ""}
+          onClick={() => (running ? stop() : start())}
+        >
+          {running ? t.behaviour.probeStop : t.behaviour.probeStart}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** One shortcut a manual-Wayland desktop needs the user to bind themselves, with a
+ *  copy button so the command line doesn't have to be retyped by hand into a dialog
+ *  that will reject the smallest typo. */
+function ManualCommandRow({ command }: { command: { label: string; accelerator: string; command: string } }) {
+  const t = useT();
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <div className="row">
+      <div>
+        <div className="row__label">{command.label}</div>
+        <span className="row__hint mono">{command.command}</span>
+      </div>
+      <div className="row__control">
+        <button
+          type="button"
+          className="btn-quiet"
+          onClick={() => {
+            api
+              .copyText(command.command)
+              .then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              })
+              .catch(() => undefined);
+          }}
+        >
+          {copied ? t.behaviour.deliveryManualCopied : t.behaviour.deliveryManualCopy}
+        </button>
+      </div>
+    </div>
   );
 }

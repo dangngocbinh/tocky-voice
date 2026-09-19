@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tocky Voice — Tải về</title>
+<meta name="description" content="Gõ phím bằng giọng nói. Tải Tocky Voice cho macOS, Windows và Linux." />
+<link rel="icon" href="https://raw.githubusercontent.com/dangngocbinh/tocky-voice/main/src-tauri/icons/32x32.png" />
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #faf8f4;
+    --panel: #ffffff;
+    --ink: #201a12;
+    --muted: #6b6154;
+    --border: #e7ded0;
+    --accent: #e0a03c;
+    --accent-ink: #1a1206;
+    --accent-wash: rgba(224, 160, 60, 0.13);
+    --code-bg: #f1ece1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17140f;
+      --panel: #201b14;
+      --ink: #f3ede1;
+      --muted: #a89c86;
+      --border: #33291b;
+      --accent: #e0a03c;
+      --accent-ink: #1a1206;
+      --accent-wash: rgba(224, 160, 60, 0.18);
+      --code-bg: #262015;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 56px 24px 80px;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+  }
+  .brand img { width: 28px; height: 28px; border-radius: 7px; }
+  .lang-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .lang-toggle:hover { border-color: var(--accent); color: var(--ink); }
+  h1 {
+    font-size: 34px;
+    line-height: 1.2;
+    margin: 0 0 12px;
+    letter-spacing: -0.01em;
+  }
+  .lede {
+    color: var(--muted);
+    font-size: 17px;
+    margin: 0 0 36px;
+  }
+  .primary-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+  .primary-card .os-label {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .primary-card .os-name {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 18px;
+  }
+  .btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 700;
+    font-size: 16px;
+    text-decoration: none;
+    padding: 14px 22px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+  }
+  .btn-download:hover { filter: brightness(1.05); }
+  .btn-download[disabled] { opacity: 0.5; cursor: default; }
+  .version-note {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .version-note a { color: var(--muted); }
+  .other-platforms {
+    display: grid;
+    gap: 10px;
+  }
+  .plat-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+  }
+  .plat-row .name { font-weight: 600; }
+  .plat-row .links a {
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 14px;
+    margin-left: 16px;
+    border-bottom: 1px solid var(--accent);
+  }
+  .plat-row .links a:hover { color: var(--accent); }
+  .section-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 36px 0 14px;
+  }
+  .gatekeeper {
+    background: var(--code-bg);
+    border-radius: 12px;
+    padding: 16px 18px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .gatekeeper code {
+    background: rgba(0,0,0,0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  footer {
+    margin-top: 48px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  footer a { color: var(--muted); }
+  .error {
+    color: var(--muted);
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <img src="https://raw.githubusercontent.com/dangngocbinh/tocky-voice/main/src-tauri/icons/32x32.png" alt="" />
+        <span>Tocky Voice</span>
+      </div>
+      <button class="lang-toggle" id="langToggle" type="button">English</button>
+    </header>
+
+    <h1 id="title">Đừng gõ nữa. Cứ nói thôi.</h1>
+    <p class="lede" id="lede">
+      Bấm một phím ở bất kỳ đâu trên máy, nói, bấm lại — chữ hiện ra ngay trong ứng dụng
+      bạn đang gõ. Miễn phí, mã nguồn mở, dùng API key của chính bạn.
+    </p>
+
+    <div class="primary-card">
+      <div class="os-label" id="detectedLabel">Đã nhận diện hệ điều hành của bạn</div>
+      <div class="os-name" id="detectedOs">Đang kiểm tra…</div>
+      <a class="btn-download" id="primaryDownload" href="#" disabled>
+        <span id="primaryDownloadText">Đang tải danh sách phiên bản…</span>
+      </a>
+      <div class="version-note" id="versionNote"></div>
+    </div>
+
+    <div class="section-title" id="otherPlatformsTitle">Hệ điều hành khác</div>
+    <div class="other-platforms" id="otherPlatforms"></div>
+
+    <div class="section-title" id="gatekeeperTitle">App chưa có chứng chỉ trả phí — cách vượt qua cảnh báo lần đầu</div>
+    <div class="gatekeeper" id="gatekeeperBody">
+      <p><strong>macOS</strong> — chuột phải vào app → <strong>Open</strong> → <strong>Open</strong>. Nếu báo app "bị hỏng", mở Terminal và chạy:</p>
+      <p><code>xattr -cr "/Applications/Tocky Voice.app"</code></p>
+      <p><strong>Windows</strong> — SmartScreen hiện hộp xanh → <strong>More info</strong> → <strong>Run anyway</strong>.</p>
+    </div>
+
+    <footer id="footer">
+      Mã nguồn mở trên <a href="https://github.com/dangngocbinh/tocky-voice" target="_blank" rel="noopener">GitHub</a>.
+      Xem tất cả bản phát hành tại <a href="https://github.com/dangngocbinh/tocky-voice/releases" target="_blank" rel="noopener">trang Releases</a>.
+    </footer>
+  </div>
+
+<script>
+(function () {
+  var REPO = "dangngocbinh/tocky-voice";
+  var API_URL = "https://api.github.com/repos/" + REPO + "/releases/latest";
+  var RELEASES_URL = "https://github.com/" + REPO + "/releases/latest";
+
+  var STR = {
+    vi: {
+      toggle: "English",
+      title: "Đừng gõ nữa. Cứ nói thôi.",
+      lede: "Bấm một phím ở bất kỳ đâu trên máy, nói, bấm lại — chữ hiện ra ngay trong ứng dụng bạn đang gõ. Miễn phí, mã nguồn mở, dùng API key của chính bạn.",
+      detectedLabel: "Đã nhận diện hệ điều hành của bạn",
+      loading: "Đang tải danh sách phiên bản…",
+      download: "Tải cho {os}",
+      versionNote: "Phiên bản {version}. Xem {notes}.",
+      notesLink: "có gì mới",
+      otherPlatformsTitle: "Hệ điều hành khác",
+      gatekeeperTitle: "App chưa có chứng chỉ trả phí — cách vượt qua cảnh báo lần đầu",
+      gatekeeperBody:
+        '<p><strong>macOS</strong> — chuột phải vào app → <strong>Open</strong> → <strong>Open</strong>. Nếu báo app "bị hỏng", mở Terminal và chạy:</p>' +
+        '<p><code>xattr -cr "/Applications/Tocky Voice.app"</code></p>' +
+        "<p><strong>Windows</strong> — SmartScreen hiện hộp xanh → <strong>More info</strong> → <strong>Run anyway</strong>.</p>",
+      footer:
+        'Mã nguồn mở trên <a href="https://github.com/' + REPO + '" target="_blank" rel="noopener">GitHub</a>. ' +
+        'Xem tất cả bản phát hành tại <a href="' + RELEASES_URL + '" target="_blank" rel="noopener">trang Releases</a>.',
+      error: "Không lấy được danh sách bản phát hành. Vào thẳng ",
+      errorLink: "trang Releases",
+      unknownOs: "Không nhận diện được hệ điều hành — chọn bên dưới",
+      instructions: {
+        macArm: "Mở file .dmg, kéo app vào Applications.",
+        macIntel: "Mở file .dmg, kéo app vào Applications.",
+        winExe: "Chạy file, làm theo hướng dẫn cài đặt.",
+        winMsi: "Chạy file .msi.",
+        linuxAppImage: "chmod +x rồi chạy trực tiếp.",
+        linuxDeb: "sudo dpkg -i <tên file>.deb",
+        linuxRpm: "sudo rpm -i <tên file>.rpm",
+      },
+    },
+    en: {
+      toggle: "Tiếng Việt",
+      title: "Don't type. Just talk.",
+      lede: "Press one key anywhere on your computer, talk, press it again — the text lands right in whatever app you're typing into. Free, open source, uses your own API key.",
+      detectedLabel: "We detected your operating system",
+      loading: "Loading version info…",
+      download: "Download for {os}",
+      versionNote: "Version {version}. See {notes}.",
+      notesLink: "what's new",
+      otherPlatformsTitle: "Other platforms",
+      gatekeeperTitle: "Not code-signed yet — how to get past the first warning",
+      gatekeeperBody:
+        "<p><strong>macOS</strong> — right-click the app → <strong>Open</strong> → <strong>Open</strong>. If it says the app is damaged, open Terminal and run:</p>" +
+        '<p><code>xattr -cr "/Applications/Tocky Voice.app"</code></p>' +
+        "<p><strong>Windows</strong> — SmartScreen shows a blue box → <strong>More info</strong> → <strong>Run anyway</strong>.</p>",
+      footer:
+        'Open source on <a href="https://github.com/' + REPO + '" target="_blank" rel="noopener">GitHub</a>. ' +
+        'See every release on the <a href="' + RELEASES_URL + '" target="_blank" rel="noopener">Releases page</a>.',
+      error: "Couldn't load the release list. Go straight to the ",
+      errorLink: "Releases page",
+      unknownOs: "Couldn't detect your operating system — pick one below",
+      instructions: {
+        macArm: "Open the .dmg, drag the app into Applications.",
+        macIntel: "Open the .dmg, drag the app into Applications.",
+        winExe: "Run the file and follow the installer.",
+        winMsi: "Run the .msi file.",
+        linuxAppImage: "chmod +x it, then run it directly.",
+        linuxDeb: "sudo dpkg -i <file>.deb",
+        linuxRpm: "sudo rpm -i <file>.rpm",
+      },
+    },
+  };
+
+  var lang = (navigator.language || "en").toLowerCase().indexOf("vi") === 0 ? "vi" : "en";
+
+  function detectPlatform() {
+    var ua = navigator.userAgent;
+    var platform = navigator.platform || "";
+    if (/Mac/i.test(platform) || /Mac OS X/i.test(ua)) {
+      // Apple Silicon vs Intel can't be told apart from the UA string alone on the
+      // web (Rosetta reports the same platform string); default to Apple Silicon,
+      // which every Mac sold since late 2020 is, and let the "other platforms" list
+      // cover the Intel case.
+      return "mac-arm";
+    }
+    if (/Win/i.test(platform) || /Windows/i.test(ua)) return "windows";
+    if (/Linux/i.test(platform) || /Linux/i.test(ua)) return "linux";
+    return "unknown";
+  }
+
+  function findAsset(assets, matcher) {
+    for (var i = 0; i < assets.length; i++) {
+      if (matcher(assets[i].name)) return assets[i];
+    }
+    return null;
+  }
+
+  function render(assets, version, releaseUrl) {
+    var s = STR[lang];
+    var macArm = findAsset(assets, function (n) { return /\.dmg$/i.test(n) && /aarch64/i.test(n); });
+    var macIntel = findAsset(assets, function (n) { return /\.dmg$/i.test(n) && !/aarch64/i.test(n); });
+    var winExe = findAsset(assets, function (n) { return /-setup\.exe$/i.test(n); }) ||
+      findAsset(assets, function (n) { return /\.exe$/i.test(n); });
+    var winMsi = findAsset(assets, function (n) { return /\.msi$/i.test(n); });
+    var linuxAppImage = findAsset(assets, function (n) { return /\.appimage$/i.test(n); });
+    var linuxDeb = findAsset(assets, function (n) { return /\.deb$/i.test(n); });
+    var linuxRpm = findAsset(assets, function (n) { return /\.rpm$/i.test(n); });
+
+    var byOs = {
+      "mac-arm": { label: "macOS (Apple Silicon)", asset: macArm },
+      "mac-intel": { label: "macOS (Intel)", asset: macIntel },
+      windows: { label: "Windows", asset: winExe },
+      linux: { label: "Linux", asset: linuxAppImage },
+    };
+
+    var detected = detectPlatform();
+    var primary = byOs[detected] || null;
+    var primaryBtn = document.getElementById("primaryDownload");
+    var primaryText = document.getElementById("primaryDownloadText");
+    var detectedOsEl = document.getElementById("detectedOs");
+
+    if (primary && primary.asset) {
+      detectedOsEl.textContent = primary.label;
+      primaryBtn.href = primary.asset.browser_download_url;
+      primaryBtn.removeAttribute("disabled");
+      primaryText.textContent = s.download.replace("{os}", primary.label);
+    } else {
+      detectedOsEl.textContent = s.unknownOs;
+      primaryBtn.style.display = "none";
+    }
+
+    var notesUrl = releaseUrl;
+    document.getElementById("versionNote").innerHTML = s.versionNote
+      .replace("{version}", version)
+      .replace("{notes}", '<a href="' + notesUrl + '" target="_blank" rel="noopener">' + s.notesLink + "</a>");
+
+    var rows = [];
+    function row(name, entries) {
+      var links = entries
+        .filter(function (e) { return e.asset; })
+        .map(function (e) { return '<a href="' + e.asset.browser_download_url + '">' + e.text + "</a>"; })
+        .join("");
+      if (!links) return;
+      rows.push('<div class="plat-row"><span class="name">' + name + '</span><span class="links">' + links + "</span></div>");
+    }
+
+    // Skip whichever Mac arch/platform was already shown as the primary download.
+    var macRows = [];
+    if (detected !== "mac-arm") macRows.push({ asset: macArm, text: "Apple Silicon (.dmg)" });
+    if (detected !== "mac-intel") macRows.push({ asset: macIntel, text: "Intel (.dmg)" });
+    if (macRows.length) row("macOS", macRows);
+
+    if (detected !== "windows") {
+      row("Windows", [
+        { asset: winExe, text: ".exe" },
+        { asset: winMsi, text: ".msi" },
+      ]);
+    } else {
+      row("Windows (.msi)", [{ asset: winMsi, text: ".msi" }]);
+    }
+
+    if (detected !== "linux") {
+      row("Linux", [
+        { asset: linuxAppImage, text: ".AppImage" },
+        { asset: linuxDeb, text: ".deb" },
+        { asset: linuxRpm, text: ".rpm" },
+      ]);
+    } else {
+      row("Linux (.deb / .rpm)", [
+        { asset: linuxDeb, text: ".deb" },
+        { asset: linuxRpm, text: ".rpm" },
+      ]);
+    }
+
+    document.getElementById("otherPlatforms").innerHTML = rows.join("");
+  }
+
+  function applyStrings() {
+    var s = STR[lang];
+    document.documentElement.lang = lang;
+    document.getElementById("langToggle").textContent = s.toggle;
+    document.getElementById("title").textContent = s.title;
+    document.getElementById("lede").textContent = s.lede;
+    document.getElementById("detectedLabel").textContent = s.detectedLabel;
+    document.getElementById("primaryDownloadText").textContent = s.loading;
+    document.getElementById("otherPlatformsTitle").textContent = s.otherPlatformsTitle;
+    document.getElementById("gatekeeperTitle").textContent = s.gatekeeperTitle;
+    document.getElementById("gatekeeperBody").innerHTML = s.gatekeeperBody;
+    document.getElementById("footer").innerHTML = s.footer;
+  }
+
+  document.getElementById("langToggle").addEventListener("click", function () {
+    lang = lang === "vi" ? "en" : "vi";
+    applyStrings();
+    if (window.__releaseData) {
+      render(window.__releaseData.assets, window.__releaseData.version, window.__releaseData.url);
+    }
+  });
+
+  applyStrings();
+
+  fetch(API_URL, { headers: { Accept: "application/vnd.github+json" } })
+    .then(function (r) {
+      if (!r.ok) throw new Error("GitHub API " + r.status);
+      return r.json();
+    })
+    .then(function (data) {
+      window.__releaseData = {
+        assets: data.assets || [],
+        version: data.tag_name || data.name || "",
+        url: data.html_url || RELEASES_URL,
+      };
+      render(window.__releaseData.assets, window.__releaseData.version, window.__releaseData.url);
+    })
+    .catch(function () {
+      var s = STR[lang];
+      var el = document.getElementById("primaryDownload");
+      el.outerHTML =
+        '<p class="error">' + s.error + '<a href="' + RELEASES_URL + '">' + s.errorLink + "</a>.</p>";
+    });
+})();
+</script>
+</body>
+</html>

@@ -26,7 +26,9 @@ Viết bằng Tauri v2 (lõi Rust + giao diện React). Giao diện có **tiến
 
 ### Cách 1 — Tải về chạy luôn (không cần biết lập trình)
 
-Vào [**trang Releases**](../../releases/latest) và tải file hợp với máy bạn:
+Vào **[trang tải về](https://dangngocbinh.github.io/tocky-voice/)** — trang tự nhận diện
+hệ điều hành của bạn và đưa đúng file cần tải. Muốn tự chọn giữa các phiên bản thì vào
+[trang Releases](../../releases/latest):
 
 | Máy | File | Rồi làm gì |
 | --- | --- | --- |
@@ -242,15 +244,45 @@ báo lại giúp nếu có gì hỏng.
 | | macOS | Windows | Linux |
 | --- | --- | --- | --- |
 | Nói → dán chữ | ✅ | ✅ biên dịch được, chưa thử tay | ⚠️ chạy được; clipboard xem ghi chú |
-| Phím tắt toàn cục | ✅ | ✅ biên dịch được, chưa thử tay | ✅ đã thử trên GNOME Wayland |
+| Phím tắt toàn cục | ✅ | ✅ biên dịch được, chưa thử tay | ✅ trên GNOME; xem ghi chú Wayland |
 | Trả focus đúng ứng dụng lúc bắt đầu ghi | ✅ | chưa làm — ẩn overlay đi thì focus tự về, thực tế vẫn đúng | như Windows |
 | Quyền file chứa key | `0600` | theo ACL thư mục AppData của tài khoản | `0600` |
 
-**Linux — đã chạy thử thật trên Ubuntu 22.04 + GNOME Wayland:** app khởi động được,
-**cả ba phím tắt toàn cục đăng ký thành công**, đọc được settings và kho key. Một hạn chế
-đo được: compositor không hỗ trợ giao thức clipboard `wlr-data-control`, nên app lùi về
-clipboard X11 qua XWayland — thao tác dán nhiều khả năng chỉ tới được ứng dụng X11/XWayland
-chứ không tới ứng dụng Wayland thuần. Phần này chưa đo hết.
+**Linux — phím tắt trên Wayland.** Wayland không cho ứng dụng nào giành phím toàn cục,
+kể cả khi lời gọi đăng ký báo thành công — nó thành công thật, còn phím thì không bao giờ
+tới. Đó đúng là cái bẫy: mọi dòng log đều nói phím tắt đã gắn, mà bấm thì không có gì xảy ra.
+
+Nên trên **GNOME Wayland** app không giành phím nữa, mà **ghi thẳng phím tắt vào cài đặt
+bàn phím của GNOME** (`Settings → Keyboard → Custom Shortcuts`), mỗi phím gọi lại chính
+binary này kèm một cờ (`tockyvoice --toggle`); lần chạy thứ hai đó được chuyển về app đang
+mở. Cài đặt trong app vẫn là nơi duy nhất bạn sửa phím tắt — GNOME chỉ là chỗ chúng được
+cất. Trên Wayland **không phải GNOME** (KDE, Sway…) app chưa biết ghi vào đâu, nên màn hình
+Cài đặt in sẵn từng dòng lệnh để bạn tự gán trong cài đặt bàn phím của desktop mình.
+
+Ba thứ màn hình Cài đặt trả lời giúp, vì "phím tắt không chạy mà chẳng báo gì" là lỗi khó
+mò nhất:
+
+- **Trùng phím** — app đọc luôn toàn bộ phím tắt GNOME đang giữ. Bấm một tổ hợp mà hệ thống
+  đã dùng thì nó nói ngay ai đang giữ, thay vì để bạn lưu một phím vĩnh viễn không bao giờ chạy.
+- **Nút thử** — bấm "Thử phím tắt" rồi bấm tổ hợp của bạn: app báo phím có tới nơi hay không,
+  và **không** ghi âm hay đọc gì trong lúc thử.
+- **Gợi ý** — nút "Gợi ý" đưa ra vài tổ hợp đã kiểm tra là còn trống trên chính máy này.
+
+**Linux — hộp thoại "Allow Remote Interaction" hỏi mãi.** Từ GNOME 45, Xwayland chạy với
+`-enable-ei-portal`: ứng dụng X11 nào muốn giả lập phím qua XTEST thì Xwayland phải đi xin
+quyền hộ nó. Mà Xwayland xin **không kèm `persist_mode`**, nên GNOME không được phép nhớ —
+hộp thoại quay lại mỗi lần dán.
+
+Nên app không dán qua XTEST nữa. Nó tự mở phiên **Remote Desktop portal** có
+`persist_mode`, nhận về một *restore token* rồi cất ở
+`<thư mục config>/portal-restore-token` (quyền `0600`). Hỏi đúng **một lần** sau khi cài —
+bật công tắc "Allow Remote Interaction" rồi bấm Share — từ đó im lặng, kể cả sau khi khởi
+động lại máy. Portal hỏng hay bị từ chối thì app lùi về XTEST để chữ vẫn được dán.
+
+Phím `Ctrl+V` gửi bằng **keysym** chứ không phải mã phím vật lý, nên layout không phải
+QWERTY vẫn dán đúng. Và vì không còn qua XTEST, cái dán này tới được cả ứng dụng Wayland
+thuần — trước đây XTEST chỉ với tới ứng dụng X11/XWayland. Riêng clipboard vẫn lùi về X11
+vì compositor không hỗ trợ `wlr-data-control`.
 
 ---
 

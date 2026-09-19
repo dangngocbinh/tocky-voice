@@ -178,6 +178,17 @@ jobs:
           # Apple/Microsoft code signing — see src-tauri/tauri.conf.json's pubkey.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # macOS code signing + notarization, via a Developer ID Application
+          # certificate. tauri-action only acts on these on the macOS runners, and
+          # quietly skips signing when they're unset — so this is inert on every
+          # platform until the five secrets below actually exist. See
+          # docs/release-checklist.md for what to put in each one.
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           # Upload into the draft the first job made, rather than each matrix job
           # trying to create one of its own.

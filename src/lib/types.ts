@@ -37,6 +37,49 @@ export interface HotkeySettings {
   read_with_voice: string | null;
 }
 
+/** How shortcuts on this session actually reach the app — mirrors `hotkeys::Mechanism`. */
+export type HotkeyMechanism = "in_process" | "gnome" | "manual";
+
+export interface DesktopCommand {
+  label: string;
+  accelerator: string;
+  command: string;
+}
+
+/** Why a combination cannot be used, if it cannot — mirrors `hotkeys::CheckStatus`. */
+export type HotkeyCheckStatus = "ok" | "taken_by_desktop" | "taken_by_app" | "unsupported";
+
+export interface HotkeyCheck {
+  accelerator: string;
+  status: HotkeyCheckStatus;
+  /** The GNOME action or other app holding the key, when something does. */
+  owner: string | null;
+}
+
+/** One configured shortcut and its verdict, so a row can carry its own warning. */
+export interface BindingCheck {
+  /** Matches the `action` a probe hit reports. */
+  action: string;
+  label: string;
+  accelerator: string;
+  status: HotkeyCheckStatus;
+  owner: string | null;
+}
+
+export interface HotkeyDelivery {
+  mechanism: HotkeyMechanism;
+  /** Populated only for `manual` — one command per shortcut to bind by hand. */
+  commands: DesktopCommand[];
+  /** The executable the desktop shortcuts point at. */
+  binary: string;
+  checks: BindingCheck[];
+}
+
+/** A hotkey that arrived while the settings screen was testing — nothing ran. */
+export interface ProbeHit {
+  action: string;
+}
+
 export type TtsProviderKind = "soniox" | "gemini" | "open_ai" | "eleven_labs" | "vbee";
 
 export interface TtsSettings {

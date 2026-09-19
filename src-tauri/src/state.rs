@@ -36,6 +36,9 @@ pub mod events {
     pub const ERROR: &str = "fvt://error";
     /// Read-aloud session state, consumed by the mini player window.
     pub const READ_STATUS: &str = "fvt://read-status";
+    /// A hotkey arrived while the settings screen was testing one. Carries the action
+    /// it was bound to, and nothing runs — see `hotkeys::set_probe`.
+    pub const HOTKEY_FIRED: &str = "fvt://hotkey-fired";
 }
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]

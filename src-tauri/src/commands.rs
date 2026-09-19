@@ -290,6 +290,58 @@ pub fn resume_hotkeys(app: AppHandle, state: tauri::State<AppState>) {
     hotkeys::apply(&app, &settings);
 }
 
+/// How the shortcuts on this desktop actually reach the app.
+///
+/// The settings screen needs this because the honest answer differs per session: a
+/// Wayland desktop never delivers a key the app grabbed for itself, so on GNOME the
+/// shortcuts are installed into the desktop instead, and on any other Wayland
+/// compositor the user has to bind them by hand — with the command lines this returns.
+#[tauri::command]
+pub fn hotkey_delivery(state: tauri::State<AppState>) -> hotkeys::Delivery {
+    let settings = state.settings.lock().expect("settings lock").clone();
+    hotkeys::delivery(&settings)
+}
+
+/// Whether one combination is usable on this machine, and what holds it if not.
+///
+/// Called as soon as the recorder captures a key, because the moment to say "GNOME
+/// already uses that one" is before the shortcut is saved — afterwards the only symptom
+/// is a key that does nothing, which is indistinguishable from the app being broken.
+/// `current` is the key the field being edited holds right now, if any: without it,
+/// re-recording a shortcut as the value it already has reports a clash with itself.
+#[tauri::command]
+pub fn hotkey_check(
+    accelerator: String,
+    current: Option<String>,
+    state: tauri::State<AppState>,
+) -> hotkeys::HotkeyCheck {
+    let settings = state.settings.lock().expect("settings lock").clone();
+    hotkeys::check_for_field(&settings, &accelerator, current.as_deref())
+}
+
+/// Combinations that are free on this machine right now, for the user who cannot think
+/// of one that is not already taken.
+#[tauri::command]
+pub fn hotkey_suggestions(state: tauri::State<AppState>) -> Vec<String> {
+    let settings = state.settings.lock().expect("settings lock").clone();
+    hotkeys::suggestions(&settings, None, 5)
+}
+
+/// Starts and stops "press your shortcut and see whether it arrives" mode.
+///
+/// While it is on, a hotkey emits [`events::HOTKEY_FIRED`] and runs nothing — testing a
+/// dictation shortcut otherwise means starting a recording, which is why the honest
+/// answer to "is my hotkey working?" used to be "try it and find out".
+#[tauri::command]
+pub fn start_hotkey_probe() {
+    hotkeys::set_probe(true);
+}
+
+#[tauri::command]
+pub fn stop_hotkey_probe() {
+    hotkeys::set_probe(false);
+}
+
 /// Fetches the provider's current model list. Falls back to the preset's built-in list
 /// on the frontend when this fails (no key yet, offline, provider without the endpoint).
 #[tauri::command]
