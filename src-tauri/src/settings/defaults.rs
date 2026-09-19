@@ -430,6 +430,7 @@ pub fn default_settings() -> AppSettings {
         autostart: false,
         // Follow the OS locale; the frontend maps anything non-Vietnamese to English.
         ui_language: "system".into(),
+        theme: "system".into(),
         onboarding_completed: false,
         // The local vault, not the keychain. An unsigned macOS build makes the keychain
         // prompt for the login password on every read; see `secrets` for the reasoning.
@@ -438,5 +439,8 @@ pub fn default_settings() -> AppSettings {
         tts: default_tts(),
         read_modes: default_read_modes(),
         active_read_mode_id: "verbatim".into(),
+        // Off: the direct route is right for most people, and a proxy nobody
+        // configured must never sit between them and their words.
+        proxy: ProxySettings::default(),
     }
 }

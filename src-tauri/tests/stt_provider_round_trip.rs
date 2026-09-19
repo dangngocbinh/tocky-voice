@@ -80,9 +80,15 @@ async fn transcribe(provider: SttProviderKind, api_key: String) -> String {
         }
     });
 
-    stt::run_stream(protocol, audio_rx, event_tx)
+    let outcome = stt::run_stream(protocol, audio_rx, event_tx)
         .await
-        .expect("stt stream failed")
+        .expect("stt stream failed");
+    assert!(
+        outcome.incomplete.is_none(),
+        "a clean take must not be reported as cut short: {:?}",
+        outcome.incomplete
+    );
+    outcome.transcript
 }
 
 /// A key the vendor rejects has to come back as an error, not as an empty transcript.

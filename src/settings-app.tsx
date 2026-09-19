@@ -18,6 +18,7 @@ import * as api from "./lib/api";
 import { useDictationEvents } from "./lib/use-dictation-events";
 import { useUpdateCheck } from "./lib/use-update-check";
 import { useT } from "./lib/i18n";
+import { useTheme } from "./lib/theme";
 import { OnboardingFlow } from "./onboarding/onboarding-flow";
 import type { AppSettings, LlmPreset } from "./lib/types";
 import { BehaviourEditor } from "./components/behaviour-editor";
@@ -133,6 +134,11 @@ export function SettingsApp() {
     }, SAVE_DEBOUNCE_MS);
   }, []);
 
+  // Saving is debounced, so waiting for the backend's settings-changed event would
+  // leave a theme click hanging for half a second. This window applies its own copy
+  // straight away; `AppRoot` still applies the saved one for the floating panels.
+  useTheme(settings?.theme ?? "system");
+
   if (!settings) {
     return (
       <div className="loading">
@@ -166,6 +172,14 @@ export function SettingsApp() {
   const pip =
     phase === "recording" ? "live" : phase === "idle" ? "idle" : "busy";
 
+  // The badge stays put once a newer version is known, even after the banner is
+  // dismissed: dismissing means "not now", not "stop telling me".
+  const updateAvailable =
+    Boolean(updateCheck.update) &&
+    (updateCheck.state === "available" ||
+      updateCheck.state === "downloading" ||
+      updateCheck.state === "installed");
+
   return (
     <div className="app">
       <nav className="rail">
@@ -173,7 +187,22 @@ export function SettingsApp() {
           <WaveMark className="rail__mark" />
           <div>
             <div className="rail__name">Tocky Voice</div>
-            <span className="rail__sub">{version ? `v${version}` : ""}</span>
+            {/* The version line doubles as the update notice. It is the one place
+                someone already looks to answer "what am I running", so it is also
+                where "there is a newer one" belongs — and it is a button, because
+                seeing the badge should be enough to act on it. */}
+            {updateAvailable ? (
+              <button
+                className="rail__update"
+                onClick={() => setSection("about")}
+                title={`${t.update.newVersionAvailable} v${updateCheck.update?.version}`}
+              >
+                <span className="rail__sub">{version ? `v${version}` : ""}</span>
+                <span className="rail__badge">{t.update.badgeNew}</span>
+              </button>
+            ) : (
+              <span className="rail__sub">{version ? `v${version}` : ""}</span>
+            )}
           </div>
         </div>
 
@@ -201,8 +230,9 @@ export function SettingsApp() {
       <main className="view">
         <div className="view__inner">
           {saveError && <div className="notice notice--error">{saveError}</div>}
-          {updateCheck.state === "available" && !bannerDismissed && updateCheck.update && (
+          {updateAvailable && !bannerDismissed && updateCheck.update && (
             <UpdateBanner
+              update={updateCheck}
               version={updateCheck.update.version}
               onSeeWhatsNew={() => setSection("about")}
               onDismiss={() => setBannerDismissed(true)}

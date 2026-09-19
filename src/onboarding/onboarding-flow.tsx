@@ -111,6 +111,8 @@ export function OnboardingFlow({ settings, onSettingsChange, onDone }: Props) {
               onChange={(ui_language: UiLanguage) =>
                 onSettingsChange({ ...settings, ui_language })
               }
+              theme={settings.theme}
+              onThemeChange={(theme) => onSettingsChange({ ...settings, theme })}
             />
           )}
           {step === "mic" && (

@@ -8,6 +8,7 @@ pub mod refine;
 pub mod settings;
 pub mod stt;
 
+mod code_signature;
 mod commands;
 mod errors;
 mod focus;
@@ -19,6 +20,7 @@ mod macos_accessibility;
 mod overlay;
 mod player_window;
 mod private_file;
+pub mod proxy;
 mod read;
 mod selection;
 mod session;
@@ -83,6 +85,7 @@ pub fn run() {
             let settings = settings::load(&handle);
             if let Ok(dir) = handle.path().app_data_dir() {
                 settings::secrets::configure(dir, settings.use_os_keychain);
+                proxy::configure(&settings.proxy);
             }
             log::info!(
                 "starting: stt={:?} llm={}/{} mode={} accessibility={}",
@@ -179,6 +182,7 @@ pub fn run() {
             commands::clear_history,
             commands::copy_text,
             commands::permission_status,
+            commands::can_self_install,
             commands::open_accessibility_settings,
             commands::open_url,
             commands::test_llm,

@@ -1,5 +1,7 @@
 /** Mirrors the serde representation of the Rust settings types. */
 
+import type { UiTheme } from "./theme";
+
 export type SttProviderKind = "soniox" | "deepgram" | "assembly_ai";
 
 export interface SttSettings {
@@ -146,12 +148,22 @@ export interface AppSettings {
   history: HistorySettings;
   autostart: boolean;
   ui_language: "system" | "en" | "vi";
+  theme: UiTheme;
   onboarding_completed: boolean;
   use_os_keychain: boolean;
   auto_check_updates: boolean;
   tts: TtsSettings;
   read_modes: ReadMode[];
   active_read_mode_id: string;
+  proxy: ProxySettings;
+}
+
+/** Outbound HTTP proxy for the speech websocket. The username/password pair is not
+ *  here — it goes to the credential store under `proxy`, like every API key. */
+export interface ProxySettings {
+  enabled: boolean;
+  /** `host:port`; an `http://` prefix is accepted and ignored. */
+  url: string;
 }
 
 export interface LlmPreset {
@@ -253,6 +265,7 @@ export type ErrorKind =
   | "mic_unavailable"
   | "no_audio_captured"
   | "transcription_failed"
+  | "transcription_incomplete"
   | "nothing_selected"
   | "selection_too_long"
   | "tts_failed"

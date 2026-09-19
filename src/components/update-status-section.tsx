@@ -1,8 +1,8 @@
 /** The About tab's "Updates" section: version, check button, notes, install action. */
 
 import { useT } from "../lib/i18n";
+import { ReleaseNotes } from "./release-notes";
 import type { UseUpdateCheck } from "../lib/use-update-check";
-import { canSelfInstall } from "../lib/update-policy";
 
 interface Props {
   version: string | null;
@@ -53,16 +53,18 @@ export function UpdateStatusSection({ version, update }: Props) {
       {update.update?.body && (
         <div className="row row--stack">
           <span className="row__label">{t.update.notesTitle}</span>
-          <p className="notes">{update.update.body}</p>
+          <ReleaseNotes body={update.update.body} />
         </div>
       )}
 
       {update.state === "available" && (
         <div className="row">
-          {!canSelfInstall() && <span className="row__hint">{t.update.macOnlyReason}</span>}
+          {!update.canInstallInPlace && (
+            <span className="row__hint">{t.update.macOnlyReason}</span>
+          )}
           <div className="row__control">
-            <button onClick={update.install}>
-              {canSelfInstall() ? t.update.installButton : t.update.downloadButton}
+            <button className="btn-primary" onClick={update.install}>
+              {update.canInstallInPlace ? t.update.installButton : t.update.downloadButton}
             </button>
           </div>
         </div>

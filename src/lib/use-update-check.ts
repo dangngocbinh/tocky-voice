@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
-import { canSelfInstall } from "./update-policy";
-import { openReleasesPage } from "./api";
+import { canSelfInstall, openReleasesPage } from "./api";
 
 /** Give the app time to settle before the first network call of the session. */
 const STARTUP_CHECK_DELAY_MS = 8000;
@@ -26,6 +25,8 @@ export interface UpdateInfo {
 
 export interface UseUpdateCheck {
   state: UpdateState;
+  /** False on an unsigned macOS build, where updating means downloading by hand. */
+  canInstallInPlace: boolean;
   update: UpdateInfo | null;
   progress: number;
   errorMessage: string | null;
@@ -41,6 +42,16 @@ export function useUpdateCheck(autoCheckEnabled: boolean): UseUpdateCheck {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const pendingUpdate = useRef<Update | null>(null);
   const startupCheckFired = useRef(false);
+  // Asked once per window. Until the answer lands, assume it is not allowed: offering
+  // "update and restart" on a build that cannot do it safely is the wrong way to be
+  // wrong — see `code_signature.rs`.
+  const [canInstallInPlace, setCanInstallInPlace] = useState(false);
+
+  useEffect(() => {
+    canSelfInstall()
+      .then(setCanInstallInPlace)
+      .catch(() => setCanInstallInPlace(false));
+  }, []);
 
   const runCheck = useCallback(async (isManual: boolean) => {
     setState("checking");
@@ -80,7 +91,7 @@ export function useUpdateCheck(autoCheckEnabled: boolean): UseUpdateCheck {
   }, [autoCheckEnabled, runCheck]);
 
   const install = useCallback(() => {
-    if (!canSelfInstall()) {
+    if (!canInstallInPlace) {
       openReleasesPage();
       return;
     }
@@ -110,12 +121,13 @@ export function useUpdateCheck(autoCheckEnabled: boolean): UseUpdateCheck {
         setErrorMessage(String(err));
         openReleasesPage();
       });
-  }, []);
+  }, [canInstallInPlace]);
 
   const dismiss = useCallback(() => setState("none"), []);
 
   return {
     state,
+    canInstallInPlace,
     update,
     progress,
     errorMessage,

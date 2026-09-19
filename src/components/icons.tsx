@@ -72,6 +72,83 @@ export const InfoIcon = ({ className }: Props) => (
  * carries its own stroke weight. The capsule is a stroke too, not a filled shape, so the
  * whole mark stays one `currentColor` line drawing like the rest of the icon set.
  */
+export const CopyIcon = ({ className }: Props) => (
+  <svg {...base} className={className} aria-hidden="true">
+    <rect x="5.75" y="5.75" width="8.5" height="8.5" rx="2" />
+    <path d="M10.25 3.25a1.5 1.5 0 0 0-1.5-1.5h-5a1.5 1.5 0 0 0-1.5 1.5v5a1.5 1.5 0 0 0 1.5 1.5" />
+  </svg>
+);
+
+export const CheckIcon = ({ className }: Props) => (
+  <svg {...base} className={className} aria-hidden="true">
+    <path d="M3 8.5 6.5 12 13 4.5" />
+  </svg>
+);
+
+/**
+ * The welcome screen's picker glyphs.
+ *
+ * The flags are drawn here like every other icon rather than written as emoji: a flag
+ * emoji renders as two boxed letters ("VN") on Windows, which is exactly the platform
+ * where someone is most likely to be picking a language they can actually read.
+ *
+ * They carry real national colours instead of `currentColor` — a flag in the interface
+ * grey would not be a flag — and keep the 10:7 proportion every other flag has.
+ */
+const flagBase = { viewBox: "0 0 20 14", width: 20, height: 14 };
+
+export const VietnamFlag = ({ className }: Props) => (
+  <svg {...flagBase} className={className} aria-hidden="true">
+    <rect width="20" height="14" rx="2" fill="#DA251D" />
+    <path
+      d="M10.00 2.60 L11.03 5.58 L14.18 5.64 L11.66 7.54 L12.59 10.56 L10.00 8.75 L7.41 10.56 L8.34 7.54 L5.82 5.64 L8.97 5.58 Z"
+      fill="#FFFF00"
+    />
+  </svg>
+);
+
+export const UnionFlag = ({ className }: Props) => (
+  <svg {...flagBase} className={className} aria-hidden="true">
+    {/* Clipped to the rounded rectangle, so the diagonals stop at the flag's edge
+        instead of running across the button. */}
+    <defs>
+      <clipPath id="union-flag-clip">
+        <rect width="20" height="14" rx="2" />
+      </clipPath>
+    </defs>
+    <g clipPath="url(#union-flag-clip)">
+      <rect width="20" height="14" fill="#012169" />
+      <path d="M0 0 20 14 M20 0 0 14" stroke="#FFFFFF" strokeWidth="3" />
+      <path d="M0 0 20 14 M20 0 0 14" stroke="#C8102E" strokeWidth="1.3" />
+      <path d="M10 0v14M0 7h20" stroke="#FFFFFF" strokeWidth="4.4" />
+      <path d="M10 0v14M0 7h20" stroke="#C8102E" strokeWidth="2.4" />
+    </g>
+  </svg>
+);
+
+export const SunIcon = ({ className }: Props) => (
+  <svg {...base} className={className} aria-hidden="true">
+    <circle cx="8" cy="8" r="3.1" />
+    <path d="M8 1.5v1.4M8 13.1v1.4M1.5 8h1.4M13.1 8h1.4M3.4 3.4l1 1M11.6 11.6l1 1M12.6 3.4l-1 1M4.4 11.6l-1 1" />
+  </svg>
+);
+
+export const MoonIcon = ({ className }: Props) => (
+  <svg {...base} className={className} aria-hidden="true">
+    {/* One arc, not a circle with a bite taken out: a crescent drawn as a stroke keeps
+        the same weight as every other glyph here. */}
+    <path d="M13 9.6A5.9 5.9 0 0 1 6.4 3a5.9 5.9 0 1 0 6.6 6.6Z" />
+  </svg>
+);
+
+/** "Whatever the computer is set to" — used for both follow-system choices. */
+export const MonitorIcon = ({ className }: Props) => (
+  <svg {...base} className={className} aria-hidden="true">
+    <rect x="1.75" y="2.75" width="12.5" height="8.5" rx="1.5" />
+    <path d="M6 14h4M8 11.25V14" />
+  </svg>
+);
+
 export const WaveMark = ({ className }: Props) => (
   <svg
     viewBox="0 0 22 22"

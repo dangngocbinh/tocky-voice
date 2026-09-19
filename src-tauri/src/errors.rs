@@ -32,6 +32,9 @@ pub enum ErrorKind {
     NoAudioCaptured,
     /// The speech stream failed before producing a transcript.
     TranscriptionFailed,
+    /// The speech stream broke mid-take, but what it had already recognised was
+    /// recovered, delivered, and written to history — a warning, not a lost take.
+    TranscriptionIncomplete,
     /// `selection::capture` ran but nothing was highlighted anywhere.
     NothingSelected,
     /// The highlighted text is longer than `tts.max_chars`.
