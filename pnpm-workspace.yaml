@@ -1,2 +1,6 @@
+# esbuild ships a prebuilt binary that its own install script puts in place, and Vite
+# cannot bundle without it — pnpm skipping that script fails the build outright. Named
+# one by one rather than allowed wholesale, so any *other* dependency that starts
+# wanting to run code at install time still has to be approved on purpose.
 allowBuilds:
-  esbuild: set this to true or false
+  esbuild: true
