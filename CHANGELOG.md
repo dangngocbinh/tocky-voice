@@ -9,6 +9,63 @@ notes are read by users, not by the people who wrote the code. English goes in a
 `### English` subsection at the end of the same release, as the secondary version.
 Entries before 0.4.0 predate this and are English only.
 
+## [0.5.3] - 2026-09-27
+
+Bản này gần như dành trọn cho Linux. Phím tắt và thao tác dán trên Wayland trước giờ
+hỏng theo kiểu khó chịu nhất: **im lặng**. Không báo lỗi, không dòng log nào sai, chỉ là
+bấm phím thì không có gì xảy ra.
+
+### Sửa
+
+- **Phím tắt toàn cục giờ chạy thật trên Wayland.** Wayland không cho ứng dụng giành
+  phím toàn cục — nhưng lời gọi đăng ký vẫn báo thành công. Nó thành công thật, còn phím
+  thì không bao giờ tới. Trên GNOME, phím tắt giờ được ghi thẳng vào cài đặt bàn phím của
+  hệ thống; trên Wayland không phải GNOME, màn hình Cài đặt in sẵn từng dòng lệnh để bạn
+  tự gán.
+- **Phím tắt có dấu cách trong đường dẫn cài đặt thì không chạy.** Nếu app nằm ở thư mục
+  có dấu cách (AppImage trong "My Apps" chẳng hạn), lệnh ghi vào GNOME bị từ chối và phím
+  tắt được cài với **lệnh rỗng** — bấm không ra gì. Đo trên GNOME 50.
+- **Không còn xoá nhầm phím tắt của ứng dụng khác.** Một lần đọc danh sách phím tắt bị
+  lỗi tạm thời từng bị hiểu là "không có phím nào", rồi ghi đè lên — cuốn theo phím tắt
+  tuỳ chỉnh của mọi ứng dụng khác trên máy.
+- **Phím Control không còn kẹt.** Nếu khâu gửi phím dán hỏng giữa chừng, Control bị bỏ lại
+  ở trạng thái đang nhấn — cho cả desktop, không riêng app này: phím tiếp theo bạn gõ ở
+  bất kỳ cửa sổ nào cũng thành Control+phím đó.
+- **Icon khay hệ thống không còn chìm trong thanh đen.** Icon cũ đen tuyền — đúng cho
+  macOS, nơi hệ thống tự tô lại, nhưng Linux không làm vậy nên nó vô hình trên thanh trên
+  cùng của Ubuntu. Linux và Windows giờ dùng icon màu thương hiệu có viền tối mảnh.
+
+### Mới
+
+- **Hộp thoại "Allow Remote Interaction" chỉ hỏi một lần.** Từ GNOME 45, mỗi lần dán là
+  một lần hệ thống hỏi xin quyền. App giờ tự xin quyền có kèm phần "nhớ giùm" — hỏi một
+  lần sau khi cài, rồi thôi, kể cả sau khi khởi động lại máy. Đổi lại, thao tác dán giờ
+  vào được cả ứng dụng Wayland thuần, thứ trước đây không làm được.
+- **Báo trùng phím ngay lúc đặt.** App đọc mọi phím tắt hệ thống đang giữ và nói thẳng ai
+  đang chiếm tổ hợp bạn vừa bấm. Trên Wayland hệ thống luôn ăn trước, nên đặt trùng đồng
+  nghĩa với phím tắt không bao giờ chạy.
+- **Nút thử phím tắt.** Bấm thử và app báo phím có tới nơi hay không — **không** ghi âm,
+  không đọc gì trong lúc thử.
+- **Gợi ý phím còn trống.** Một nút đưa ra vài tổ hợp đã kiểm là chưa ai dùng trên chính
+  máy bạn.
+
+### English
+
+- Global shortcuts now actually work on Wayland: written into GNOME's own keyboard
+  settings, since no Wayland client may grab a global key — a fact the registration call
+  hides by succeeding anyway.
+- An install path containing a space silently produced an **empty** command in GNOME, so
+  the shortcut was bound and did nothing. Measured on GNOME 50.
+- A transient failure reading GNOME's shortcut list read as "there are none" and was
+  written back as such, wiping every other application's custom shortcuts.
+- A paste whose keystroke failed part-way left Control held down for the whole desktop.
+- The tray icon was black on every pixel — correct on macOS, invisible on Ubuntu's black
+  top bar. Linux and Windows get a brand-coloured glyph now.
+- The Remote Desktop permission dialog asks once instead of on every paste, and pasting
+  reaches native Wayland windows for the first time.
+- The settings screen reports shortcut conflicts by name, offers a probe that proves a
+  key arrives without recording anything, and suggests combinations verified free.
+
 ## [0.5.2] - 2026-09-16
 
 ### Mới

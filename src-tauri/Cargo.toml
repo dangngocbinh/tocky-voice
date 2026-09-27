@@ -92,6 +92,14 @@ objc2-app-kit = { version = "0.2", features = [
 [target.'cfg(target_os = "linux")'.dependencies]
 ashpd = { version = "0.11", default-features = false, features = ["tokio"] }
 
+# `examples/paste_bench.rs` only, and Linux-only with it: the bench drives the clipboard
+# the way the app does, to measure which conditions make a portal paste land. Left
+# ungated it would be resolved and built by `cargo test --all-targets` on the macOS and
+# Windows runners, for an example neither can run.
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+arboard = "3"
+
 # `test-util` lets the timeout tests advance the clock instead of sleeping through it.
 [dev-dependencies]
 tokio = { version = "1", features = ["test-util"] }
+

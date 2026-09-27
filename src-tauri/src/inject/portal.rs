@@ -29,6 +29,20 @@ use std::sync::Mutex;
 /// physical `V` position is not the one `Ctrl+V` needs.
 const XK_CONTROL_L: i32 = 0xffe3;
 
+/// The X keysym for a character.
+///
+/// Latin-1 is the identity range — `'v'` is 0x76 — and everything above it is spelled
+/// with the Unicode prefix instead. Only `v` and `c` are sent today, so the second
+/// branch is unreachable in practice; it is here because `ch as i32` silently produces
+/// a *different, valid* key for anything past U+00FF, which is the kind of wrong that
+/// ships unnoticed the day someone adds a shortcut.
+fn keysym_for(ch: char) -> i32 {
+    match ch as u32 {
+        code @ 0x20..=0xff => code as i32,
+        code => (0x0100_0000 | code) as i32,
+    }
+}
+
 /// The live session, kept for the lifetime of the process.
 ///
 /// Held open deliberately. Tearing it down after each paste would mean a fresh
@@ -50,7 +64,7 @@ unsafe impl Send for PortalSession {}
 /// Returns `Err` on any portal failure, including the user declining the dialog, so the
 /// caller can fall back to XTEST rather than leaving the text undelivered.
 pub fn send_shortcut(app: &tauri::AppHandle, ch: char) -> Result<()> {
-    let keysym = ch as i32;
+    let keysym = keysym_for(ch);
     // On a borrowed thread, never the caller's.
     //
     // A paste can be dispatched from inside the app's own tokio runtime, and blocking on
@@ -75,9 +89,23 @@ pub fn send_shortcut(app: &tauri::AppHandle, ch: char) -> Result<()> {
                     match press(held, keysym).await {
                         Ok(()) => Ok(()),
                         Err(first) => {
-                            log::debug!("portal keystroke failed, reopening: {first}");
+                            // Worth a warning rather than a debug line: a session that
+                            // died and had to be reopened costs a D-Bus round trip in
+                            // the middle of the paste, which is the one moment the
+                            // window the text is going into can change underneath us.
+                            log::warn!("portal keystroke failed, reopening session: {first:#}");
+                            // Closed, not just dropped: the portal keeps a session
+                            // object alive until it is told otherwise, and a paste that
+                            // reopens on every attempt would leave one behind each time.
+                            if let Some(dead) = guard.take() {
+                                let _ = dead.session.close().await;
+                            }
                             *guard = Some(open_session(app).await?);
-                            press(guard.as_ref().expect("just reopened"), keysym).await
+                            let second = press(guard.as_ref().expect("just reopened"), keysym).await;
+                            if second.is_ok() {
+                                log::info!("portal keystroke succeeded after reopening");
+                            }
+                            second
                         }
                     }
                 })
@@ -87,26 +115,99 @@ pub fn send_shortcut(app: &tauri::AppHandle, ch: char) -> Result<()> {
     })
 }
 
+/// Modifiers the portal is asked to let go of. Alt and Shift are here for the same
+/// reason Control is: `selection::capture` clears whatever the user is still holding
+/// from their own hotkey before synthesizing a copy.
+const MODIFIER_KEYSYMS: [i32; 8] = [
+    0xffe1, // Shift_L
+    0xffe2, // Shift_R
+    0xffe3, // Control_L
+    0xffe4, // Control_R
+    0xffe9, // Alt_L
+    0xffea, // Alt_R
+    0xffeb, // Super_L
+    0xffec, // Super_R
+];
+
+/// Releases every modifier through the portal.
+///
+/// The XTEST equivalent in the parent module is what raises the "Allow Remote
+/// Interaction" dialog on GNOME Wayland — the very prompt this module exists to stop —
+/// so the read-aloud path has to come through here too, or the dialog returns on the
+/// one flow that still used enigo.
+pub fn release_modifiers(app: &tauri::AppHandle) -> Result<()> {
+    std::thread::scope(|scope| {
+        scope
+            .spawn(|| {
+                runtime().block_on(async {
+                    let mut guard = SESSION.lock().map_err(|_| anyhow!("portal session lock"))?;
+                    if guard.is_none() {
+                        *guard = Some(open_session(app).await?);
+                    }
+                    let held = guard.as_ref().expect("just opened");
+                    // Best effort, and deliberately not short-circuiting: a modifier we
+                    // fail to clear costs only the copy that was already going to fail.
+                    for keysym in MODIFIER_KEYSYMS {
+                        if let Err(e) = held
+                            .proxy
+                            .notify_keyboard_keysym(&held.session, keysym, KeyState::Released)
+                            .await
+                        {
+                            log::debug!("could not release keysym {keysym:#x}: {e}");
+                        }
+                    }
+                    Ok(())
+                })
+            })
+            .join()
+            .map_err(|_| anyhow!("the portal thread panicked"))?
+    })
+}
+
 async fn press(held: &PortalSession, keysym: i32) -> Result<()> {
-    held.proxy
+    // Nothing here may return early.
+    //
+    // Every press has to reach its release even when a step in between fails, because a
+    // modifier left down at the compositor is held down for the *desktop*, not just for
+    // us: the user's next keystroke arrives as Control+that-key, in whatever window they
+    // happen to be typing in. An earlier version of this function put a `?` on the key
+    // press and did exactly that — the two releases below were unreachable on the one
+    // path that most needed them.
+    let control_down = held
+        .proxy
         .notify_keyboard_keysym(&held.session, XK_CONTROL_L, KeyState::Pressed)
         .await
-        .context("pressing Control through the portal")?;
-    held.proxy
-        .notify_keyboard_keysym(&held.session, keysym, KeyState::Pressed)
-        .await
-        .context("pressing the shortcut key through the portal")?;
-    let released = held
+        .context("pressing Control through the portal");
+
+    let key_down = if control_down.is_ok() {
+        held.proxy
+            .notify_keyboard_keysym(&held.session, keysym, KeyState::Pressed)
+            .await
+            .context("pressing the shortcut key through the portal")
+    } else {
+        // Control never went down, so there is no chord to complete — but the releases
+        // below still run, since "press failed" and "press half-succeeded" are not
+        // distinguishable from here.
+        Ok(())
+    };
+
+    let key_up = held
         .proxy
         .notify_keyboard_keysym(&held.session, keysym, KeyState::Released)
-        .await;
-    // Control is released whatever happened to the key, exactly as in the XTEST path: a
-    // modifier left down would wedge the whole desktop.
-    held.proxy
+        .await
+        .context("releasing the shortcut key through the portal");
+    let control_up = held
+        .proxy
         .notify_keyboard_keysym(&held.session, XK_CONTROL_L, KeyState::Released)
         .await
-        .context("releasing Control through the portal")?;
-    released.context("releasing the shortcut key through the portal")?;
+        .context("releasing Control through the portal");
+
+    // Reported in the order they happened, so the first thing that actually broke is the
+    // error the caller sees.
+    control_down?;
+    key_down?;
+    key_up?;
+    control_up?;
     Ok(())
 }
 
@@ -132,12 +233,25 @@ async fn open_session(app: &tauri::AppHandle) -> Result<PortalSession> {
         .await
         .context("asking the portal for keyboard access")?;
 
-    let response = proxy
-        .start(&session, None)
-        .await
-        .context("starting the Remote Desktop session")?
-        .response()
-        .context("the Remote Desktop request was declined")?;
+    let started = match proxy.start(&session, None).await {
+        Ok(request) => request.response(),
+        Err(e) => Err(e),
+    };
+    let response = match started {
+        Ok(response) => response,
+        Err(e) => {
+            // A stored token the desktop has stopped honouring fails here forever: the
+            // next paste reads the same dead token back and fails the same way, and the
+            // user sees the dialog they were promised would stop coming. Drop it so the
+            // retry asks cleanly and can store a token that works.
+            if token.is_some() {
+                log::warn!("the stored portal token was refused, discarding it: {e}");
+                forget_token(app);
+            }
+            return Err(anyhow::Error::new(e))
+                .context("starting the Remote Desktop session");
+        }
+    };
 
     // Stored only when it changes: the portal reissues the token on each start, and
     // writing an identical value on every session is a pointless disk touch.
@@ -166,6 +280,14 @@ fn read_token(app: &tauri::AppHandle) -> Option<String> {
     let raw = std::fs::read_to_string(token_path(app)?).ok()?;
     let token = raw.trim().to_owned();
     (!token.is_empty()).then_some(token)
+}
+
+/// Removes a stored token, so the next session asks for a fresh grant instead of
+/// replaying one the desktop has already rejected.
+fn forget_token(app: &tauri::AppHandle) {
+    if let Some(path) = token_path(app) {
+        let _ = std::fs::remove_file(path);
+    }
 }
 
 fn write_token(app: &tauri::AppHandle, token: &str) {

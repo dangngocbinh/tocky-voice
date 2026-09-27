@@ -135,7 +135,12 @@ pub fn clear() {
 /// Rewrites the master list so it holds `ours` plus every entry that was not ours,
 /// resetting the keys of any of our old paths that just dropped out of it.
 fn write_list(ours: Vec<String>) {
-    let existing = read_list();
+    let Some(existing) = read_list() else {
+        // Refusing to write is the safe half of the trade: our own shortcuts are
+        // reinstalled on the next launch, whereas other applications' would be gone.
+        log::warn!("could not read the GNOME shortcut list; leaving it untouched");
+        return;
+    };
     let foreign: Vec<String> = existing
         .iter()
         .filter(|path| !is_ours(path))
@@ -168,11 +173,16 @@ fn is_ours(path: &str) -> bool {
     path.starts_with(&format!("{PATH_PREFIX}{OUR_PREFIX}"))
 }
 
-fn read_list() -> Vec<String> {
-    let Ok(raw) = run(&["get", LIST_SCHEMA, "custom-keybindings"]) else {
-        return Vec::new();
-    };
-    parse_path_list(&raw)
+/// The master list, or `None` when it could not be read.
+///
+/// The distinction matters more than it looks. An unreadable list used to come back as
+/// an empty one, and [`write_list`] then wrote *its* idea of the world over the top —
+/// deleting every custom shortcut belonging to every other application on the desktop,
+/// because a transient `gsettings` failure read as "there were none".
+fn read_list() -> Option<Vec<String>> {
+    run(&["get", LIST_SCHEMA, "custom-keybindings"])
+        .ok()
+        .map(|raw| parse_path_list(&raw))
 }
 
 /// GSettings prints a GVariant array — `@as []` when empty, `['/a/', '/b/']` otherwise.
@@ -189,9 +199,27 @@ fn parse_path_list(raw: &str) -> Vec<String> {
 }
 
 fn set(target: &str, key: &str, value: &str) {
-    if let Err(e) = run(&["set", target, key, value]) {
+    if let Err(e) = run(&["set", target, key, &gvariant_string(value)]) {
         log::warn!("could not set {key} on {target}: {e}");
     }
+}
+
+/// Wraps a string as a GVariant literal, which is what `gsettings set` parses.
+///
+/// Not optional, and the failure it prevents is silent. `gsettings set` parses the
+/// value as GVariant, so a command line that *begins* with a quote — which is exactly
+/// what [`command_line`] produces for an executable path containing a space, an
+/// AppImage in "~/My Apps" say — is read as a quoted string followed by garbage:
+///
+///   $ gsettings set …:…/ command "'/home/a b/tockyvoice' --toggle"
+///   expected end of input:
+///     '/home/a b/tockyvoice' --toggle
+///
+/// The set fails, the key keeps its empty default, and the shortcut is then installed
+/// and bound and runs nothing at all. Measured on GNOME 50.
+fn gvariant_string(value: &str) -> String {
+    let escaped = value.replace('\\', "\\\\").replace('"', "\\\"");
+    format!("\"{escaped}\"")
 }
 
 fn reset(target: &str) {
@@ -423,7 +451,7 @@ fn read_taken_bindings() -> Vec<Taken> {
         }
     }
 
-    for path in read_list() {
+    for path in read_list().unwrap_or_default() {
         let target = format!("{ITEM_SCHEMA}:{path}");
         let Ok(binding) = run(&["get", &target, "binding"]) else {
             continue;
@@ -706,5 +734,37 @@ mod tests {
         for probe in ["<Super>a", "<Super>s", "<Super>slash", "<Super>y", "<Control><Shift>F12"] {
             println!("  {probe}: {:?}", owner_of(probe));
         }
+    }
+
+    /// Measured against GNOME 50: `gsettings set` parses its value as GVariant, so a
+    /// command beginning with a quote — what an executable path containing a space
+    /// produces — is rejected with "expected end of input", the key keeps its empty
+    /// default, and the shortcut is installed, bound, and runs nothing.
+    #[test]
+    fn a_command_starting_with_a_quote_is_wrapped_for_gvariant() {
+        let wrapped = gvariant_string("'/home/a b/tockyvoice' --toggle");
+        assert!(wrapped.starts_with('"') && wrapped.ends_with('"'), "{wrapped}");
+        assert_eq!(wrapped, "\"'/home/a b/tockyvoice' --toggle\"");
+    }
+
+    /// A double quote or a backslash inside the value must not end the literal early —
+    /// that would be the same silent-empty-key failure by another route.
+    #[test]
+    fn quotes_and_backslashes_survive_the_wrapping() {
+        assert_eq!(gvariant_string(r#"say "hi""#), r#""say \"hi\"""#);
+        assert_eq!(gvariant_string(r"back\slash"), r#""back\\slash""#);
+    }
+
+    /// A read that failed and a list that is genuinely empty must not look alike: the
+    /// first used to be written back as the second, wiping every other application's
+    /// custom shortcuts off the desktop.
+    #[test]
+    fn an_empty_list_is_distinguishable_from_an_unreadable_one() {
+        assert_eq!(parse_path_list("@as []"), Vec::<String>::new());
+        // `read_list` yields None only when the command fails, which is not reachable
+        // here — what this pins is that the empty case stays `Some`, so the two cannot
+        // collapse back into one.
+        let empty: Option<Vec<String>> = Some(parse_path_list("@as []"));
+        assert!(empty.is_some());
     }
 }

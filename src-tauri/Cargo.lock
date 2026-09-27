@@ -5345,6 +5345,7 @@ name = "tockyvoice"
 version = "0.5.2"
 dependencies = [
  "anyhow",
+ "arboard",
  "ashpd",
  "base64 0.22.1",
  "chrono",
