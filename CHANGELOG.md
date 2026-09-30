@@ -9,7 +9,7 @@ notes are read by users, not by the people who wrote the code. English goes in a
 `### English` subsection at the end of the same release, as the secondary version.
 Entries before 0.4.0 predate this and are English only.
 
-## [0.5.3] - 2026-09-27
+## [0.5.4] - 2026-09-30
 
 Bản này gần như dành trọn cho Linux. Phím tắt và thao tác dán trên Wayland trước giờ
 hỏng theo kiểu khó chịu nhất: **im lặng**. Không báo lỗi, không dòng log nào sai, chỉ là
