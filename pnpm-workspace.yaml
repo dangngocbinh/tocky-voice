@@ -1,3 +1,11 @@
+# `packages` is required even though this is a single-package project — pnpm refuses to
+# read this file at all without it, failing `pnpm store path`/`install` outright with
+# "packages field missing or empty" before any of our own steps run. That took down every
+# platform in the v0.5.3 release build, because CI pins an older pnpm than this machine
+# runs, and only the older one enforces it.
+packages:
+  - .
+
 # esbuild ships a prebuilt binary that its own install script puts in place, and Vite
 # cannot bundle without it — pnpm skipping that script fails the build outright. Named
 # one by one rather than allowed wholesale, so any *other* dependency that starts
