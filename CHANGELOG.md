@@ -9,6 +9,26 @@ notes are read by users, not by the people who wrote the code. English goes in a
 `### English` subsection at the end of the same release, as the secondary version.
 Entries before 0.4.0 predate this and are English only.
 
+## [0.5.5] - 2026-11-10
+
+### Sửa
+
+- **App không còn ngốn bộ nhớ ngày càng nhiều khi để chạy lâu.** Đóng cửa sổ Cài đặt thì
+  nó chỉ ẩn xuống thanh menu, nhưng vẫn vẽ lại sóng âm và chữ mỗi lần bạn nói. macOS
+  không giải phóng bộ nhớ của những lần vẽ cho cửa sổ đang ẩn, nên app cứ phình dần: để
+  chạy liên tục hai ngày là lên tới 3,6 GB, phải tắt hẳn app mới trả lại. Giờ cửa sổ ẩn
+  không vẽ gì nữa, mở lên là cập nhật ngay một lần. Đo thử 200 lượt nói: trước khi sửa
+  tăng từ 325 MB lên 930 MB và chưa dừng, sau khi sửa đứng yên khoảng 55 MB.
+
+### English
+
+- **Memory no longer grows the longer the app runs.** Closing the settings window only
+  hides it to the menu bar, and it kept redrawing the level meter and transcript on every
+  take. WebKit keeps what a hidden page's updates allocate, so the app reached 3.6 GB
+  after two days and only quitting gave it back. Hidden windows now skip those updates
+  and catch up in one render when shown. Measured over 200 simulated takes: 325 MB to
+  930 MB and still climbing before, flat at about 55 MB after.
+
 ## [0.5.4] - 2026-09-30
 
 Bản này gần như dành trọn cho Linux. Phím tắt và thao tác dán trên Wayland trước giờ
