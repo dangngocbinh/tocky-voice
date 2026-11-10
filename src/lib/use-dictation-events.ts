@@ -36,38 +36,55 @@ const INITIAL: DictationState = {
 
 export function useDictationEvents(): DictationState {
   const [state, setState] = useState<DictationState>(INITIAL);
-  // Tracks the phase across renders so the transcript can be cleared exactly once
-  // per take, on the transition into `recording`.
-  const phaseRef = useRef<Phase>("idle");
+  // The stream is folded into this ref first and only copied into React state while
+  // the page is visible. A hidden WKWebView skips its rendering updates, and WebKit
+  // keeps what every DOM change made in the meantime instead of releasing it — so a
+  // settings window closed to the menu bar, re-rendering the level meter ten times a
+  // second on every take, reached 3.6 GB over two days of normal use (measured: 325 MB
+  // to 930 MB in 200 simulated takes, flat at ~55 MB with this gate). Hidden, this
+  // costs a property write per event and nothing else.
+  const latest = useRef<DictationState>(INITIAL);
 
   useEffect(() => {
+    const apply = (next: (prev: DictationState) => DictationState) => {
+      latest.current = next(latest.current);
+      if (!document.hidden) setState(latest.current);
+    };
+    // Coming back into view: one render catches up with everything missed.
+    const onVisibility = () => {
+      if (!document.hidden) setState(latest.current);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     const unlisteners: Array<Promise<() => void>> = [
       listen<StatusPayload>(EVENTS.status, ({ payload }) => {
-        const startingNewTake =
-          payload.phase === "recording" && phaseRef.current !== "recording";
-        phaseRef.current = payload.phase;
-        setState((prev) => ({
-          ...prev,
-          phase: payload.phase,
-          modeId: payload.mode_id,
-          modeName: payload.mode_name,
-          transcript: startingNewTake ? "" : prev.transcript,
-          partial: startingNewTake ? "" : prev.partial,
-          error: startingNewTake ? null : prev.error,
-          startedAt: startingNewTake
-            ? Date.now()
-            : payload.phase === "idle"
-              ? null
-              : prev.startedAt,
-        }));
+        apply((prev) => {
+          // Cleared exactly once per take, on the transition into `recording`.
+          const startingNewTake =
+            payload.phase === "recording" && prev.phase !== "recording";
+          return {
+            ...prev,
+            phase: payload.phase,
+            modeId: payload.mode_id,
+            modeName: payload.mode_name,
+            transcript: startingNewTake ? "" : prev.transcript,
+            partial: startingNewTake ? "" : prev.partial,
+            error: startingNewTake ? null : prev.error,
+            startedAt: startingNewTake
+              ? Date.now()
+              : payload.phase === "idle"
+                ? null
+                : prev.startedAt,
+          };
+        });
       }),
 
       listen<string>(EVENTS.partial, ({ payload }) => {
-        setState((prev) => ({ ...prev, partial: payload }));
+        apply((prev) => ({ ...prev, partial: payload }));
       }),
 
       listen<string>(EVENTS.transcript, ({ payload }) => {
-        setState((prev) => ({
+        apply((prev) => ({
           ...prev,
           transcript: joinSegments(prev.transcript, payload),
           partial: "",
@@ -75,18 +92,19 @@ export function useDictationEvents(): DictationState {
       }),
 
       listen<number>(EVENTS.level, ({ payload }) => {
-        setState((prev) => ({
+        apply((prev) => ({
           ...prev,
           levels: [...prev.levels.slice(1), payload],
         }));
       }),
 
       listen<ErrorPayload>(EVENTS.error, ({ payload }) => {
-        setState((prev) => ({ ...prev, error: payload }));
+        apply((prev) => ({ ...prev, error: payload }));
       }),
     ];
 
     return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
       unlisteners.forEach((p) => p.then((off) => off()).catch(() => undefined));
     };
   }, []);
@@ -96,16 +114,25 @@ export function useDictationEvents(): DictationState {
 
 /**
  * Ticking `m:ss` for the take in progress. Only re-renders while something is
- * running, so an idle overlay costs nothing.
+ * running and the page is on screen, so an idle or hidden window costs nothing.
  */
 export function useElapsed(startedAt: number | null): string | null {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     if (startedAt === null) return;
-    setNow(Date.now());
-    const id = window.setInterval(() => setNow(Date.now()), 500);
-    return () => window.clearInterval(id);
+    // Same reason as above: a hidden page must not keep re-rendering, and a window
+    // closed mid-take would otherwise tick until it is next opened — possibly days.
+    const tick = () => {
+      if (!document.hidden) setNow(Date.now());
+    };
+    tick();
+    const id = window.setInterval(tick, 500);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", tick);
+    };
   }, [startedAt]);
 
   if (startedAt === null) return null;
