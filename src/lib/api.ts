@@ -79,6 +79,9 @@ export const testLlm = () => invoke<string>("test_llm");
 /** Opens a real speech stream with the saved key, so a rejected credential is caught
  *  where it is entered instead of as a dictation that produces nothing. */
 export const testSttKey = (stt: SttSettings) => invoke<void>("test_stt_key", { stt });
+/** Realtime speech models the chosen provider offers right now (newest first). Takes
+ *  `stt` from the caller for the same reason `testSttKey` does. */
+export const listSttModels = (stt: SttSettings) => invoke<string[]>("list_stt_models", { stt });
 /** Live model list straight from the configured provider. */
 export const listModels = () => invoke<string[]>("list_models");
 

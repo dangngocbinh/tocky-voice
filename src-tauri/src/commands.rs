@@ -287,6 +287,20 @@ pub async fn test_stt_key(stt: settings::SttSettings) -> Result<(), String> {
     crate::stt::probe(&stt, api_key).await.map_err(to_err)
 }
 
+/// Live list of realtime speech models the selected provider offers right now.
+///
+/// Takes `stt` from the caller rather than the saved snapshot for the same reason
+/// [`test_stt_key`] does: settings save on a debounce, so a provider picked a moment
+/// ago has not reached disk yet.
+#[tauri::command]
+pub async fn list_stt_models(stt: settings::SttSettings) -> Result<Vec<String>, String> {
+    let account = secrets::stt_account(&stt.provider);
+    let Some(api_key) = secrets::get_key(account) else {
+        return Err(format!("no key saved for {account}"));
+    };
+    crate::stt::models::catalog(&stt, &api_key).await.map_err(to_err)
+}
+
 /// Releases the global hotkeys so the settings UI can capture a key combination
 /// without the app reacting to it.
 #[tauri::command]

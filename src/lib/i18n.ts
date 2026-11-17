@@ -149,6 +149,8 @@ const en = {
     proxyCredentialsPlaceholder: "username:password",
     proxyTestHint: "Use Test connection above to check it — that call takes the same route.",
     sttTestSection: "Speech key check",
+    sttModelHint:
+      "Fetched from the provider, so a newly released model appears here without an app update.",
     sttTestHint: "Opens a real stream for a moment, so a rejected key shows up here.",
     sttTest: "Test key",
     sttTestOk: "OK — the provider accepted the key.",
@@ -622,6 +624,8 @@ const vi: Dictionary = {
     proxyCredentialsPlaceholder: "tài_khoản:mật_khẩu",
     proxyTestHint: "Bấm Kiểm tra kết nối ở trên để thử — lượt gọi đó đi đúng đường này.",
     sttTestSection: "Kiểm tra key giọng nói",
+    sttModelHint:
+      "Lấy trực tiếp từ nhà cung cấp, nên model mới ra là hiện ở đây, không cần chờ cập nhật app.",
     sttTestHint: "Mở thử một kết nối thật trong chốc lát, key sai sẽ lộ ra ngay ở đây.",
     sttTest: "Thử key",
     sttTestOk: "OK — nhà cung cấp đã chấp nhận key.",

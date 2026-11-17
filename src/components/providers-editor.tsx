@@ -5,7 +5,7 @@
  * there is no command that reads a key back across the IPC boundary.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as api from "../lib/api";
 import { useT } from "../lib/i18n";
 import type { AppSettings, LlmPreset, SttProviderKind } from "../lib/types";
@@ -40,8 +40,10 @@ export function ProvidersEditor({ settings, onSettingsChange }: Props) {
   }, []);
 
   const active = presets.find((p) => p.id === settings.llm.preset);
-  const activeSttSecret =
-    STT_PROVIDERS.find((p) => p.id === settings.stt.provider)?.secret ?? "soniox";
+  const activeStt = STT_PROVIDERS.find((p) => p.id === settings.stt.provider);
+  const activeSttSecret = activeStt?.secret ?? "soniox";
+  const activeSttModel =
+    settings.stt.provider === "soniox" ? settings.stt.soniox_model : settings.stt.deepgram_model;
 
   const selectPreset = (id: string) => {
     const preset = presets.find((p) => p.id === id);
@@ -132,6 +134,34 @@ export function ProvidersEditor({ settings, onSettingsChange }: Props) {
             </label>
           ))}
         </div>
+
+        {activeStt && activeStt.fallbackModels.length > 0 && (
+          <div className="row" style={{ marginTop: 14 }}>
+            <div>
+              <div className="row__label">{t.providers.model}</div>
+              <span className="row__hint">{t.providers.sttModelHint}</span>
+            </div>
+            <div className="row__control">
+              <ModelPicker
+                fallback={activeStt.fallbackModels}
+                preset={`stt:${activeStt.id}:${keys[activeStt.secret] ? "key" : "nokey"}`}
+                value={activeSttModel}
+                fetcher={() => api.listSttModels(settings.stt)}
+                onChange={(model) =>
+                  onSettingsChange({
+                    ...settings,
+                    stt: {
+                      ...settings.stt,
+                      ...(activeStt.id === "soniox"
+                        ? { soniox_model: model }
+                        : { deepgram_model: model }),
+                    },
+                  })
+                }
+              />
+            </div>
+          </div>
+        )}
 
         <div className="row row--tight" style={{ marginTop: 14 }}>
           <div>
@@ -396,22 +426,30 @@ function ModelPicker({
   preset,
   value,
   onChange,
+  fetcher = api.listModels,
 }: {
   fallback: string[];
+  /** Changes whenever the list must be re-fetched (provider or key switched). */
   preset: string;
   value: string;
   onChange: (model: string) => void;
+  /** Where the live list comes from; defaults to the AI-cleanup provider's. */
+  fetcher?: () => Promise<string[]>;
 }) {
   const t = useT();
   const [models, setModels] = useState<string[]>(fallback);
   const [live, setLive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [custom, setCustom] = useState(false);
+  // The caller's closure changes with every settings edit; the ref keeps `load` stable
+  // while still reading the provider the user has selected right now.
+  const fetcherRef = useRef(fetcher);
+  fetcherRef.current = fetcher;
 
   const load = useCallback(() => {
     setLoading(true);
-    api
-      .listModels()
+    fetcherRef
+      .current()
       .then((list) => {
         setModels(list);
         setLive(true);

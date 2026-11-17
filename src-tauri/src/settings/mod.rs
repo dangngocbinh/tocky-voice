@@ -25,7 +25,7 @@ pub enum SttProviderKind {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SttSettings {
     pub provider: SttProviderKind,
-    /// Soniox realtime model; `stt-rt-preview` handles Vietnamese/English code-switching.
+    /// Soniox realtime model, picked from the provider's live list (`stt-rt-v6` at time of writing).
     pub soniox_model: String,
     /// Deepgram model. `nova-2` is the one with Vietnamese support (`nova-3` is English-centric).
     pub deepgram_model: String,
@@ -340,6 +340,7 @@ pub fn load(app: &AppHandle) -> AppSettings {
         Ok(mut s) => {
             restore_missing_dictation_hotkey(&mut s);
             restore_missing_read_hotkey(&mut s);
+            replace_retired_soniox_model(&mut s);
             s
         }
         Err(e) => {
@@ -347,6 +348,17 @@ pub fn load(app: &AppHandle) -> AppSettings {
             let _ = std::fs::write(path.with_extension("json.bak"), &raw);
             defaults::default_settings()
         }
+    }
+}
+
+/// Settings written by early builds name `stt-rt-preview`, which Soniox no longer lists
+/// among its models; it would be rejected at connect time as an unknown model. It is
+/// moved to the current default once, and the user can pick any other model afterwards.
+fn replace_retired_soniox_model(settings: &mut AppSettings) {
+    if settings.stt.soniox_model == "stt-rt-preview" {
+        let replacement = defaults::default_settings().stt.soniox_model;
+        log::info!("soniox model stt-rt-preview is retired; using {replacement}");
+        settings.stt.soniox_model = replacement;
     }
 }
 
@@ -441,6 +453,18 @@ mod tests {
         let parsed: AppSettings = serde_json::from_value(raw).unwrap();
 
         assert!(parsed.hotkeys.toggle.is_some());
+    }
+
+    #[test]
+    fn the_retired_soniox_preview_model_is_replaced_but_a_chosen_one_is_kept() {
+        let mut settings = defaults::default_settings();
+        settings.stt.soniox_model = "stt-rt-preview".into();
+        replace_retired_soniox_model(&mut settings);
+        assert_eq!(settings.stt.soniox_model, defaults::default_settings().stt.soniox_model);
+
+        settings.stt.soniox_model = "stt-rt-v5".into();
+        replace_retired_soniox_model(&mut settings);
+        assert_eq!(settings.stt.soniox_model, "stt-rt-v5");
     }
 
     #[test]

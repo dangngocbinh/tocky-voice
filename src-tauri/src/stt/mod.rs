@@ -7,6 +7,7 @@
 
 pub mod assemblyai;
 pub mod deepgram;
+pub mod models;
 pub mod soniox;
 
 use crate::audio::capture::TARGET_SAMPLE_RATE;

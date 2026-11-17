@@ -220,6 +220,9 @@ export const STT_PROVIDERS: {
   freeCredit: string | null;
   /** Streaming price in USD per hour, so the trade-off is comparable at a glance. */
   hourlyUsd: number;
+  /** Offline fallback for the model picker; the live list from the provider replaces
+   *  it. Empty when the provider has no model to choose. */
+  fallbackModels: string[];
 }[] = [
   {
     id: "soniox",
@@ -229,6 +232,7 @@ export const STT_PROVIDERS: {
     badge: "best_vietnamese",
     freeCredit: null,
     hourlyUsd: 0.12,
+    fallbackModels: ["stt-rt-v6", "stt-rt-v5"],
   },
   {
     id: "deepgram",
@@ -238,6 +242,7 @@ export const STT_PROVIDERS: {
     badge: "free_credit",
     freeCredit: "$200",
     hourlyUsd: 0.29,
+    fallbackModels: ["nova-3", "nova-2"],
   },
   {
     id: "assembly_ai",
@@ -247,6 +252,7 @@ export const STT_PROVIDERS: {
     badge: "free_credit",
     freeCredit: "$50",
     hourlyUsd: 0.15,
+    fallbackModels: [],
   },
 ];
 
