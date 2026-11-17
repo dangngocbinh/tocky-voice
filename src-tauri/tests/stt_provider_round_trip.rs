@@ -43,7 +43,7 @@ fn load_wav() -> Vec<i16> {
 fn settings(provider: SttProviderKind) -> SttSettings {
     SttSettings {
         provider,
-        soniox_model: "stt-rt-preview".into(),
+        soniox_model: "stt-rt-v6".into(),
         deepgram_model: "nova-2".into(),
         language: "vi".into(),
         language_hints: vec!["vi".into(), "en".into()],

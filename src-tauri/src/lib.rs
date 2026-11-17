@@ -187,6 +187,7 @@ pub fn run() {
             commands::open_url,
             commands::test_llm,
             commands::test_stt_key,
+            commands::list_stt_models,
             commands::list_models,
             commands::show_main_window,
             commands::suspend_hotkeys,
