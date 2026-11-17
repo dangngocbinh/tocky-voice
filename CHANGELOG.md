@@ -9,6 +9,40 @@ notes are read by users, not by the people who wrote the code. English goes in a
 `### English` subsection at the end of the same release, as the secondary version.
 Entries before 0.4.0 predate this and are English only.
 
+## [0.5.6] - 2026-11-17
+
+### Mới
+
+- **Chọn được model nhận dạng giọng nói, và model mới tự hiện ra.** Trong Cài đặt → Nhà
+  cung cấp, phần Giọng nói giờ có ô **Model**. Danh sách được lấy trực tiếp từ Soniox
+  hoặc Deepgram mỗi khi bạn mở, nên hãng ra model mới là bạn chọn được ngay, không phải
+  chờ app cập nhật. Chưa có key hoặc mất mạng thì app dùng danh sách có sẵn.
+- **Dùng được Soniox v6 (`stt-rt-v6`), chính xác hơn bản trước.** Soniox v6 ra ngày
+  3/11/2026: nhận dạng chính xác hơn trên các ngôn ngữ, hiểu ngữ cảnh tốt hơn và nhận
+  đa ngôn ngữ mạnh hơn, hợp với câu nói pha tiếng Việt lẫn tiếng Anh. Số tiền và mã số
+  cũng được viết sát cách đọc hơn. Giá vẫn như cũ. Bản này mặc định dùng v6, và ai đang
+  dùng `stt-rt-preview` (tên cũ không còn trong danh sách của Soniox) được chuyển sang v6
+  một lần. Model bạn đã tự chọn thì giữ nguyên. Soniox sẽ ngừng v5 vào 15/12/2026.
+
+### Bảo mật
+
+- Cập nhật các thư viện mã hoá kết nối (`rustls`, `quinn`, chứng chỉ gốc) lên bản vá,
+  gồm lỗi chấp nhận chứng chỉ trung gian đã bị thu hồi.
+
+### English
+
+- **Pick the speech model, and new models show up on their own.** Settings → Providers →
+  Speech now has a **Model** picker fed live from Soniox or Deepgram, so a model released
+  today is selectable today without an app update. With no key or offline it falls back to
+  a built-in list.
+- **Soniox v6 (`stt-rt-v6`) is available and is the new default.** It is more accurate
+  across languages, uses context better and handles mixed-language speech more strongly,
+  which suits Vietnamese with English mixed in; prices and codes are written closer to how
+  they are spoken. Same price. Anyone still on the retired `stt-rt-preview` is moved to v6
+  once; a model you chose yourself is kept. Soniox retires v5 on 15 Dec 2026.
+- **Security:** TLS and QUIC dependencies updated to patched releases, including a fix for
+  certificate verification accepting distrusted intermediates.
+
 ## [0.5.5] - 2026-11-10
 
 ### Sửa
